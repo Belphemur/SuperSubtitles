@@ -10,6 +10,7 @@ import (
 type Config struct {
 	ProxyConnectionString string `mapstructure:"proxy_connection_string"`
 	SuperSubtitleDomain   string `mapstructure:"super_subtitle_domain"`
+	ClientTimeout         string `mapstructure:"client_timeout"` // Go duration string like "30s", "1h", etc.
 	Server                struct {
 		Port    int    `mapstructure:"port"`
 		Address string `mapstructure:"address"`
