@@ -330,10 +330,10 @@ func TestClient_GetSubtitles(t *testing.T) {
 		}
 	}`
 
-	// Create a test server that returns the sample JSON
+	// Create a test server that returns the sample JSON for any subtitle ID
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request is for the correct endpoint
-		if r.URL.Path == "/index.php" && r.URL.Query().Get("action") == "letolt" && r.URL.Query().Get("felirat") == "12345" {
+		// Respond with sample JSON for any request to /index.php
+		if r.URL.Path == "/index.php" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(jsonResponse))
@@ -397,6 +397,11 @@ func TestClient_GetSubtitles(t *testing.T) {
 		if first.IsSeasonPack {
 			t.Errorf("Expected first subtitle IsSeasonPack false, got %t", first.IsSeasonPack)
 		}
+		// Assert DownloadURL is correct
+		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431909"
+		if first.DownloadURL != expectedURL {
+			t.Errorf("Expected first subtitle DownloadURL '%s', got '%s'", expectedURL, first.DownloadURL)
+		}
 	}
 
 	// Test second subtitle
@@ -410,6 +415,11 @@ func TestClient_GetSubtitles(t *testing.T) {
 		}
 		if !second.IsSeasonPack {
 			t.Errorf("Expected second subtitle IsSeasonPack true, got %t", second.IsSeasonPack)
+		}
+		// Assert DownloadURL is correct
+		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431932"
+		if second.DownloadURL != expectedURL {
+			t.Errorf("Expected second subtitle DownloadURL '%s', got '%s'", expectedURL, second.DownloadURL)
 		}
 	}
 }
