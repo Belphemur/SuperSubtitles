@@ -144,6 +144,10 @@ func (c *DefaultSubtitleConverter) convertLanguageToISO(language string) string 
 
 // buildDownloadURL constructs the download URL for a subtitle
 func (c *DefaultSubtitleConverter) buildDownloadURL(baseLink, subtitleID string) string {
+	// Avoid duplicate /index.php in the URL
+	if strings.HasSuffix(baseLink, "/index.php") {
+		return baseLink + "?action=letolt&felirat=" + subtitleID
+	}
 	return baseLink + "/index.php?action=letolt&felirat=" + subtitleID
 }
 

@@ -108,8 +108,7 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 	logger.Info().Int("showID", showID).Msg("Fetching subtitles for show")
 
 	// Construct the URL for fetching subtitles
-	// The correct API endpoint is: /index.php?action=letolt&felirat={showID}
-	endpoint := fmt.Sprintf("%s/index.php?action=letolt&felirat=%d", c.baseURL, showID)
+	endpoint := fmt.Sprintf("%s/index.php?action=xbmc&sid=%d", c.baseURL, showID)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
@@ -117,7 +116,7 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 	}
 
 	// Set user agent to avoid being blocked
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.4472.124 Safari/537.36")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -127,6 +126,10 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	// If content length is zero, treat as not found
+	if resp.ContentLength == 0 {
+		return nil, NewNotFoundError("subtitles", showID)
 	}
 
 	// Parse JSON response into SuperSubtitleResponse
