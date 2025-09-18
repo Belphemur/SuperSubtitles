@@ -127,11 +127,11 @@ func TestClient_GetShowList(t *testing.T) {
 
 	// Test specific shows
 	expectedShows := []models.Show{
-		{Name: "7 Bears", ID: "12190", Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
-		{Name: "#1 Happy Family USA", ID: "12347", Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
-		{Name: "A Thousand Blows", ID: "12549", Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
-		{Name: "Adults", ID: "12076", Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
-		{Name: "Asura", ID: "12007", Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
+		{Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
+		{Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
+		{Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
+		{Name: "Adults", ID: 12076, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
+		{Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
 	}
 
 	for i, expected := range expectedShows {
@@ -145,7 +145,7 @@ func TestClient_GetShowList(t *testing.T) {
 			t.Errorf("Show %d: expected name %q, got %q", i, expected.Name, actual.Name)
 		}
 		if actual.ID != expected.ID {
-			t.Errorf("Show %d: expected ID %q, got %q", i, expected.ID, actual.ID)
+			t.Errorf("Show %d: expected ID %d, got %d", i, expected.ID, actual.ID)
 		}
 		if actual.Year != expected.Year {
 			t.Errorf("Show %d: expected year %d, got %d", i, expected.Year, actual.Year)
@@ -298,5 +298,180 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 	// Should still get the show
 	if len(shows) != 1 {
 		t.Errorf("Expected 1 show with proxy config, got %d", len(shows))
+	}
+}
+
+func TestClient_GetSubtitles(t *testing.T) {
+	// Sample JSON response based on the SuperSubtitles API
+	jsonResponse := `{
+		"2": {
+			"language": "Angol",
+			"nev": "Outlander (Season 1) (1080p)",
+			"baselink": "https://feliratok.eu/index.php",
+			"fnev": "Outlander.S01.HDTV.720p.1080p.ENG.zip",
+			"felirat": "1435431909",
+			"evad": "1",
+			"ep": "1",
+			"feltolto": "J1GG4",
+			"pontos_talalat": "111",
+			"evadpakk": "0"
+		},
+		"1": {
+			"language": "Magyar",
+			"nev": "Outlander (Season 1) (720p)",
+			"baselink": "https://feliratok.eu/index.php",
+			"fnev": "Outlander.S01.HDTV.720p.HUN.zip",
+			"felirat": "1435431932",
+			"evad": "1",
+			"ep": "-1",
+			"feltolto": "BCsilla",
+			"pontos_talalat": "111",
+			"evadpakk": "1"
+		}
+	}`
+
+	// Create a test server that returns the sample JSON
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the request is for the correct endpoint
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("action") == "letolt" && r.URL.Query().Get("felirat") == "12345" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(jsonResponse))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call GetSubtitles
+	ctx := context.Background()
+	subtitles, err := client.GetSubtitles(ctx, 12345)
+
+	// Test that the call succeeds
+	if err != nil {
+		t.Fatalf("GetSubtitles failed: %v", err)
+	}
+
+	// Test that we got the expected subtitle collection
+	if subtitles == nil {
+		t.Fatal("Expected subtitle collection, got nil")
+	}
+
+	// Test basic properties
+	if subtitles.Total != 2 {
+		t.Errorf("Expected 2 subtitles, got %d", subtitles.Total)
+	}
+
+	if subtitles.ShowName != "Outlander" {
+		t.Errorf("Expected show name 'Outlander', got '%s'", subtitles.ShowName)
+	}
+
+	if len(subtitles.Subtitles) != 2 {
+		t.Errorf("Expected 2 subtitles in collection, got %d", len(subtitles.Subtitles))
+	}
+
+	// Test first subtitle
+	if len(subtitles.Subtitles) > 0 {
+		first := subtitles.Subtitles[0]
+		if first.Language != "en" {
+			t.Errorf("Expected first subtitle language 'en', got '%s'", first.Language)
+		}
+		if first.Quality != models.Quality1080p {
+			t.Errorf("Expected first subtitle quality 1080p, got %v", first.Quality)
+		}
+		if first.Season != 1 {
+			t.Errorf("Expected first subtitle season 1, got %d", first.Season)
+		}
+		if first.Episode != 1 {
+			t.Errorf("Expected first subtitle episode 1, got %d", first.Episode)
+		}
+		if first.IsSeasonPack {
+			t.Errorf("Expected first subtitle IsSeasonPack false, got %t", first.IsSeasonPack)
+		}
+	}
+
+	// Test second subtitle
+	if len(subtitles.Subtitles) > 1 {
+		second := subtitles.Subtitles[1]
+		if second.Language != "hu" {
+			t.Errorf("Expected second subtitle language 'hu', got '%s'", second.Language)
+		}
+		if second.Quality != models.Quality720p {
+			t.Errorf("Expected second subtitle quality 720p, got %v", second.Quality)
+		}
+		if !second.IsSeasonPack {
+			t.Errorf("Expected second subtitle IsSeasonPack true, got %t", second.IsSeasonPack)
+		}
+	}
+}
+
+func TestClient_GetSubtitles_ServerError(t *testing.T) {
+	// Create a test server that returns an error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call GetSubtitles
+	ctx := context.Background()
+	subtitles, err := client.GetSubtitles(ctx, 12345)
+
+	// Test that the call fails with an error
+	if err == nil {
+		t.Fatal("Expected GetSubtitles to fail with server error, but it succeeded")
+	}
+
+	if subtitles != nil {
+		t.Errorf("Expected subtitles to be nil on error, got %v", subtitles)
+	}
+}
+
+func TestClient_GetSubtitles_InvalidJSON(t *testing.T) {
+	// Create a test server that returns invalid JSON
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call GetSubtitles
+	ctx := context.Background()
+	subtitles, err := client.GetSubtitles(ctx, 12345)
+
+	// Test that the call fails with JSON decode error
+	if err == nil {
+		t.Fatal("Expected GetSubtitles to fail with JSON decode error, but it succeeded")
+	}
+
+	if subtitles != nil {
+		t.Errorf("Expected subtitles to be nil on error, got %v", subtitles)
 	}
 }

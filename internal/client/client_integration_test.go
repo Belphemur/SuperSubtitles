@@ -48,8 +48,8 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 
 	// Verify that shows have basic required fields
 	for i, show := range shows {
-		if show.ID == "" {
-			t.Errorf("Show %d: ID is empty", i)
+		if show.ID == 0 {
+			t.Errorf("Show %d: ID is 0", i)
 		}
 		if show.Name == "" {
 			t.Errorf("Show %d: Name is empty", i)
@@ -61,7 +61,7 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 
 		// Log first few shows for debugging
 		if i < 3 {
-			t.Logf("Show %d: ID=%s, Name=%s, Year=%d", i, show.ID, show.Name, show.Year)
+			t.Logf("Show %d: ID=%d, Name=%s, Year=%d", i, show.ID, show.Name, show.Year)
 		}
 	}
 
