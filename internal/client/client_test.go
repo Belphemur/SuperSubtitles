@@ -11,93 +11,37 @@ import (
 )
 
 func TestClient_GetShowList(t *testing.T) {
-	// Sample HTML content based on the SuperSubtitles website structure
-	htmlContent := `
-		<html>
-		<body>
-			<table>
-				<tbody>
-					<tr>
-						<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-							2025
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12190"><img class="kategk" src="sorozat_cat.php?kep=12190"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								7 Bears
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #fff">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12347"><img class="kategk" src="sorozat_cat.php?kep=12347"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								#1 Happy Family USA
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12549"><img class="kategk" src="sorozat_cat.php?kep=12549"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								A Thousand Blows
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #fff">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12076"><img class="kategk" src="sorozat_cat.php?kep=12076"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								Adults
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr>
-						<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-							2024
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12007"><img class="kategk" src="sorozat_cat.php?kep=12007"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								Asura
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</body>
-		</html>
-	`
+	// HTML for waiting (varakozik) endpoint
+	waitingHTML := `
+		<html><body><table><tbody>
+		<tr><td colspan="10">2025</td></tr>
+		<tr><td><a href="index.php?sid=12190"><img src="sorozat_cat.php?kep=12190"/></a></td><td class="sangol"><div>7 Bears</div></td></tr>
+		<tr><td><a href="index.php?sid=12347"><img src="sorozat_cat.php?kep=12347"/></a></td><td class="sangol"><div>#1 Happy Family USA</div></td></tr>
+		<tr><td><a href="index.php?sid=12549"><img src="sorozat_cat.php?kep=12549"/></a></td><td class="sangol"><div>A Thousand Blows</div></td></tr>
+		</tbody></table></body></html>`
 
-	// Create a test server that returns the sample HTML
+	// HTML for under translation (alatt) endpoint
+	underHTML := `
+		<html><body><table><tbody>
+		<tr><td colspan="10">2024</td></tr>
+		<tr><td><a href="index.php?sid=12076"><img src="sorozat_cat.php?kep=12076"/></a></td><td class="sangol"><div>Adults</div></td></tr>
+		<tr><td><a href="index.php?sid=12007"><img src="sorozat_cat.php?kep=12007"/></a></td><td class="sangol"><div>Asura</div></td></tr>
+		</tbody></table></body></html>`
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request is for the correct endpoint
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(htmlContent))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(waitingHTML))
+			return
 		}
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(underHTML))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
@@ -125,12 +69,12 @@ func TestClient_GetShowList(t *testing.T) {
 		t.Errorf("Expected %d shows, got %d", expectedCount, len(shows))
 	}
 
-	// Test specific shows
+	// Test specific shows (order: from first endpoint then second)
 	expectedShows := []models.Show{
 		{Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
 		{Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
 		{Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
-		{Name: "Adults", ID: 12076, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
+		{Name: "Adults", ID: 12076, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
 		{Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
 	}
 
@@ -183,6 +127,41 @@ func TestClient_GetShowList_ServerError(t *testing.T) {
 
 	if shows != nil {
 		t.Errorf("Expected shows to be nil on error, got %v", shows)
+	}
+}
+
+func TestClient_GetShowList_PartialFailure(t *testing.T) {
+	// One endpoint succeeds, the other fails (500)
+	waitingHTML := `<html><body><table><tbody><tr><td colspan="10">2025</td></tr><tr><td><a href="index.php?sid=999"><img src="sorozat_cat.php?kep=999"/></a></td><td class="sangol"><div>Only Show</div></td></tr></tbody></table></body></html>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(waitingHTML))
+			return
+		}
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{SuperSubtitleDomain: server.URL, ClientTimeout: "5s"}
+	client := NewClient(testConfig)
+	ctx := context.Background()
+	shows, err := client.GetShowList(ctx)
+
+	if err != nil { // Should not fail completely when one endpoint succeeds
+		t.Fatalf("Expected partial success without error, got: %v", err)
+	}
+	if len(shows) != 1 {
+		t.Fatalf("Expected 1 show from successful endpoint, got %d", len(shows))
+	}
+	if shows[0].Name != "Only Show" || shows[0].ID != 999 {
+		t.Errorf("Unexpected show data: %+v", shows[0])
 	}
 }
 
