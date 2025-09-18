@@ -75,8 +75,9 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 
 	// Endpoints to query in parallel. Both have the same table format.
 	endpoints := []string{
-		fmt.Sprintf("%s/index.php?sorf=varakozik-subrip", c.baseURL), // pending / waiting
-		fmt.Sprintf("%s/index.php?sorf=alatt-subrip", c.baseURL),     // in progress / under
+		fmt.Sprintf("%s/index.php?sorf=varakozik-subrip", c.baseURL),       // pending / waiting
+		fmt.Sprintf("%s/index.php?sorf=alatt-subrip", c.baseURL),           // in progress / under
+		fmt.Sprintf("%s/index.php?sorf=nem-all-forditas-alatt", c.baseURL), // not all translated / under
 	}
 
 	type result struct {
