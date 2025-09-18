@@ -62,7 +62,7 @@ func (p *ShowParser) ParseHtml(body io.Reader) ([]models.Show, error) {
 				if show := p.extractShowFromGoquery(link, currentYear); show != nil {
 					shows = append(shows, *show)
 					logger.Debug().
-						Str("id", show.ID).
+						Int("id", show.ID).
 						Str("name", show.Name).
 						Int("year", show.Year).
 						Msg("Successfully extracted show")
@@ -91,42 +91,42 @@ func (p *ShowParser) extractShowFromGoquery(link *goquery.Selection, year int) *
 	logger.Debug().Str("href", href).Msg("Processing show link")
 
 	id := p.extractIDFromHref(href)
-	if id == "" {
+	if id == 0 {
 		logger.Debug().Str("href", href).Msg("Failed to extract show ID from href")
 		return nil
 	}
 
-	logger.Debug().Str("id", id).Msg("Extracted show ID")
+	logger.Debug().Int("id", id).Msg("Extracted show ID")
 
 	// Extract image URL from img src
 	img := link.Find("img")
 	if img.Length() == 0 {
-		logger.Debug().Str("id", id).Msg("No image found for show")
+		logger.Debug().Int("id", id).Msg("No image found for show")
 		return nil
 	}
 
 	imgSrc, exists := img.Attr("src")
 	if !exists {
-		logger.Debug().Str("id", id).Msg("Image missing src attribute")
+		logger.Debug().Int("id", id).Msg("Image missing src attribute")
 		return nil
 	}
 
 	imageURL := p.extractImageURL(imgSrc)
 	if imageURL == "" {
-		logger.Debug().Str("id", id).Str("imgSrc", imgSrc).Msg("Failed to construct image URL")
+		logger.Debug().Int("id", id).Str("imgSrc", imgSrc).Msg("Failed to construct image URL")
 		return nil
 	}
 
-	logger.Debug().Str("id", id).Str("imageURL", imageURL).Msg("Extracted image URL")
+	logger.Debug().Int("id", id).Str("imageURL", imageURL).Msg("Extracted image URL")
 
 	// Find the show name - it's usually in the next td.sangol element
 	name := p.extractShowNameFromGoquery(link)
 	if name == "" {
-		logger.Debug().Str("id", id).Msg("No show name found, using fallback")
-		name = fmt.Sprintf("Show %s", id) // Fallback
+		logger.Debug().Int("id", id).Msg("No show name found, using fallback")
+		name = fmt.Sprintf("Show %d", id) // Fallback
 	}
 
-	logger.Debug().Str("id", id).Str("name", name).Msg("Final show name")
+	logger.Debug().Int("id", id).Str("name", name).Msg("Final show name")
 
 	return &models.Show{
 		Name:     name,
@@ -137,16 +137,19 @@ func (p *ShowParser) extractShowFromGoquery(link *goquery.Selection, year int) *
 }
 
 // extractIDFromHref extracts the show ID from href attribute
-func (p *ShowParser) extractIDFromHref(href string) string {
+func (p *ShowParser) extractIDFromHref(href string) int {
 	logger := config.GetLogger()
 	const prefix = "index.php?sid="
 	if idx := strings.Index(href, prefix); idx != -1 {
-		id := href[idx+len(prefix):]
-		logger.Debug().Str("href", href).Str("id", id).Msg("Extracted ID from href")
-		return id
+		idStr := href[idx+len(prefix):]
+		if id, err := strconv.Atoi(idStr); err == nil {
+			logger.Debug().Str("href", href).Int("id", id).Msg("Extracted ID from href")
+			return id
+		}
+		logger.Debug().Str("href", href).Str("idStr", idStr).Msg("Failed to convert ID to integer")
 	}
 	logger.Debug().Str("href", href).Str("prefix", prefix).Msg("Prefix not found in href")
-	return ""
+	return 0
 }
 
 // extractImageURL extracts the full image URL from src attribute

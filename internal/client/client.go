@@ -4,7 +4,9 @@ import (
 	"SuperSubtitles/internal/config"
 	"SuperSubtitles/internal/models"
 	"SuperSubtitles/internal/parser"
+	"SuperSubtitles/internal/services"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,13 +16,15 @@ import (
 // Client defines the interface for querying the SuperSubtitles website
 type Client interface {
 	GetShowList(ctx context.Context) ([]models.Show, error)
+	GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 }
 
 // client implements the Client interface
 type client struct {
-	httpClient *http.Client
-	baseURL    string
-	parser     parser.Parser[models.Show]
+	httpClient        *http.Client
+	baseURL           string
+	parser            parser.Parser[models.Show]
+	subtitleConverter services.SubtitleConverter
 }
 
 // NewClient creates a new client instance with proxy configuration if provided
@@ -55,9 +59,10 @@ func NewClient(cfg *config.Config) Client {
 	}
 
 	return &client{
-		httpClient: httpClient,
-		baseURL:    cfg.SuperSubtitleDomain,
-		parser:     parser.NewShowParser(cfg.SuperSubtitleDomain),
+		httpClient:        httpClient,
+		baseURL:           cfg.SuperSubtitleDomain,
+		parser:            parser.NewShowParser(cfg.SuperSubtitleDomain),
+		subtitleConverter: services.NewSubtitleConverter(),
 	}
 }
 
@@ -95,4 +100,44 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 
 	logger.Info().Int("count", len(shows)).Msg("Successfully fetched shows")
 	return shows, nil
+}
+
+// GetSubtitles retrieves subtitles for a given show ID from the SuperSubtitles website
+func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error) {
+	logger := config.GetLogger()
+	logger.Info().Int("showID", showID).Msg("Fetching subtitles for show")
+
+	// Construct the URL for fetching subtitles
+	// The correct API endpoint is: /index.php?action=letolt&felirat={showID}
+	endpoint := fmt.Sprintf("%s/index.php?action=letolt&felirat=%d", c.baseURL, showID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set user agent to avoid being blocked
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch subtitles: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	// Parse JSON response into SuperSubtitleResponse
+	var superSubtitleResponse models.SuperSubtitleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&superSubtitleResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
+	}
+
+	// Convert to our normalized subtitle collection
+	subtitleCollection := c.subtitleConverter.ConvertResponse(superSubtitleResponse)
+
+	logger.Info().Int("count", subtitleCollection.Total).Str("showName", subtitleCollection.ShowName).Msg("Successfully fetched subtitles")
+	return &subtitleCollection, nil
 }

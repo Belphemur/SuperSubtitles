@@ -40,7 +40,7 @@ func main() {
 			break
 		}
 		logger.Info().
-			Str("id", show.ID).
+			Int("id", show.ID).
 			Str("name", show.Name).
 			Int("year", show.Year).
 			Str("image_url", show.ImageURL).

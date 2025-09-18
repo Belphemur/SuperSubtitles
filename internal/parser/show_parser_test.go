@@ -101,11 +101,11 @@ func TestShowParser_ParseHtml(t *testing.T) {
 
 	// Test specific shows
 	expectedShows := []models.Show{
-		{Name: "7 Bears", ID: "12190", Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12190"},
-		{Name: "#1 Happy Family USA", ID: "12347", Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12347"},
-		{Name: "A Thousand Blows", ID: "12549", Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12549"},
-		{Name: "Adults", ID: "12076", Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12076"},
-		{Name: "Asura", ID: "12007", Year: 2024, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12007"},
+		{Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12190"},
+		{Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12347"},
+		{Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12549"},
+		{Name: "Adults", ID: 12076, Year: 2025, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12076"},
+		{Name: "Asura", ID: 12007, Year: 2024, ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12007"},
 	}
 
 	for i, expected := range expectedShows {
@@ -276,7 +276,7 @@ func TestShowParser_ParseHtml_Simple(t *testing.T) {
 
 	expected := models.Show{
 		Name:     "Test Show",
-		ID:       "12345",
+		ID:       12345,
 		Year:     2025,
 		ImageURL: "https://feliratok.eu/sorozat_cat.php?kep=12345",
 	}
@@ -301,19 +301,20 @@ func TestShowParser_extractIDFromHref(t *testing.T) {
 
 	tests := []struct {
 		href     string
-		expected string
+		expected int
 	}{
-		{"index.php?sid=12345", "12345"},
-		{"index.php?sid=abc123", "abc123"},
-		{"index.php?sid=", ""},
-		{"other.php?sid=12345", ""},
-		{"index.php?other=12345", ""},
+		{"index.php?sid=12345", 12345},
+		{"index.php?sid=123", 123},
+		{"index.php?sid=", 0},
+		{"index.php?sid=abc123", 0}, // Invalid number should return 0
+		{"other.php?sid=12345", 0},
+		{"index.php?other=12345", 0},
 	}
 
 	for _, test := range tests {
 		result := parser.extractIDFromHref(test.href)
 		if result != test.expected {
-			t.Errorf("extractIDFromHref(%q) = %q, expected %q", test.href, result, test.expected)
+			t.Errorf("extractIDFromHref(%q) = %d, expected %d", test.href, result, test.expected)
 		}
 	}
 }
