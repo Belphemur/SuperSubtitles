@@ -176,18 +176,24 @@ func (p *ShowParser) extractShowNameFromGoquery(link *goquery.Selection) string 
 
 	logger.Debug().Msg("Searching for show name in table row")
 
-	// Find the td.sangol that comes after the td containing the image
+	// Get the href of our link for matching
+	linkHref, _ := link.Attr("href")
+
+	// Find all td elements in the row
 	var showName string
+	foundLink := false
+
 	parentTR.Find("td").Each(func(i int, td *goquery.Selection) {
 		// Check if this td contains our link
-		if td.Find(`a[href*="`+link.AttrOr("href", "")+`"]`).Length() > 0 {
+		if td.Find(`a[href="`+linkHref+`"]`).Length() > 0 {
 			logger.Debug().Int("tdIndex", i).Msg("Found td containing show link")
-			return
+			foundLink = true
+			// Don't return here - continue to find the corresponding name cell
 		}
 
-		// Check if this is a td.sangol (name cell)
-		if td.HasClass("sangol") {
-			logger.Debug().Int("tdIndex", i).Msg("Found td.sangol element")
+		// If we found our link in a previous td, the next td.sangol should contain the name
+		if foundLink && td.HasClass("sangol") {
+			logger.Debug().Int("tdIndex", i).Msg("Found td.sangol element after link")
 			div := td.Find("div").First()
 			if div.Length() > 0 {
 				name := strings.TrimSpace(div.Text())
@@ -202,6 +208,7 @@ func (p *ShowParser) extractShowNameFromGoquery(link *goquery.Selection) string 
 			} else {
 				logger.Debug().Int("tdIndex", i).Msg("td.sangol has no div element")
 			}
+			// Don't return here either - there might be multiple td.sangol elements
 		}
 	})
 
