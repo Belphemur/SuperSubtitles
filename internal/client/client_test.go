@@ -578,3 +578,217 @@ func TestClient_GetSubtitles_InvalidJSON(t *testing.T) {
 		t.Errorf("Expected subtitles to be nil on error, got %v", subtitles)
 	}
 }
+func TestClient_CheckForUpdates(t *testing.T) {
+	// Sample JSON response for update check
+	jsonResponse := `{"film":"2","sorozat":"5"}`
+
+	// Create a test server that returns the sample JSON for update check
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(jsonResponse))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, "1760700519")
+
+	// Test that the call succeeds
+	if err != nil {
+		t.Fatalf("CheckForUpdates failed: %v", err)
+	}
+
+	// Test that we got the expected result
+	if result == nil {
+		t.Fatal("Expected update check result, got nil")
+	}
+
+	// Test the counts
+	if result.FilmCount != 2 {
+		t.Errorf("Expected film count 2, got %d", result.FilmCount)
+	}
+	if result.SeriesCount != 5 {
+		t.Errorf("Expected series count 5, got %d", result.SeriesCount)
+	}
+	if !result.HasUpdates {
+		t.Errorf("Expected HasUpdates to be true, got %t", result.HasUpdates)
+	}
+}
+
+func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
+	// Sample JSON response for update check
+	jsonResponse := `{"film":"0","sorozat":"1"}`
+
+	// Create a test server that returns the sample JSON for update check
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(jsonResponse))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates with "a_" prefix (should be trimmed)
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, "a_1760700519")
+
+	// Test that the call succeeds
+	if err != nil {
+		t.Fatalf("CheckForUpdates failed: %v", err)
+	}
+
+	// Test that we got the expected result
+	if result == nil {
+		t.Fatal("Expected update check result, got nil")
+	}
+
+	// Test the counts
+	if result.FilmCount != 0 {
+		t.Errorf("Expected film count 0, got %d", result.FilmCount)
+	}
+	if result.SeriesCount != 1 {
+		t.Errorf("Expected series count 1, got %d", result.SeriesCount)
+	}
+	if !result.HasUpdates {
+		t.Errorf("Expected HasUpdates to be true, got %t", result.HasUpdates)
+	}
+}
+
+func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
+	// Sample JSON response for no updates
+	jsonResponse := `{"film":"0","sorozat":"0"}`
+
+	// Create a test server that returns the sample JSON for update check
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(jsonResponse))
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, "1760700519")
+
+	// Test that the call succeeds
+	if err != nil {
+		t.Fatalf("CheckForUpdates failed: %v", err)
+	}
+
+	// Test that we got the expected result
+	if result == nil {
+		t.Fatal("Expected update check result, got nil")
+	}
+
+	// Test the counts
+	if result.FilmCount != 0 {
+		t.Errorf("Expected film count 0, got %d", result.FilmCount)
+	}
+	if result.SeriesCount != 0 {
+		t.Errorf("Expected series count 0, got %d", result.SeriesCount)
+	}
+	if result.HasUpdates {
+		t.Errorf("Expected HasUpdates to be false, got %t", result.HasUpdates)
+	}
+}
+
+func TestClient_CheckForUpdates_ServerError(t *testing.T) {
+	// Create a test server that returns an error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, "1760700519")
+
+	// Test that the call fails with an error
+	if err == nil {
+		t.Fatal("Expected CheckForUpdates to fail with server error, but it succeeded")
+	}
+
+	if result != nil {
+		t.Errorf("Expected result to be nil on error, got %v", result)
+	}
+}
+
+func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
+	// Create a test server that returns invalid JSON
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, "1760700519")
+
+	// Test that the call fails with JSON decode error
+	if err == nil {
+		t.Fatal("Expected CheckForUpdates to fail with JSON decode error, but it succeeded")
+	}
+
+	if result != nil {
+		t.Errorf("Expected result to be nil on error, got %v", result)
+	}
+}

@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -20,6 +22,7 @@ type Client interface {
 	GetShowList(ctx context.Context) ([]models.Show, error)
 	GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	GetShowSubtitles(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
+	CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
 }
 
 // client implements the Client interface
@@ -348,4 +351,62 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 	}
 
 	return showSubtitlesList, errs
+}
+
+// CheckForUpdates checks if there are any updates available since a specific content ID
+func (c *client) CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error) {
+	logger := config.GetLogger()
+
+	// Clean the content ID - remove "a_" prefix if present
+	cleanContentID := contentID
+	if strings.HasPrefix(contentID, "a_") {
+		cleanContentID = strings.TrimPrefix(contentID, "a_")
+	}
+
+	logger.Info().Str("contentID", contentID).Str("cleanContentID", cleanContentID).Msg("Checking for updates since content ID")
+
+	// Construct the URL for checking updates
+	endpoint := fmt.Sprintf("%s/index.php?action=recheck&azon=%s", c.baseURL, cleanContentID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set user agent to avoid being blocked
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for updates: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	// Parse JSON response
+	var updateResponse models.UpdateCheckResponse
+	if err := json.NewDecoder(resp.Body).Decode(&updateResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
+	}
+
+	// Convert string counts to integers
+	filmCount, _ := strconv.Atoi(updateResponse.Film)
+	seriesCount, _ := strconv.Atoi(updateResponse.Sorozat)
+
+	result := &models.UpdateCheckResult{
+		FilmCount:   filmCount,
+		SeriesCount: seriesCount,
+		HasUpdates:  filmCount > 0 || seriesCount > 0,
+	}
+
+	logger.Info().
+		Int("filmCount", filmCount).
+		Int("seriesCount", seriesCount).
+		Bool("hasUpdates", result.HasUpdates).
+		Msg("Successfully checked for updates")
+
+	return result, nil
 }
