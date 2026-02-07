@@ -125,7 +125,8 @@ Runs on every push and PR to `main`:
 Runs on push to `main`:
 1. `semantic-release` analyzes conventional commits to determine the next version
 2. `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
-3. Publishes a GitHub release with changelog, SBOMs, and build attestation
+3. Builds and pushes multi-platform Docker images to `ghcr.io/belphemur/supersubtitles`
+4. Publishes a GitHub release with changelog, SBOMs, and build attestation
 
 ### Copilot Setup (`.github/workflows/copilot-setup-steps.yml`)
 Prepares the Copilot agent environment: Go, gopls, golangci-lint, dependencies.

@@ -86,6 +86,11 @@ source:
 gomod:
   proxy: true
 
+# Change the digests filename for attestation
+# https://goreleaser.com/customization/docker_digest/
+docker_digest:
+  name_template: "digests.txt"
+
 # Creates SBOMs (Software Bill of Materials)
 # https://goreleaser.com/customization/sbom/
 sboms:
@@ -93,3 +98,35 @@ sboms:
     artifacts: archive
   - id: source
     artifacts: source
+
+# Creates Docker images and pushes them to registries using Docker v2 API
+# https://goreleaser.com/customization/docker/
+dockers_v2:
+  - id: super-subtitles-image
+    ids:
+      - super-subtitles
+    dockerfile: build/Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    images:
+      - "ghcr.io/belphemur/supersubtitles"
+    tags:
+      - "{{ .Version }}"
+      - latest
+    extra_files:
+      - config/config.yaml
+    annotations:
+      "org.opencontainers.image.description": "A Go proxy service that scrapes and normalizes subtitle data from feliratok.eu."
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    labels:
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.description": "A Go proxy service that scrapes and normalizes subtitle data from feliratok.eu."

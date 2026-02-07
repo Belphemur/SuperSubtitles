@@ -69,6 +69,8 @@ SuperSubtitles/
 │       ├── ci.yml                 # CI: lint + test + build (on push/PR to main)
 │       ├── release.yml            # Release: semantic-release + GoReleaser (on push to main)
 │       └── copilot-setup-steps.yml # Copilot agent environment setup
+├── build/
+│   └── Dockerfile                 # Docker image for GoReleaser multi-platform builds
 ├── docs/
 │   └── architecture.md            # Architecture documentation
 ├── internal/
@@ -119,6 +121,7 @@ SuperSubtitles/
 ### Release (`.github/workflows/release.yml`) — runs on push to main:
 - Uses `semantic-release` to analyze conventional commits and determine version
 - `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
+- Builds and pushes multi-platform Docker images to `ghcr.io/belphemur/supersubtitles`
 - Publishes GitHub release with changelog, SBOMs, and attestation
 
 **To pass CI:** Ensure `go build ./...`, `go vet ./...`, `gofmt -s -l .`, `golangci-lint run`, and `go test -race ./...` all succeed.
