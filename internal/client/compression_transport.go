@@ -41,8 +41,14 @@ func (t *compressionTransport) RoundTrip(req *http.Request) (*http.Response, err
 		return nil, err
 	}
 
+	// Skip decompression if there's no body to decompress (HEAD, 204, 304 responses)
+	if resp.Body == nil || resp.Body == http.NoBody {
+		return resp, nil
+	}
+
 	// Decompress response body based on Content-Encoding header
-	encoding := strings.ToLower(resp.Header.Get("Content-Encoding"))
+	// Parse the Content-Encoding header to handle comma-separated lists and whitespace
+	encoding := parseContentEncoding(resp.Header.Get("Content-Encoding"))
 	if encoding == "" {
 		return resp, nil
 	}
@@ -120,4 +126,29 @@ func cloneRequest(req *http.Request) *http.Request {
 	}
 
 	return r
+}
+
+// parseContentEncoding extracts the first/primary encoding from a Content-Encoding header.
+// Handles comma-separated lists and whitespace (e.g., "gzip, br" or "gzip ").
+// Returns the first encoding found, normalized to lowercase, or empty string if none.
+func parseContentEncoding(header string) string {
+	if header == "" {
+		return ""
+	}
+
+	// Trim whitespace
+	header = strings.TrimSpace(header)
+	if header == "" {
+		return ""
+	}
+
+	// Handle comma-separated list - take the last encoding (applied last, needs to be removed first)
+	parts := strings.Split(header, ",")
+	if len(parts) > 0 {
+		// Get the last encoding (outermost encoding, applied last)
+		encoding := strings.TrimSpace(parts[len(parts)-1])
+		return strings.ToLower(encoding)
+	}
+
+	return strings.ToLower(header)
 }

@@ -48,7 +48,9 @@ func NewClient(cfg *config.Config) Client {
 	}
 
 	// Set up base transport with optional proxy
-	baseTransport := http.DefaultTransport
+	// Clone DefaultTransport to preserve all its settings (timeouts, connection pooling, HTTP/2, etc.)
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	
 	if cfg.ProxyConnectionString != "" {
 		proxyURL, err := url.Parse(cfg.ProxyConnectionString)
 		if err != nil {
@@ -56,9 +58,8 @@ func NewClient(cfg *config.Config) Client {
 			logger := config.GetLogger()
 			logger.Warn().Err(err).Str("proxy", cfg.ProxyConnectionString).Msg("Invalid proxy URL, continuing without proxy")
 		} else {
-			baseTransport = &http.Transport{
-				Proxy: http.ProxyURL(proxyURL),
-			}
+			// Override only the Proxy field
+			baseTransport.Proxy = http.ProxyURL(proxyURL)
 		}
 	}
 

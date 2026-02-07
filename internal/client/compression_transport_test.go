@@ -263,3 +263,132 @@ func TestCompressionTransport_UnknownEncoding(t *testing.T) {
 		t.Errorf("Expected Content-Encoding header to be 'unknown-encoding', got %q", resp.Header.Get("Content-Encoding"))
 	}
 }
+
+func TestCompressionTransport_NoBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate a HEAD or 204 response with Content-Encoding but no body
+		w.Header().Set("Content-Encoding", "gzip")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	// Create HTTP client with compression transport
+	client := &http.Client{
+		Transport: newCompressionTransport(nil),
+	}
+
+	resp, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to make request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Should not fail even though Content-Encoding is set
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("Expected status 204, got %d", resp.StatusCode)
+	}
+}
+
+func TestCompressionTransport_CommaListEncoding(t *testing.T) {
+	testData := []byte("This is test data with multiple encodings")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate a response with comma-separated Content-Encoding
+		w.Header().Set("Content-Encoding", "identity, gzip")
+		w.WriteHeader(http.StatusOK)
+
+		gzWriter := gzip.NewWriter(w)
+		_, _ = gzWriter.Write(testData)
+		_ = gzWriter.Close()
+	}))
+	defer server.Close()
+
+	// Create HTTP client with compression transport
+	client := &http.Client{
+		Transport: newCompressionTransport(nil),
+	}
+
+	resp, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to make request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body (should be automatically decompressed based on last encoding)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+
+	if !bytes.Equal(body, testData) {
+		t.Errorf("Expected body %q, got %q", testData, body)
+	}
+}
+
+func TestCompressionTransport_WhitespaceEncoding(t *testing.T) {
+	testData := []byte("This is test data with whitespace in encoding header")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate a response with whitespace in Content-Encoding
+		w.Header().Set("Content-Encoding", " gzip ")
+		w.WriteHeader(http.StatusOK)
+
+		gzWriter := gzip.NewWriter(w)
+		_, _ = gzWriter.Write(testData)
+		_ = gzWriter.Close()
+	}))
+	defer server.Close()
+
+	// Create HTTP client with compression transport
+	client := &http.Client{
+		Transport: newCompressionTransport(nil),
+	}
+
+	resp, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to make request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body (should be automatically decompressed)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+
+	if !bytes.Equal(body, testData) {
+		t.Errorf("Expected body %q, got %q", testData, body)
+	}
+}
+
+func TestParseContentEncoding(t *testing.T) {
+	tests := []struct {
+		name     string
+		header   string
+		expected string
+	}{
+		{"empty", "", ""},
+		{"whitespace only", "   ", ""},
+		{"simple gzip", "gzip", "gzip"},
+		{"simple brotli", "br", "br"},
+		{"simple zstd", "zstd", "zstd"},
+		{"with leading whitespace", " gzip", "gzip"},
+		{"with trailing whitespace", "gzip ", "gzip"},
+		{"with both whitespace", " gzip ", "gzip"},
+		{"comma list - identity, gzip", "identity, gzip", "gzip"},
+		{"comma list - gzip, br", "gzip, br", "br"},
+		{"comma list with whitespace", "identity , gzip", "gzip"},
+		{"uppercase", "GZIP", "gzip"},
+		{"mixed case", "GzIp", "gzip"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseContentEncoding(tt.header)
+			if result != tt.expected {
+				t.Errorf("parseContentEncoding(%q) = %q, expected %q", tt.header, result, tt.expected)
+			}
+		})
+	}
+}
+
