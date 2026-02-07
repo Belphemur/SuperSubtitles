@@ -113,6 +113,23 @@ Loaded from `config/config.yaml`:
 
 Environment variables are also supported with `APP_` prefix (e.g., `APP_CLIENT_TIMEOUT`). `LOG_LEVEL` is bound directly.
 
+## CI/CD Pipeline
+
+### CI (`.github/workflows/ci.yml`)
+Runs on every push and PR to `main`:
+- **Lint job:** `go mod verify` → `go vet` → `gofmt` → `golangci-lint`
+- **Test job:** `gotestsum` with race detector + coverage → Codecov upload
+- **Build job:** `CGO_ENABLED=0 go build` → artifact upload
+
+### Release (`.github/workflows/release.yml`)
+Runs on push to `main`:
+1. `semantic-release` analyzes conventional commits to determine the next version
+2. `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
+3. Publishes a GitHub release with changelog, SBOMs, and build attestation
+
+### Copilot Setup (`.github/workflows/copilot-setup-steps.yml`)
+Prepares the Copilot agent environment: Go, gopls, golangci-lint, dependencies.
+
 ## Dependencies
 
 | Package | Purpose |

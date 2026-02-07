@@ -1,0 +1,95 @@
+# .goreleaser.yml
+version: 2
+project_name: SuperSubtitles
+
+# Configures the release process on GitHub
+# https://goreleaser.com/customization/release/
+release:
+  github:
+    owner: Belphemur
+    name: SuperSubtitles
+  include_meta: true
+
+# Configures the changelog generation
+# https://goreleaser.com/customization/changelog/
+changelog:
+  sort: asc
+  use: github
+  format: "{{.SHA}}: {{.Message}} (@{{.AuthorUsername}})"
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+
+# Hooks to run before the build process starts
+# https://goreleaser.com/customization/hooks/
+before:
+  hooks:
+    - go mod tidy
+
+# Configures the Go build process
+# https://goreleaser.com/customization/build/
+builds:
+  - id: super-subtitles
+    main: ./cmd/proxy
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    # ensures mod timestamp to be the commit timestamp
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      # trims path
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{ .CommitDate }}
+    env:
+      - CGO_ENABLED=0
+
+# Configures the binary archive generation
+# https://goreleaser.com/customization/archive/
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+# Configures the checksum file generation
+# https://goreleaser.com/customization/checksum/
+checksum:
+  name_template: "checksums.txt"
+
+# Creates a source code archive (tar.gz and zip)
+# https://goreleaser.com/customization/source/
+source:
+  enabled: true
+
+# Configures Go Modules settings
+# https://goreleaser.com/customization/gomod/
+gomod:
+  proxy: true
+
+# Creates SBOMs (Software Bill of Materials)
+# https://goreleaser.com/customization/sbom/
+sboms:
+  - id: archive
+    artifacts: archive
+  - id: source
+    artifacts: source

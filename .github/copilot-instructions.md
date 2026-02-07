@@ -8,21 +8,48 @@ SuperSubtitles is a Go proxy service that scrapes and normalizes subtitle data f
 
 ## Build, Test & Validate
 
-Always run commands from the repository root: `/home/runner/work/SuperSubtitles/SuperSubtitles` (or wherever the repo is cloned).
+Always run commands from the repository root.
 
 | Step | Command | Notes |
 |------|---------|-------|
 | **Build** | `go build ./...` | Compiles all packages. Fast (~2s). |
 | **Unit tests** | `go test ./...` | Runs all tests (~3s). Integration tests auto-skip when `CI=true`. |
-| **Tests with race detector** | `go test -race ./...` | Use this before submitting changes. |
-| **Vet/lint** | `go vet ./...` | Always run after changes. No external linter configured. |
+| **Tests with race detector** | `go test -race ./...` | Always run before submitting changes. |
+| **Vet** | `go vet ./...` | Always run after changes. |
+| **Format check** | `gofmt -s -l .` | Must produce no output. |
+| **Lint** | `golangci-lint run` | Uses `.golangci.yml` config. Always run before committing. |
 | **CI test command** | `go install gotest.tools/gotestsum@latest && gotestsum --format testname -- -race ./...` | Mirrors CI. Requires `$(go env GOPATH)/bin` in PATH. |
 
+### Development Workflow
+1. Write or modify Go code
+2. Format: `gofmt -s -w .`
+3. Vet: `go vet ./...`
+4. Lint: `golangci-lint run`
+5. Test: `go test -race ./...`
+6. Build: `go build ./...`
+7. Commit with conventional commit format
+
 **Important notes:**
-- There are no `Makefile`, `npm`, or other build tools. Pure Go toolchain only.
 - `go test -race -coverprofile=coverage.txt -covermode=atomic ./...` may emit `no such tool "covdata"` warnings for packages with no test files. This is cosmetic and tests still pass.
 - Integration tests in `internal/client/client_integration_test.go` are skipped when `CI` env var is set. Do not remove these guards.
 - The `config` package `init()` function loads `config/config.yaml` on import. Tests that import config indirectly (through client or parser) rely on this file existing.
+
+## Commit Messages
+
+**Always use conventional commits** format for all commits. This is required for semantic-release to work.
+
+- Follow the pattern: `type(scope): subject`
+- Common types: `fix`, `feat`, `chore`, `docs`, `refactor`, `test`, `perf`, `style`
+- Common scopes: `client`, `parser`, `services`, `models`, `config`, `ci`
+- Examples:
+  - `fix(client): handle empty response body gracefully`
+  - `feat(parser): add support for movie subtitle parsing`
+  - `refactor(services): simplify language conversion logic`
+  - `test(client): add timeout edge case tests`
+  - `chore(deps): update goquery to v1.11`
+  - `docs: update architecture documentation`
+- **Never create separate "Initial plan" or "WIP" commits**
+- When starting work, create the first commit with proper semantic format immediately
 
 ## Project Layout
 
@@ -31,7 +58,19 @@ SuperSubtitles/
 ├── cmd/proxy/main.go              # Application entry point
 ├── config/config.yaml             # Default configuration (YAML)
 ├── go.mod / go.sum                # Go module (module name: SuperSubtitles)
-├── .github/workflows/go_test.yml  # CI: runs go test with race detector + coverage
+├── .golangci.yml                  # golangci-lint configuration
+├── .goreleaser.yml                # GoReleaser build/release configuration
+├── .releaserc.yml                 # semantic-release configuration
+├── package.json                   # Node.js deps for semantic-release
+├── .github/
+│   ├── copilot-instructions.md    # This file
+│   ├── dependabot.yml             # Dependabot for Go modules & GitHub Actions
+│   └── workflows/
+│       ├── ci.yml                 # CI: lint + test + build (on push/PR to main)
+│       ├── release.yml            # Release: semantic-release + GoReleaser (on push to main)
+│       └── copilot-setup-steps.yml # Copilot agent environment setup
+├── docs/
+│   └── architecture.md            # Architecture documentation
 ├── internal/
 │   ├── client/
 │   │   ├── client.go              # HTTP client (Client interface + implementation)
@@ -68,18 +107,21 @@ SuperSubtitles/
 - **Error handling:** Custom error types (e.g., `ErrNotFound`) with `Is()` method for `errors.Is()` support. Wrap errors with `fmt.Errorf("...: %w", err)`. Partial failures return data with logged warnings rather than failing entirely.
 - **Concurrency:** `sync.WaitGroup` for parallel HTTP fetches. Batch processing with a batch size of 20 in `GetShowSubtitles`.
 - **HTML parsing:** Uses `PuerkitoBio/goquery` (jQuery-like selectors). Parsers implement the generic `Parser[T]` or `SingleResultParser[T]` interfaces from `internal/parser/interfaces.go`.
-- **Testing:** Standard `testing` package only (no testify). Unit tests use `httptest.NewServer` for HTTP mocking. Test functions follow `TestTypeName_MethodName` naming. Integration tests check for `CI` / `SKIP_INTEGRATION_TESTS` env vars.
+- **Testing:** Standard `testing` package only (no testify). Unit tests use `httptest.NewServer` for HTTP mocking. Test functions follow `TestTypeName_MethodName` naming. Integration tests check for `CI` / `SKIP_INTEGRATION_TESTS` env vars. **Important:** `SuperSubtitleResponse` is a `map[string]SuperSubtitle` — never rely on iteration order in tests; use map lookups by key fields instead.
 
-## CI Pipeline
+## CI/CD Pipeline
 
-The single GitHub Actions workflow (`.github/workflows/go_test.yml`) runs on every push and pull request:
-1. Checks out the code
-2. Sets up Go using the version from `go.mod`
-3. Installs `gotestsum`
-4. Runs: `gotestsum --junitfile test-results/junit.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...`
-5. Uploads test results and coverage to Codecov
+### CI (`.github/workflows/ci.yml`) — runs on every push/PR to main:
+- **Lint job:** `go mod verify` → `go vet ./...` → `gofmt -s -l .` → `golangci-lint run`
+- **Test job:** `gotestsum -- -race -coverprofile=coverage.txt -covermode=atomic ./...` → upload to Codecov
+- **Build job:** `CGO_ENABLED=0 go build -o super-subtitles ./cmd/proxy`
 
-**To pass CI:** Ensure `go build ./...`, `go vet ./...`, and `go test -race ./...` all succeed.
+### Release (`.github/workflows/release.yml`) — runs on push to main:
+- Uses `semantic-release` to analyze conventional commits and determine version
+- `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
+- Publishes GitHub release with changelog, SBOMs, and attestation
+
+**To pass CI:** Ensure `go build ./...`, `go vet ./...`, `gofmt -s -l .`, `golangci-lint run`, and `go test -race ./...` all succeed.
 
 ## Quick Reference
 

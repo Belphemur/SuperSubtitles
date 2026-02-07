@@ -194,13 +194,19 @@ func TestConvertResponse(t *testing.T) {
 		t.Errorf("ShowName: expected 'Outlander', got %s", result.ShowName)
 	}
 
-	// Check first subtitle
-	first := result.Subtitles[0]
-	if first.Language != "en" {
-		t.Errorf("First subtitle language: expected 'en', got %s", first.Language)
+	// Build a map of subtitles by language for order-independent assertions
+	// (SuperSubtitleResponse is a map so iteration order is non-deterministic)
+	subtitlesByLang := make(map[string]models.Subtitle)
+	for _, s := range result.Subtitles {
+		subtitlesByLang[s.Language] = s
 	}
-	if first.Quality != models.Quality1080p {
-		t.Errorf("First subtitle quality: expected Quality1080p, got %v", first.Quality)
+
+	if en, ok := subtitlesByLang["en"]; !ok {
+		t.Error("Expected English subtitle not found")
+	} else {
+		if en.Quality != models.Quality1080p {
+			t.Errorf("English subtitle quality: expected Quality1080p, got %v", en.Quality)
+		}
 	}
 }
 

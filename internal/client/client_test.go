@@ -358,47 +358,48 @@ func TestClient_GetSubtitles(t *testing.T) {
 		t.Errorf("Expected 2 subtitles in collection, got %d", len(subtitles.Subtitles))
 	}
 
-	// Test first subtitle
-	if len(subtitles.Subtitles) > 0 {
-		first := subtitles.Subtitles[0]
-		if first.Language != "en" {
-			t.Errorf("Expected first subtitle language 'en', got '%s'", first.Language)
+	// Build a map of subtitles by language for order-independent assertions
+	// (SuperSubtitleResponse is a map so iteration order is non-deterministic)
+	subtitlesByLang := make(map[string]models.Subtitle)
+	for _, s := range subtitles.Subtitles {
+		subtitlesByLang[s.Language] = s
+	}
+
+	// Test English subtitle
+	if en, ok := subtitlesByLang["en"]; !ok {
+		t.Error("Expected English subtitle not found")
+	} else {
+		if en.Quality != models.Quality1080p {
+			t.Errorf("Expected English subtitle quality 1080p, got %v", en.Quality)
 		}
-		if first.Quality != models.Quality1080p {
-			t.Errorf("Expected first subtitle quality 1080p, got %v", first.Quality)
+		if en.Season != 1 {
+			t.Errorf("Expected English subtitle season 1, got %d", en.Season)
 		}
-		if first.Season != 1 {
-			t.Errorf("Expected first subtitle season 1, got %d", first.Season)
+		if en.Episode != 1 {
+			t.Errorf("Expected English subtitle episode 1, got %d", en.Episode)
 		}
-		if first.Episode != 1 {
-			t.Errorf("Expected first subtitle episode 1, got %d", first.Episode)
+		if en.IsSeasonPack {
+			t.Errorf("Expected English subtitle IsSeasonPack false, got %t", en.IsSeasonPack)
 		}
-		if first.IsSeasonPack {
-			t.Errorf("Expected first subtitle IsSeasonPack false, got %t", first.IsSeasonPack)
-		}
-		// Assert DownloadURL is correct
 		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431909"
-		if first.DownloadURL != expectedURL {
-			t.Errorf("Expected first subtitle DownloadURL '%s', got '%s'", expectedURL, first.DownloadURL)
+		if en.DownloadURL != expectedURL {
+			t.Errorf("Expected English subtitle DownloadURL '%s', got '%s'", expectedURL, en.DownloadURL)
 		}
 	}
 
-	// Test second subtitle
-	if len(subtitles.Subtitles) > 1 {
-		second := subtitles.Subtitles[1]
-		if second.Language != "hu" {
-			t.Errorf("Expected second subtitle language 'hu', got '%s'", second.Language)
+	// Test Hungarian subtitle
+	if hu, ok := subtitlesByLang["hu"]; !ok {
+		t.Error("Expected Hungarian subtitle not found")
+	} else {
+		if hu.Quality != models.Quality720p {
+			t.Errorf("Expected Hungarian subtitle quality 720p, got %v", hu.Quality)
 		}
-		if second.Quality != models.Quality720p {
-			t.Errorf("Expected second subtitle quality 720p, got %v", second.Quality)
+		if !hu.IsSeasonPack {
+			t.Errorf("Expected Hungarian subtitle IsSeasonPack true, got %t", hu.IsSeasonPack)
 		}
-		if !second.IsSeasonPack {
-			t.Errorf("Expected second subtitle IsSeasonPack true, got %t", second.IsSeasonPack)
-		}
-		// Assert DownloadURL is correct
 		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431932"
-		if second.DownloadURL != expectedURL {
-			t.Errorf("Expected second subtitle DownloadURL '%s', got '%s'", expectedURL, second.DownloadURL)
+		if hu.DownloadURL != expectedURL {
+			t.Errorf("Expected Hungarian subtitle DownloadURL '%s', got '%s'", expectedURL, hu.DownloadURL)
 		}
 	}
 }
