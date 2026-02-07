@@ -114,6 +114,7 @@ func TestCompressionTransport_Zstd(t *testing.T) {
 		w.Header().Set("Content-Encoding", "zstd")
 		w.WriteHeader(http.StatusOK)
 
+		// zstd.NewWriter() with default options never fails
 		zstdWriter, _ := zstd.NewWriter(w)
 		_, _ = zstdWriter.Write(testData)
 		_ = zstdWriter.Close()

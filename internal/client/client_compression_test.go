@@ -150,6 +150,7 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 
 			// Write zstd-compressed response
+			// zstd.NewWriter() with default options never fails
 			zstdWriter, _ := zstd.NewWriter(w)
 			_, _ = zstdWriter.Write([]byte(waitingHTML))
 			_ = zstdWriter.Close()
@@ -317,6 +318,7 @@ func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
 			w.Header().Set("Content-Encoding", "zstd")
 			w.WriteHeader(http.StatusOK)
 
+			// zstd.NewWriter() with default options never fails
 			zstdWriter, _ := zstd.NewWriter(w)
 			_, _ = zstdWriter.Write([]byte(jsonResponse))
 			_ = zstdWriter.Close()

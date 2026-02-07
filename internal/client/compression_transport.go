@@ -30,7 +30,7 @@ func (t *compressionTransport) RoundTrip(req *http.Request) (*http.Response, err
 	// Clone the request to avoid modifying the original
 	req = cloneRequest(req)
 
-	// Add Accept-Encoding header to request compression
+	// Add Accept-Encoding header to indicate supported compression formats
 	if req.Header.Get("Accept-Encoding") == "" {
 		req.Header.Set("Accept-Encoding", "gzip, br, zstd")
 	}
