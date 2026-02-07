@@ -47,11 +47,8 @@ func NewClient(cfg *config.Config) Client {
 		}
 	}
 
-	httpClient := &http.Client{
-		Timeout: timeout,
-	}
-
-	// Configure proxy if provided
+	// Set up base transport with optional proxy
+	baseTransport := http.DefaultTransport
 	if cfg.ProxyConnectionString != "" {
 		proxyURL, err := url.Parse(cfg.ProxyConnectionString)
 		if err != nil {
@@ -59,10 +56,16 @@ func NewClient(cfg *config.Config) Client {
 			logger := config.GetLogger()
 			logger.Warn().Err(err).Str("proxy", cfg.ProxyConnectionString).Msg("Invalid proxy URL, continuing without proxy")
 		} else {
-			httpClient.Transport = &http.Transport{
+			baseTransport = &http.Transport{
 				Proxy: http.ProxyURL(proxyURL),
 			}
 		}
+	}
+
+	// Wrap transport with compression support (gzip, brotli, zstd)
+	httpClient := &http.Client{
+		Timeout:   timeout,
+		Transport: newCompressionTransport(baseTransport),
 	}
 
 	return &client{
