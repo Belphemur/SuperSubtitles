@@ -14,7 +14,7 @@ func TestNewSubtitleConverter(t *testing.T) {
 	}
 
 	// Verify it implements the interface
-	var _ SubtitleConverter = converter
+	var _ SubtitleConverter = converter //nolint:staticcheck // explicit interface compliance check
 }
 
 func TestConvertSuperSubtitle(t *testing.T) {

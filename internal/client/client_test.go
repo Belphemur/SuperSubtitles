@@ -32,13 +32,13 @@ func TestClient_GetShowList(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 			return
 		}
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(underHTML))
+			_, _ = w.Write([]byte(underHTML))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -138,7 +138,7 @@ func TestClient_GetShowList_PartialFailure(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 			return
 		}
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
@@ -170,7 +170,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second) // Delay longer than timeout
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte("<html></html>"))
 	}))
 	defer server.Close()
 
@@ -202,7 +202,7 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("<html><body>Invalid HTML</body></html>"))
+		_, _ = w.Write([]byte("<html><body>Invalid HTML</body></html>"))
 	}))
 	defer server.Close()
 
@@ -251,7 +251,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		_, _ = w.Write([]byte(htmlContent))
 	}))
 	defer server.Close()
 
@@ -315,7 +315,7 @@ func TestClient_GetSubtitles(t *testing.T) {
 		if r.URL.Path == "/index.php" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -475,12 +475,12 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 			// Subtitles request
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else if r.URL.Path == "/index.php" && r.URL.RawQuery == "tipus=adatlap&azon=a_1435431909" {
 			// Detail page request
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(detailPageHTML))
+			_, _ = w.Write([]byte(detailPageHTML))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -553,7 +553,7 @@ func TestClient_GetSubtitles_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -588,7 +588,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -639,7 +639,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -690,7 +690,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -767,7 +767,7 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
