@@ -50,7 +50,7 @@ func NewClient(cfg *config.Config) Client {
 	// Set up base transport with optional proxy
 	// Clone DefaultTransport to preserve all its settings (timeouts, connection pooling, HTTP/2, etc.)
 	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
-	
+
 	if cfg.ProxyConnectionString != "" {
 		proxyURL, err := url.Parse(cfg.ProxyConnectionString)
 		if err != nil {
