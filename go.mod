@@ -4,6 +4,8 @@ go 1.25
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/andybalholm/brotli v1.2.0
+	github.com/klauspost/compress v1.18.3
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 )
