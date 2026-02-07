@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+super-subtitles
 
 # Test binary, built with `go test -c`
 *.test
@@ -30,3 +31,19 @@ Thumbs.db
 
 # Config files (optional, if you want to ignore config.yaml)
 # config.yaml
+
+# Node.js
+node_modules/
+pnpm-lock.yaml
+
+# Build output
+dist/
+bin/
+_output/
+
+# Coverage
+coverage.txt
+test-results/
+
+# Environment
+.env

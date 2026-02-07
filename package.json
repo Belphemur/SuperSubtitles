@@ -1,0 +1,26 @@
+{
+  "name": "super-subtitles",
+  "version": "1.0.0",
+  "description": "A Go proxy service that scrapes and normalizes subtitle data from feliratok.eu",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Belphemur/SuperSubtitles.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "semantic-release": "^25.0.0"
+  },
+  "packageManager": "pnpm@10.28.2"
+}

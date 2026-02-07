@@ -67,7 +67,7 @@ func LoadConfig() (*Config, error) {
 	viper.SetEnvPrefix("APP")
 
 	// Add specific environment variable for log level
-	viper.BindEnv("log_level", "LOG_LEVEL")
+	_ = viper.BindEnv("log_level", "LOG_LEVEL")
 
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {

@@ -1,0 +1,10 @@
+version: "2"
+linters:
+  exclusions:
+    # Log a warning if an exclusion rule is unused.
+    # Default: false
+    warn-unused: true
+    # Predefined exclusion rules.
+    # Default: []
+    presets:
+      - std-error-handling

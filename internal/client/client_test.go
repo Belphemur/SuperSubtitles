@@ -32,13 +32,13 @@ func TestClient_GetShowList(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 			return
 		}
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(underHTML))
+			_, _ = w.Write([]byte(underHTML))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -138,7 +138,7 @@ func TestClient_GetShowList_PartialFailure(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=varakozik-subrip" {
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 			return
 		}
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sorf=alatt-subrip" {
@@ -170,7 +170,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second) // Delay longer than timeout
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte("<html></html>"))
 	}))
 	defer server.Close()
 
@@ -202,7 +202,7 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("<html><body>Invalid HTML</body></html>"))
+		_, _ = w.Write([]byte("<html><body>Invalid HTML</body></html>"))
 	}))
 	defer server.Close()
 
@@ -251,7 +251,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		_, _ = w.Write([]byte(htmlContent))
 	}))
 	defer server.Close()
 
@@ -315,7 +315,7 @@ func TestClient_GetSubtitles(t *testing.T) {
 		if r.URL.Path == "/index.php" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -358,47 +358,48 @@ func TestClient_GetSubtitles(t *testing.T) {
 		t.Errorf("Expected 2 subtitles in collection, got %d", len(subtitles.Subtitles))
 	}
 
-	// Test first subtitle
-	if len(subtitles.Subtitles) > 0 {
-		first := subtitles.Subtitles[0]
-		if first.Language != "en" {
-			t.Errorf("Expected first subtitle language 'en', got '%s'", first.Language)
+	// Build a map of subtitles by language for order-independent assertions
+	// (SuperSubtitleResponse is a map so iteration order is non-deterministic)
+	subtitlesByLang := make(map[string]models.Subtitle)
+	for _, s := range subtitles.Subtitles {
+		subtitlesByLang[s.Language] = s
+	}
+
+	// Test English subtitle
+	if en, ok := subtitlesByLang["en"]; !ok {
+		t.Error("Expected English subtitle not found")
+	} else {
+		if en.Quality != models.Quality1080p {
+			t.Errorf("Expected English subtitle quality 1080p, got %v", en.Quality)
 		}
-		if first.Quality != models.Quality1080p {
-			t.Errorf("Expected first subtitle quality 1080p, got %v", first.Quality)
+		if en.Season != 1 {
+			t.Errorf("Expected English subtitle season 1, got %d", en.Season)
 		}
-		if first.Season != 1 {
-			t.Errorf("Expected first subtitle season 1, got %d", first.Season)
+		if en.Episode != 1 {
+			t.Errorf("Expected English subtitle episode 1, got %d", en.Episode)
 		}
-		if first.Episode != 1 {
-			t.Errorf("Expected first subtitle episode 1, got %d", first.Episode)
+		if en.IsSeasonPack {
+			t.Errorf("Expected English subtitle IsSeasonPack false, got %t", en.IsSeasonPack)
 		}
-		if first.IsSeasonPack {
-			t.Errorf("Expected first subtitle IsSeasonPack false, got %t", first.IsSeasonPack)
-		}
-		// Assert DownloadURL is correct
 		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431909"
-		if first.DownloadURL != expectedURL {
-			t.Errorf("Expected first subtitle DownloadURL '%s', got '%s'", expectedURL, first.DownloadURL)
+		if en.DownloadURL != expectedURL {
+			t.Errorf("Expected English subtitle DownloadURL '%s', got '%s'", expectedURL, en.DownloadURL)
 		}
 	}
 
-	// Test second subtitle
-	if len(subtitles.Subtitles) > 1 {
-		second := subtitles.Subtitles[1]
-		if second.Language != "hu" {
-			t.Errorf("Expected second subtitle language 'hu', got '%s'", second.Language)
+	// Test Hungarian subtitle
+	if hu, ok := subtitlesByLang["hu"]; !ok {
+		t.Error("Expected Hungarian subtitle not found")
+	} else {
+		if hu.Quality != models.Quality720p {
+			t.Errorf("Expected Hungarian subtitle quality 720p, got %v", hu.Quality)
 		}
-		if second.Quality != models.Quality720p {
-			t.Errorf("Expected second subtitle quality 720p, got %v", second.Quality)
+		if !hu.IsSeasonPack {
+			t.Errorf("Expected Hungarian subtitle IsSeasonPack true, got %t", hu.IsSeasonPack)
 		}
-		if !second.IsSeasonPack {
-			t.Errorf("Expected second subtitle IsSeasonPack true, got %t", second.IsSeasonPack)
-		}
-		// Assert DownloadURL is correct
 		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431932"
-		if second.DownloadURL != expectedURL {
-			t.Errorf("Expected second subtitle DownloadURL '%s', got '%s'", expectedURL, second.DownloadURL)
+		if hu.DownloadURL != expectedURL {
+			t.Errorf("Expected Hungarian subtitle DownloadURL '%s', got '%s'", expectedURL, hu.DownloadURL)
 		}
 	}
 }
@@ -474,12 +475,12 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 			// Subtitles request
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else if r.URL.Path == "/index.php" && r.URL.RawQuery == "tipus=adatlap&azon=a_1435431909" {
 			// Detail page request
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(detailPageHTML))
+			_, _ = w.Write([]byte(detailPageHTML))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -552,7 +553,7 @@ func TestClient_GetSubtitles_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -587,7 +588,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -638,7 +639,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -689,7 +690,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=recheck&azon=1760700519" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(jsonResponse))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -766,7 +767,7 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
