@@ -118,6 +118,12 @@ func TestDownloadSubtitle_ZipFileNoEpisode(t *testing.T) {
 	if result.ContentType != "application/zip" {
 		t.Errorf("Expected content type 'application/zip', got '%s'", result.ContentType)
 	}
+
+	// Assert filename has .zip extension for ZIP files
+	expectedFilename := "123456789.zip"
+	if result.Filename != expectedFilename {
+		t.Errorf("Expected filename '%s', got '%s'", expectedFilename, result.Filename)
+	}
 }
 
 func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
@@ -187,6 +193,15 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 			expectedFile:    "Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 1 content",
 			shouldFail:      false,
+		},
+		{
+			name: "Episode 1 does not match Episode 10 (regex boundary test)",
+			zipFiles: map[string]string{
+				"show.s03e10.srt": "Episode 10 content",
+				"show.s03e11.srt": "Episode 11 content",
+			},
+			requestEpisode: 1,
+			shouldFail:     true,
 		},
 		{
 			name: "Episode not found in ZIP",
@@ -432,5 +447,142 @@ func BenchmarkDownloadSubtitle_ExtractFromZip(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Download failed: %v", err)
 		}
+	}
+}
+
+func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
+	tests := []struct {
+		name                string
+		contentType         string
+		expectedFilename    string
+		expectedContentType string
+	}{
+		{
+			name:                "SRT file",
+			contentType:         "application/x-subrip",
+			expectedFilename:    "123456789.srt",
+			expectedContentType: "application/x-subrip",
+		},
+		{
+			name:                "ZIP file",
+			contentType:         "application/zip",
+			expectedFilename:    "123456789.zip",
+			expectedContentType: "application/zip",
+		},
+		{
+			name:                "ASS file",
+			contentType:         "application/x-ass",
+			expectedFilename:    "123456789.ass",
+			expectedContentType: "application/x-ass",
+		},
+		{
+			name:                "VTT file",
+			contentType:         "text/vtt",
+			expectedFilename:    "123456789.vtt",
+			expectedContentType: "text/vtt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := "Test content"
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", tt.contentType)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(content))
+			}))
+			defer server.Close()
+
+			downloader := NewSubtitleDownloader(server.Client())
+
+			result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+				SubtitleID: "123456789",
+				Episode:    0,
+			})
+
+			if err != nil {
+				t.Fatalf("Expected no error, got: %v", err)
+			}
+
+			if result.Filename != tt.expectedFilename {
+				t.Errorf("Expected filename '%s', got '%s'", tt.expectedFilename, result.Filename)
+			}
+
+			if result.ContentType != tt.expectedContentType {
+				t.Errorf("Expected content type '%s', got '%s'", tt.expectedContentType, result.ContentType)
+			}
+
+			if string(result.Content) != content {
+				t.Errorf("Expected content '%s', got '%s'", content, string(result.Content))
+			}
+		})
+	}
+}
+
+func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
+	tests := []struct {
+		name                string
+		filename            string
+		expectedContentType string
+	}{
+		{
+			name:                "SRT file",
+			filename:            "show.s03e01.srt",
+			expectedContentType: "application/x-subrip",
+		},
+		{
+			name:                "ASS file",
+			filename:            "show.s03e01.ass",
+			expectedContentType: "application/x-ass",
+		},
+		{
+			name:                "VTT file",
+			filename:            "show.s03e01.vtt",
+			expectedContentType: "text/vtt",
+		},
+		{
+			name:                "SUB file",
+			filename:            "show.s03e01.sub",
+			expectedContentType: "application/x-sub",
+		},
+		{
+			name:                "Unknown file type",
+			filename:            "show.s03e01.xyz",
+			expectedContentType: "application/octet-stream",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			zipContent := createTestZip(t, map[string]string{
+				tt.filename: "Test content",
+			})
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/zip")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write(zipContent)
+			}))
+			defer server.Close()
+
+			downloader := NewSubtitleDownloader(server.Client())
+
+			result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+				SubtitleID: "123456789",
+				Episode:    1,
+			})
+
+			if err != nil {
+				t.Fatalf("Expected no error, got: %v", err)
+			}
+
+			if result.ContentType != tt.expectedContentType {
+				t.Errorf("Expected content type '%s', got '%s'", tt.expectedContentType, result.ContentType)
+			}
+
+			if result.Filename != tt.filename {
+				t.Errorf("Expected filename '%s', got '%s'", tt.filename, result.Filename)
+			}
+		})
 	}
 }

@@ -61,7 +61,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 			Msg("Returning downloaded file as-is")
 
 		return &models.DownloadResult{
-			Filename:    fmt.Sprintf("%s.srt", req.SubtitleID),
+			Filename:    generateFilename(req.SubtitleID, contentType),
 			Content:     content,
 			ContentType: contentType,
 		}, nil
@@ -84,6 +84,56 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		Msg("Successfully extracted episode from season pack")
 
 	return episodeFile, nil
+}
+
+// generateFilename creates a filename with appropriate extension based on content type
+func generateFilename(subtitleID, contentType string) string {
+	ext := getExtensionFromContentType(contentType)
+	return fmt.Sprintf("%s%s", subtitleID, ext)
+}
+
+// getExtensionFromContentType derives file extension from MIME type
+func getExtensionFromContentType(contentType string) string {
+	ctLower := strings.ToLower(contentType)
+
+	if strings.Contains(ctLower, "zip") {
+		return ".zip"
+	}
+	if strings.Contains(ctLower, "x-subrip") || strings.Contains(ctLower, "srt") {
+		return ".srt"
+	}
+	if strings.Contains(ctLower, "x-ass") || strings.Contains(ctLower, "ass") {
+		return ".ass"
+	}
+	if strings.Contains(ctLower, "vtt") || strings.Contains(ctLower, "webvtt") {
+		return ".vtt"
+	}
+	if strings.Contains(ctLower, "x-sub") || strings.Contains(ctLower, "sub") {
+		return ".sub"
+	}
+
+	// Default to .srt for subtitle files
+	return ".srt"
+}
+
+// getContentTypeFromFilename derives MIME type from file extension
+func getContentTypeFromFilename(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	switch ext {
+	case ".srt":
+		return "application/x-subrip"
+	case ".ass":
+		return "application/x-ass"
+	case ".vtt":
+		return "text/vtt"
+	case ".sub":
+		return "application/x-sub"
+	case ".zip":
+		return "application/zip"
+	default:
+		return "application/octet-stream"
+	}
 }
 
 // downloadFile downloads a file from the given URL with caching for ZIP files
@@ -152,8 +202,9 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		return nil, fmt.Errorf("failed to open ZIP archive: %w", err)
 	}
 
-	// Pattern to match episode numbers in filenames (e.g., S03E01, s03e01, 3x01)
-	episodePattern := regexp.MustCompile(fmt.Sprintf(`(?i)(?:s\d+e%02d|e%02d|\d+x%02d)`, episode, episode, episode))
+	// Pattern to match episode numbers in filenames with word boundaries to prevent false positives
+	// Matches: S03E01, s03e01, 3x01, E01 (but not E010 when looking for E01)
+	episodePattern := regexp.MustCompile(fmt.Sprintf(`(?i)(?:s\d+e%02d(?:\D|$)|e%02d(?:\D|$)|\d+x%02d(?:\D|$))`, episode, episode, episode))
 
 	logger.Debug().
 		Int("fileCount", len(zipReader.File)).
@@ -170,13 +221,16 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		// Get the base filename without path
 		filename := filepath.Base(file.Name)
 
+		// Evaluate the episode pattern match once and reuse for logging and control flow
+		matches := episodePattern.MatchString(filename)
+
 		logger.Debug().
 			Str("filename", filename).
-			Bool("matches", episodePattern.MatchString(filename)).
+			Bool("matches", matches).
 			Msg("Checking file in ZIP")
 
 		// Check if this file matches the episode pattern
-		if episodePattern.MatchString(filename) {
+		if matches {
 			// Found matching episode - extract it
 			rc, err := file.Open()
 			if err != nil {
@@ -197,7 +251,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 			return &models.DownloadResult{
 				Filename:    filename,
 				Content:     content,
-				ContentType: "application/x-subrip",
+				ContentType: getContentTypeFromFilename(filename),
 			}, nil
 		}
 	}
