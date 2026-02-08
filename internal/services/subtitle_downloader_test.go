@@ -614,14 +614,163 @@ func TestGetExtensionFromContentType_EdgeCases(t *testing.T) {
 			expected:    ".ass",
 		},
 		{
-			name:        "x-sub does not match x-subrip",
-			contentType: "application/x-subrip",
-			expected:    ".srt",
+			name:        "x-sub specific",
+			contentType: "application/x-sub",
+			expected:    ".sub",
 		},
 		{
 			name:        "unknown type defaults to srt",
 			contentType: "application/octet-stream",
 			expected:    ".srt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getExtensionFromContentType(tt.contentType)
+			if result != tt.expected {
+				t.Errorf("Expected extension '%s', got '%s' for content type '%s'", tt.expected, result, tt.contentType)
+			}
+		})
+	}
+}
+
+func TestIsZipFile_MagicNumber(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  []byte
+		expected bool
+	}{
+		{
+			name:     "Standard ZIP magic number",
+			content:  []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00},
+			expected: true,
+		},
+		{
+			name:     "Empty ZIP magic number",
+			content:  []byte{0x50, 0x4B, 0x05, 0x06, 0x00, 0x00},
+			expected: true,
+		},
+		{
+			name:     "Spanned ZIP magic number",
+			content:  []byte{0x50, 0x4B, 0x07, 0x08, 0x00, 0x00},
+			expected: true,
+		},
+		{
+			name:     "Not a ZIP file - gzip",
+			content:  []byte{0x1F, 0x8B, 0x08, 0x00},
+			expected: false,
+		},
+		{
+			name:     "Not a ZIP file - random data",
+			content:  []byte{0x00, 0x01, 0x02, 0x03},
+			expected: false,
+		},
+		{
+			name:     "Too short",
+			content:  []byte{0x50, 0x4B},
+			expected: false,
+		},
+		{
+			name:     "Empty",
+			content:  []byte{},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isZipFile(tt.content)
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v for content %v", tt.expected, result, tt.content)
+			}
+		})
+	}
+}
+
+func TestIsZipContentType(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		expected    bool
+	}{
+		{
+			name:        "application/zip",
+			contentType: "application/zip",
+			expected:    true,
+		},
+		{
+			name:        "application/x-zip-compressed",
+			contentType: "application/x-zip-compressed",
+			expected:    true,
+		},
+		{
+			name:        "application/zip with charset",
+			contentType: "application/zip; charset=utf-8",
+			expected:    true,
+		},
+		{
+			name:        "Application/ZIP (uppercase)",
+			contentType: "Application/ZIP",
+			expected:    true,
+		},
+		{
+			name:        "application/gzip - should NOT match",
+			contentType: "application/gzip",
+			expected:    false,
+		},
+		{
+			name:        "application/x-gzip - should NOT match",
+			contentType: "application/x-gzip",
+			expected:    false,
+		},
+		{
+			name:        "text/plain",
+			contentType: "text/plain",
+			expected:    false,
+		},
+		{
+			name:        "application/octet-stream",
+			contentType: "application/octet-stream",
+			expected:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isZipContentType(tt.contentType)
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v for content type '%s'", tt.expected, result, tt.contentType)
+			}
+		})
+	}
+}
+
+func TestGetExtensionFromContentType_GzipEdgeCase(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		expected    string
+	}{
+		{
+			name:        "application/zip",
+			contentType: "application/zip",
+			expected:    ".zip",
+		},
+		{
+			name:        "application/gzip should NOT return .zip",
+			contentType: "application/gzip",
+			expected:    ".srt", // defaults to .srt
+		},
+		{
+			name:        "application/x-gzip should NOT return .zip",
+			contentType: "application/x-gzip",
+			expected:    ".srt", // defaults to .srt
+		},
+		{
+			name:        "application/zip with parameters",
+			contentType: "application/zip; charset=binary",
+			expected:    ".zip",
 		},
 	}
 

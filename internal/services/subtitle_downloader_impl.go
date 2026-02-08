@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -53,11 +54,15 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		return nil, fmt.Errorf("failed to download subtitle: %w", err)
 	}
 
+	// Check if it's a ZIP file using both content-type and magic number
+	isZip := isZipFile(content) || isZipContentType(contentType)
+
 	// If not requesting a specific episode, or if it's not a ZIP file, return as-is
-	if req.Episode == 0 || !strings.Contains(contentType, "zip") {
+	if req.Episode == 0 || !isZip {
 		logger.Info().
 			Str("contentType", contentType).
 			Int("size", len(content)).
+			Bool("isZip", isZip).
 			Msg("Returning downloaded file as-is")
 
 		return &models.DownloadResult{
@@ -94,31 +99,65 @@ func generateFilename(subtitleID, contentType string) string {
 
 // getExtensionFromContentType derives file extension from MIME type
 func getExtensionFromContentType(contentType string) string {
-	ctLower := strings.ToLower(contentType)
+	// Parse the media type to handle parameters properly
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		// If parsing fails, try to extract the type before any semicolon
+		if idx := strings.Index(contentType, ";"); idx != -1 {
+			mediaType = strings.TrimSpace(contentType[:idx])
+		} else {
+			mediaType = contentType
+		}
+	}
+	mediaType = strings.ToLower(mediaType)
 
-	// Check most specific patterns first to avoid false matches
-	if strings.Contains(ctLower, "zip") {
+	// Check for specific MIME types (most specific first)
+	switch mediaType {
+	case "application/zip", "application/x-zip-compressed":
 		return ".zip"
-	}
-	if strings.Contains(ctLower, "x-subrip") {
+	case "application/x-subrip":
 		return ".srt"
-	}
-	if strings.Contains(ctLower, "x-ass") || strings.Contains(ctLower, "/ass") {
+	case "application/x-ass", "text/ass":
 		return ".ass"
-	}
-	if strings.Contains(ctLower, "vtt") || strings.Contains(ctLower, "webvtt") {
+	case "text/vtt", "text/webvtt":
 		return ".vtt"
-	}
-	if strings.Contains(ctLower, "x-sub") {
+	case "application/x-sub":
 		return ".sub"
 	}
-	// Fallback for generic text/srt or similar
-	if strings.Contains(ctLower, "srt") {
+
+	// Fallback for generic patterns
+	if strings.Contains(mediaType, "srt") {
 		return ".srt"
 	}
 
 	// Default to .srt for subtitle files
 	return ".srt"
+}
+
+// isZipFile checks if the content is a ZIP file using magic number detection
+// ZIP files start with PK\x03\x04 (0x504B0304) or PK\x05\x06 (empty archive) or PK\x07\x08 (spanned archive)
+func isZipFile(content []byte) bool {
+	if len(content) < 4 {
+		return false
+	}
+	// Check for ZIP magic numbers
+	return (content[0] == 0x50 && content[1] == 0x4B &&
+		(content[2] == 0x03 && content[3] == 0x04 || // Standard ZIP
+			content[2] == 0x05 && content[3] == 0x06 || // Empty ZIP
+			content[2] == 0x07 && content[3] == 0x08)) // Spanned ZIP
+}
+
+// isZipContentType checks if the MIME type indicates a ZIP file
+func isZipContentType(contentType string) bool {
+	// Parse the media type to handle parameters and case-insensitivity
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		// If parsing fails, fall back to simple check
+		return strings.EqualFold(contentType, "application/zip")
+	}
+	// Check for known ZIP media types
+	return mediaType == "application/zip" ||
+		mediaType == "application/x-zip-compressed"
 }
 
 // getContentTypeFromFilename derives MIME type from file extension
@@ -182,8 +221,8 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 		contentType = "application/octet-stream"
 	}
 
-	// Cache ZIP files
-	if strings.Contains(contentType, "zip") {
+	// Cache ZIP files based on magic number detection (more reliable than content-type)
+	if isZipFile(content) {
 		d.zipCache.Add(url, &zipCacheEntry{
 			content:  content,
 			cachedAt: time.Now(),
