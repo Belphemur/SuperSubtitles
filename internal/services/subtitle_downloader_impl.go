@@ -265,7 +265,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 		return nil, "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("User-Agent", config.UserAgent)
 
 	resp, err := d.httpClient.Do(req)
 	if err != nil {
@@ -334,14 +334,19 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 			continue
 		}
 
-		// Get the base filename without path
+		// Check both the full path and the base filename for episode pattern
+		// This handles both flat structures (episode in filename) and nested structures (episode in folder name)
 		filename := filepath.Base(file.Name)
+		fullPath := file.Name
 
-		// Evaluate the episode pattern match once and reuse for logging and control flow
-		matches := episodePattern.MatchString(filename)
+		// Evaluate the episode pattern match once for both filename and full path
+		matchesFilename := episodePattern.MatchString(filename)
+		matchesPath := episodePattern.MatchString(fullPath)
+		matches := matchesFilename || matchesPath
 
 		logger.Debug().
 			Str("filename", filename).
+			Str("fullPath", fullPath).
 			Bool("matches", matches).
 			Msg("Checking file in ZIP")
 

@@ -127,7 +127,7 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 **Implementation Files:**
 - `internal/services/subtitle_downloader.go` - Interface definition
 - `internal/services/subtitle_downloader_impl.go` - Implementation with caching, ZIP extraction, and format detection
-- `internal/services/subtitle_downloader_test.go` - Comprehensive tests (15 test cases including edge cases)
+- `internal/services/subtitle_downloader_test.go` - Comprehensive unit tests and benchmarks covering ZIP detection/extraction, caching, and edge cases
 - `internal/models/download_request.go` - Request/response models
 - `internal/client/client.go` - Client integration
 

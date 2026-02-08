@@ -7,6 +7,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// UserAgent is the User-Agent string sent with all HTTP requests
+const UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
 type Config struct {
 	ProxyConnectionString string `mapstructure:"proxy_connection_string"`
 	SuperSubtitleDomain   string `mapstructure:"super_subtitle_domain"`

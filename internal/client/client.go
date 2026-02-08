@@ -104,7 +104,7 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 		if err != nil {
 			return result{nil, fmt.Errorf("create request %s: %w", endpoint, err)}
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+		req.Header.Set("User-Agent", config.UserAgent)
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
@@ -185,7 +185,7 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 	}
 
 	// Set user agent to avoid being blocked
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.4472.124 Safari/537.36")
+	req.Header.Set("User-Agent", config.UserAgent)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -308,7 +308,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 				results[i] = showResult{err: fmt.Errorf("failed to create detail page request for show %d: %w", show.ID, err)}
 				return
 			}
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+			req.Header.Set("User-Agent", config.UserAgent)
 
 			resp, err := c.httpClient.Do(req)
 			if err != nil {
@@ -381,7 +381,7 @@ func (c *client) CheckForUpdates(ctx context.Context, contentID string) (*models
 	}
 
 	// Set user agent to avoid being blocked
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	req.Header.Set("User-Agent", config.UserAgent)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

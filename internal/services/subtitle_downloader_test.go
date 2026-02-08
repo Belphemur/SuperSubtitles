@@ -892,3 +892,52 @@ func TestDetectZipBomb_CompressionRatio(t *testing.T) {
 		t.Errorf("Normal files should not trigger ZIP bomb detection, got: %v", err)
 	}
 }
+
+func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
+	// Create ZIP with nested folder structure matching real-world season packs
+	// Structure: ShowName.S03E01/English.srt, ShowName.S03E02/English.srt, etc.
+	zipFiles := map[string]string{
+		"Hightown.S03E01/Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt":      "Episode 1 content",
+		"Hightown.S03E02/Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 content",
+		"Hightown.S03E03/Hightown.S03E03.Fall.Brook.NF.WEB-DL.en.srt":      "Episode 3 content",
+	}
+	zipContent := createTestZip(t, zipFiles)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	// Request episode 2 - should match the folder name "Hightown.S03E02"
+	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+		SubtitleID: "123456789",
+		Episode:    2,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	// Verify we got episode 2 content
+	if string(result.Content) != "Episode 2 content" {
+		t.Errorf("Expected 'Episode 2 content', got: %s", string(result.Content))
+	}
+
+	// Verify filename is from the matched file
+	if !strings.Contains(result.Filename, "S03E02") {
+		t.Errorf("Expected filename to contain S03E02, got: %s", result.Filename)
+	}
+
+	// Verify content type
+	if result.ContentType != "application/x-subrip" {
+		t.Errorf("Expected content type 'application/x-subrip', got: %s", result.ContentType)
+	}
+}
