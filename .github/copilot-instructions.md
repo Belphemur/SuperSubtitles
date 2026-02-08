@@ -134,4 +134,25 @@ SuperSubtitles/
 - **Add HTTP functionality:** Extend the `Client` interface in `internal/client/client.go` and add the implementation.
 - **Test pattern:** Create `*_test.go` in the same package. Use inline HTML/JSON fixtures and `httptest` servers.
 
+## Documentation Requirements
+
+**All new features and changes to existing features must be documented:**
+- **Always check repository memories first** - Review existing memories at the start of each task to understand patterns, conventions, and previously documented features
+- Update documentation in the `docs/` folder with architectural changes, new components, and data flows
+- Document code structure, file locations, and feature implementations in `docs/architecture.md`
+- Include test coverage information
+- Always check existing documentation and repository memories before starting work
+- Store new memories about code structure and features using the `store_memory` tool, including which files implement them
+
+## Testing Requirements
+
+**All code must have clear, comprehensive tests:**
+- Every new feature must include unit tests
+- Test files follow the `*_test.go` pattern in the same package
+- Use standard Go `testing` package (no external test frameworks like testify)
+- Use `httptest` servers for HTTP mocking
+- Include edge cases, error conditions, and happy paths
+- Add benchmark tests for performance-critical code
+- Tests must be clear, well-documented, and maintainable
+
 Trust these instructions. Only search the codebase if information here is incomplete or found to be in error.
