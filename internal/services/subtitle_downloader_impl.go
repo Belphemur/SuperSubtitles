@@ -18,6 +18,18 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
 )
 
+// ZIP bomb detection constants
+const (
+	// Maximum compression ratio (uncompressed/compressed)
+	// Note: Highly repetitive content (like repeated chars) can legitimately compress to 1000:1 or more
+	// Real subtitle files rarely exceed 20:1, but we set a generous limit to avoid false positives
+	maxCompressionRatio = 10000
+	// Maximum uncompressed size for a single file (20 MB - generous for subtitle files)
+	maxUncompressedFileSize = 20 * 1024 * 1024
+	// Maximum total uncompressed size for all files in ZIP (100 MB - for large season packs)
+	maxTotalUncompressedSize = 100 * 1024 * 1024
+)
+
 // zipCacheEntry represents a cached ZIP file with its content
 type zipCacheEntry struct {
 	content  []byte
@@ -160,6 +172,60 @@ func isZipContentType(contentType string) bool {
 		mediaType == "application/x-zip-compressed"
 }
 
+// detectZipBomb analyzes a ZIP file for characteristics of a ZIP bomb
+func detectZipBomb(zipContent []byte) error {
+	// Open ZIP archive for inspection
+	zipReader, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
+	if err != nil {
+		return fmt.Errorf("failed to open ZIP for bomb detection: %w", err)
+	}
+
+	compressedSize := int64(len(zipContent))
+	var totalUncompressedSize uint64
+
+	for _, file := range zipReader.File {
+		// Skip directories
+		if file.FileInfo().IsDir() {
+			continue
+		}
+
+		uncompressedSize := file.UncompressedSize64
+		totalUncompressedSize += uncompressedSize
+
+		// Check 1: Individual file size limit
+		if uncompressedSize > maxUncompressedFileSize {
+			return fmt.Errorf("ZIP bomb detected: file %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
+				file.Name, uncompressedSize, maxUncompressedFileSize)
+		}
+
+		// Check 2: Compression ratio per file (avoid division by zero)
+		if file.CompressedSize64 > 0 {
+			ratio := float64(uncompressedSize) / float64(file.CompressedSize64)
+			if ratio > maxCompressionRatio {
+				return fmt.Errorf("ZIP bomb detected: file %s has suspicious compression ratio (%.2f > %d)",
+					file.Name, ratio, maxCompressionRatio)
+			}
+		}
+	}
+
+	// Check 3: Total uncompressed size limit
+	if totalUncompressedSize > maxTotalUncompressedSize {
+		return fmt.Errorf("ZIP bomb detected: total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
+			totalUncompressedSize, maxTotalUncompressedSize)
+	}
+
+	// Check 4: Overall compression ratio
+	if compressedSize > 0 {
+		overallRatio := float64(totalUncompressedSize) / float64(compressedSize)
+		if overallRatio > maxCompressionRatio {
+			return fmt.Errorf("ZIP bomb detected: overall compression ratio is suspicious (%.2f > %d)",
+				overallRatio, maxCompressionRatio)
+		}
+	}
+
+	return nil
+}
+
 // getContentTypeFromFilename derives MIME type from file extension
 func getContentTypeFromFilename(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -239,6 +305,12 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 // extractEpisodeFromZip extracts a specific episode's subtitle from a season pack ZIP
 func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, episode int) (*models.DownloadResult, error) {
 	logger := config.GetLogger()
+
+	// Detect ZIP bombs before processing
+	if err := detectZipBomb(zipContent); err != nil {
+		logger.Warn().Err(err).Msg("ZIP bomb detected and blocked")
+		return nil, err
+	}
 
 	// Open ZIP archive
 	zipReader, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))

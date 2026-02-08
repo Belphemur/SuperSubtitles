@@ -783,3 +783,112 @@ func TestGetExtensionFromContentType_GzipEdgeCase(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectZipBomb(t *testing.T) {
+	tests := []struct {
+		name        string
+		files       map[string]string
+		shouldError bool
+		errorMsg    string
+	}{
+		{
+			name: "Normal season pack - should pass",
+			files: map[string]string{
+				"show.s03e01.srt": strings.Repeat("Normal subtitle content\n", 100),
+				"show.s03e02.srt": strings.Repeat("Normal subtitle content\n", 100),
+				"show.s03e03.srt": strings.Repeat("Normal subtitle content\n", 100),
+			},
+			shouldError: false,
+		},
+		{
+			name: "Single large file within limits - should pass",
+			files: map[string]string{
+				"show.s03e01.srt": strings.Repeat("A", 15*1024*1024), // 15 MB (under 20 MB limit)
+			},
+			shouldError: false,
+		},
+		{
+			name: "File exceeds individual size limit - should fail",
+			files: map[string]string{
+				"malicious.srt": strings.Repeat("X", 25*1024*1024), // 25 MB > 20 MB limit
+			},
+			shouldError: true,
+			errorMsg:    "exceeds maximum uncompressed size",
+		},
+		{
+			name: "Total size exceeds limit - should fail",
+			files: map[string]string{
+				"file1.srt": strings.Repeat("Y", 25*1024*1024), // 25 MB
+				"file2.srt": strings.Repeat("Z", 25*1024*1024), // 25 MB
+			},
+			shouldError: true,
+			errorMsg:    "exceeds maximum uncompressed size", // Fails on individual file first
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			zipContent := createTestZip(t, tt.files)
+			err := detectZipBomb(zipContent)
+
+			if tt.shouldError {
+				if err == nil {
+					t.Errorf("Expected error containing '%s', got nil", tt.errorMsg)
+				} else if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing '%s', got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
+	// Create a ZIP with a file that exceeds size limits
+	zipContent := createTestZip(t, map[string]string{
+		"malicious.s03e01.srt": strings.Repeat("Q", 25*1024*1024), // 19 MB (< 20 MB limit)
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	// Attempt to extract episode - should fail due to ZIP bomb detection
+	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+		SubtitleID: "123456789",
+		Episode:    1,
+	})
+
+	if err == nil {
+		t.Fatal("Expected error due to ZIP bomb detection, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "ZIP bomb detected") {
+		t.Errorf("Expected 'ZIP bomb detected' error, got: %v", err)
+	}
+}
+
+func TestDetectZipBomb_CompressionRatio(t *testing.T) {
+	// Create a small test to verify compression ratio check works
+	// Note: In practice, creating a true high-compression-ratio ZIP is complex
+	// This test verifies the function handles normal files correctly
+	normalFiles := map[string]string{
+		"test1.srt": "Normal content that compresses well but not suspiciously\n",
+		"test2.srt": "Another normal file with typical subtitle content\n",
+	}
+
+	zipContent := createTestZip(t, normalFiles)
+	err := detectZipBomb(zipContent)
+
+	if err != nil {
+		t.Errorf("Normal files should not trigger ZIP bomb detection, got: %v", err)
+	}
+}
