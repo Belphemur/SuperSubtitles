@@ -849,7 +849,7 @@ func TestDetectZipBomb(t *testing.T) {
 func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 	// Create a ZIP with a file that exceeds size limits
 	zipContent := createTestZip(t, map[string]string{
-		"malicious.s03e01.srt": strings.Repeat("Q", 25*1024*1024), // 19 MB (< 20 MB limit)
+		"malicious.s03e01.srt": strings.Repeat("Q", 25*1024*1024), // 25 MB (> 20 MB limit)
 	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -939,5 +939,126 @@ func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
 	// Verify content type
 	if result.ContentType != "application/x-subrip" {
 		t.Errorf("Expected content type 'application/x-subrip', got: %s", result.ContentType)
+	}
+}
+
+func TestDownloadSubtitle_ExceedsDownloadSizeLimit(t *testing.T) {
+	// Create a server that returns a very large response
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		// Write more than maxDownloadSize (150 MB)
+		// Write in chunks to avoid memory issues in test
+		chunk := make([]byte, 1024*1024) // 1 MB chunks
+		for i := 0; i < 151; i++ {
+			_, _ = w.Write(chunk)
+		}
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	// Test download that exceeds size limit
+	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+		SubtitleID: "123456789",
+		Episode:    0,
+	})
+
+	if err == nil {
+		t.Fatal("Expected error for oversized download, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "exceeds limit") {
+		t.Errorf("Expected error message about size limit, got: %v", err)
+	}
+}
+
+func TestExtractEpisodeFromZip_MultipleMatches(t *testing.T) {
+	// Create ZIP with multiple files matching the same episode
+	// Including both subtitle files and non-subtitle files
+	zipFiles := map[string]string{
+		"show.s03e01.nfo":     "NFO file content",
+		"show.s03e01.sub":     "SUB subtitle content",
+		"show.s03e01.ass":     "ASS subtitle content",
+		"show.s03e01.srt":     "SRT subtitle content", // Should be preferred
+		"show.s03e01.txt":     "Text file content",
+		"show.s03e01.vtt":     "VTT subtitle content",
+		"show.s03e01.unknown": "Unknown file content",
+	}
+	zipContent := createTestZip(t, zipFiles)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	// Request episode 1 - should prefer .srt over other types
+	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+		SubtitleID: "123456789",
+		Episode:    1,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	// Verify we got the .srt file (highest priority)
+	if string(result.Content) != "SRT subtitle content" {
+		t.Errorf("Expected SRT content, got: %s", string(result.Content))
+	}
+
+	// Verify filename
+	if !strings.HasSuffix(result.Filename, ".srt") {
+		t.Errorf("Expected .srt filename, got: %s", result.Filename)
+	}
+
+	// Verify content type
+	if result.ContentType != "application/x-subrip" {
+		t.Errorf("Expected content type 'application/x-subrip', got: %s", result.ContentType)
+	}
+}
+
+func TestExtractEpisodeFromZip_PreferSubtitleOverNonSubtitle(t *testing.T) {
+	// Create ZIP with subtitle and non-subtitle files for the same episode
+	zipFiles := map[string]string{
+		"show.s03e02.nfo": "NFO file content",
+		"show.s03e02.txt": "Text file content",
+		"show.s03e02.ass": "ASS subtitle content", // Should be selected over non-subtitle files
+	}
+	zipContent := createTestZip(t, zipFiles)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
+		SubtitleID: "123456789",
+		Episode:    2,
+	})
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Verify we got the .ass file (subtitle type preferred over non-subtitle)
+	if string(result.Content) != "ASS subtitle content" {
+		t.Errorf("Expected ASS content, got: %s", string(result.Content))
+	}
+
+	if !strings.HasSuffix(result.Filename, ".ass") {
+		t.Errorf("Expected .ass filename, got: %s", result.Filename)
 	}
 }

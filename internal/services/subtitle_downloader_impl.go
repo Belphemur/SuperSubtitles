@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +29,8 @@ const (
 	maxUncompressedFileSize = 20 * 1024 * 1024
 	// Maximum total uncompressed size for all files in ZIP (100 MB - for large season packs)
 	maxTotalUncompressedSize = 100 * 1024 * 1024
+	// Maximum download size to prevent OOM before ZIP bomb detection runs (150 MB)
+	maxDownloadSize = 150 * 1024 * 1024
 )
 
 // zipCacheEntry represents a cached ZIP file with its content
@@ -277,9 +280,22 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 		return nil, "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	content, err := io.ReadAll(resp.Body)
+	// Limit reading to prevent OOM with very large files
+	// Use LimitReader to cap at maxDownloadSize + 1 byte to detect oversized responses
+	limitedReader := io.LimitReader(resp.Body, int64(maxDownloadSize+1))
+	content, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check if download exceeded size limit
+	if len(content) > maxDownloadSize {
+		logger.Warn().
+			Str("url", url).
+			Int("size", len(content)).
+			Int("limit", maxDownloadSize).
+			Msg("Download exceeded size limit")
+		return nil, "", fmt.Errorf("download size (%d bytes) exceeds limit (%d bytes)", len(content), maxDownloadSize)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -327,6 +343,23 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		Int("episode", episode).
 		Msg("Searching for episode in ZIP archive")
 
+	// Collect all matching subtitle files
+	type matchedFile struct {
+		file     *zip.File
+		filename string
+		fullPath string
+		priority int // Lower is better: .srt=0, .ass=1, .vtt=2, .sub=3, other=4
+	}
+	var matches []matchedFile
+
+	// Known subtitle extensions in priority order
+	subtitleExtensions := map[string]int{
+		".srt": 0,
+		".ass": 1,
+		".vtt": 2,
+		".sub": 3,
+	}
+
 	// Search through ZIP files
 	for _, file := range zipReader.File {
 		// Skip directories
@@ -342,41 +375,75 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		// Evaluate the episode pattern match once for both filename and full path
 		matchesFilename := episodePattern.MatchString(filename)
 		matchesPath := episodePattern.MatchString(fullPath)
-		matches := matchesFilename || matchesPath
+		matchesEpisode := matchesFilename || matchesPath
 
 		logger.Debug().
 			Str("filename", filename).
 			Str("fullPath", fullPath).
-			Bool("matches", matches).
+			Bool("matches", matchesEpisode).
 			Msg("Checking file in ZIP")
 
 		// Check if this file matches the episode pattern
-		if matches {
-			// Found matching episode - extract it
-			rc, err := file.Open()
-			if err != nil {
-				return nil, fmt.Errorf("failed to open file %s in ZIP: %w", file.Name, err)
+		if matchesEpisode {
+			// Check if it's a known subtitle file type
+			ext := strings.ToLower(filepath.Ext(filename))
+			priority, isSubtitle := subtitleExtensions[ext]
+			if !isSubtitle {
+				// Unknown extension - assign lowest priority
+				priority = 4
+				logger.Debug().
+					Str("filename", filename).
+					Str("extension", ext).
+					Msg("Matched file is not a known subtitle type, assigning low priority")
 			}
-			defer rc.Close()
 
-			content, err := io.ReadAll(rc)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read file %s from ZIP: %w", file.Name, err)
-			}
-
-			logger.Info().
-				Str("filename", filename).
-				Int("size", len(content)).
-				Msg("Found and extracted episode from ZIP")
-
-			return &models.DownloadResult{
-				Filename:    filename,
-				Content:     content,
-				ContentType: getContentTypeFromFilename(filename),
-			}, nil
+			matches = append(matches, matchedFile{
+				file:     file,
+				filename: filename,
+				fullPath: fullPath,
+				priority: priority,
+			})
 		}
 	}
 
-	// Episode not found in ZIP
-	return nil, fmt.Errorf("episode %d not found in season pack ZIP (searched %d files)", episode, len(zipReader.File))
+	// No matches found
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("episode %d not found in season pack ZIP (searched %d files)", episode, len(zipReader.File))
+	}
+
+	// Sort matches: first by priority (prefer .srt over others), then by filename for determinism
+	sort.Slice(matches, func(i, j int) bool {
+		if matches[i].priority != matches[j].priority {
+			return matches[i].priority < matches[j].priority
+		}
+		// Same priority, sort alphabetically for determinism
+		return matches[i].filename < matches[j].filename
+	})
+
+	// Use the best match
+	bestMatch := matches[0]
+
+	logger.Info().
+		Str("filename", bestMatch.filename).
+		Int("priority", bestMatch.priority).
+		Int("totalMatches", len(matches)).
+		Msg("Selected best matching subtitle from ZIP")
+
+	// Extract the selected file
+	rc, err := bestMatch.file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s in ZIP: %w", bestMatch.file.Name, err)
+	}
+	defer rc.Close()
+
+	content, err := io.ReadAll(rc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s from ZIP: %w", bestMatch.file.Name, err)
+	}
+
+	return &models.DownloadResult{
+		Filename:    bestMatch.filename,
+		Content:     content,
+		ContentType: getContentTypeFromFilename(bestMatch.filename),
+	}, nil
 }
