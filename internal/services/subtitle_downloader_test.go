@@ -394,7 +394,23 @@ func BenchmarkDownloadSubtitle_ExtractFromZip(b *testing.B) {
 		zipFiles[filename] = strings.Repeat("Subtitle content line\n", 100)
 	}
 
-	zipContent := createTestZip(&testing.T{}, zipFiles)
+	// Create ZIP using a simple inline implementation for benchmarks
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+	for filename, content := range zipFiles {
+		f, err := w.Create(filename)
+		if err != nil {
+			b.Fatalf("Failed to create file %s in ZIP: %v", filename, err)
+		}
+		_, err = f.Write([]byte(content))
+		if err != nil {
+			b.Fatalf("Failed to write content to %s in ZIP: %v", filename, err)
+		}
+	}
+	if err := w.Close(); err != nil {
+		b.Fatalf("Failed to close ZIP writer: %v", err)
+	}
+	zipContent := buf.Bytes()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/zip")
