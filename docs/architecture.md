@@ -99,28 +99,35 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 
 ### Subtitle Download with Episode Extraction
 1. `DownloadSubtitle` method in the Client interface accepts a download URL and a `DownloadRequest`
-2. `SubtitleDownloader` service handles the actual download and processing:
-   - **Non-ZIP files**: Downloaded and returned as-is
+2. **`SubtitleDownloader` service is the primary download handler for all subtitle files**:
+   - **Regular subtitle files** (SRT, ASS, VTT, SUB): Downloaded and returned with correct content-type and extension
    - **ZIP files without episode number**: Entire ZIP returned (for manual extraction)
    - **ZIP files with episode number**: 
      - ZIP file is downloaded (or retrieved from cache)
-     - Episode pattern matching using regex: `S03E01`, `s03e01`, `3x01`, etc.
+     - Episode pattern matching using regex with word boundaries: `S03E01`, `s03e01`, `3x01`, `E01` (with guards against false positives like E01 matching E010)
      - Specific episode subtitle extracted from the ZIP archive
-     - Only the requested episode file is returned
-3. **Caching Strategy**:
+     - Only the requested episode file is returned with correct content-type based on file extension
+3. **Multi-Format Support**:
+   - SRT (SubRip) - `application/x-subrip`
+   - ASS (Advanced SubStation Alpha) - `application/x-ass`, `text/ass`
+   - VTT (WebVTT) - `text/vtt`, `text/webvtt`
+   - SUB (MicroDVD) - `application/x-sub`
+   - ZIP archives - `application/zip`
+   - Unknown formats default to `application/octet-stream`
+4. **Caching Strategy**:
    - LRU cache with 100-entry capacity and 1-hour TTL
    - Only ZIP files are cached (regular subtitle files are small and not cached)
    - Cache key is the download URL
    - Multiple episode requests from same season pack use cached ZIP
-4. **File Structure Support**:
+5. **File Structure Support**:
    - Flat ZIP structure (all files in root)
    - Nested folders (e.g., `ShowName.S03/ShowName.S03E01.srt`)
    - Various naming patterns (uppercase, lowercase, different separators)
 
 **Implementation Files:**
 - `internal/services/subtitle_downloader.go` - Interface definition
-- `internal/services/subtitle_downloader_impl.go` - Implementation with caching and ZIP extraction
-- `internal/services/subtitle_downloader_test.go` - Comprehensive tests including edge cases
+- `internal/services/subtitle_downloader_impl.go` - Implementation with caching, ZIP extraction, and format detection
+- `internal/services/subtitle_downloader_test.go` - Comprehensive tests (15 test cases including edge cases)
 - `internal/models/download_request.go` - Request/response models
 - `internal/client/client.go` - Client integration
 
