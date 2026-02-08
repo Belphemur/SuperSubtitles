@@ -96,20 +96,25 @@ func generateFilename(subtitleID, contentType string) string {
 func getExtensionFromContentType(contentType string) string {
 	ctLower := strings.ToLower(contentType)
 
+	// Check most specific patterns first to avoid false matches
 	if strings.Contains(ctLower, "zip") {
 		return ".zip"
 	}
-	if strings.Contains(ctLower, "x-subrip") || strings.Contains(ctLower, "srt") {
+	if strings.Contains(ctLower, "x-subrip") {
 		return ".srt"
 	}
-	if strings.Contains(ctLower, "x-ass") || strings.Contains(ctLower, "ass") {
+	if strings.Contains(ctLower, "x-ass") || strings.Contains(ctLower, "/ass") {
 		return ".ass"
 	}
 	if strings.Contains(ctLower, "vtt") || strings.Contains(ctLower, "webvtt") {
 		return ".vtt"
 	}
-	if strings.Contains(ctLower, "x-sub") || strings.Contains(ctLower, "sub") {
+	if strings.Contains(ctLower, "x-sub") {
 		return ".sub"
+	}
+	// Fallback for generic text/srt or similar
+	if strings.Contains(ctLower, "srt") {
+		return ".srt"
 	}
 
 	// Default to .srt for subtitle files

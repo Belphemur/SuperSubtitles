@@ -586,3 +586,51 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestGetExtensionFromContentType_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		contentType string
+		expected    string
+	}{
+		{
+			name:        "x-subrip takes precedence over generic srt",
+			contentType: "application/x-subrip",
+			expected:    ".srt",
+		},
+		{
+			name:        "generic srt fallback",
+			contentType: "text/srt",
+			expected:    ".srt",
+		},
+		{
+			name:        "x-ass specific",
+			contentType: "application/x-ass",
+			expected:    ".ass",
+		},
+		{
+			name:        "slash-ass pattern",
+			contentType: "text/ass",
+			expected:    ".ass",
+		},
+		{
+			name:        "x-sub does not match x-subrip",
+			contentType: "application/x-subrip",
+			expected:    ".srt",
+		},
+		{
+			name:        "unknown type defaults to srt",
+			contentType: "application/octet-stream",
+			expected:    ".srt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getExtensionFromContentType(tt.contentType)
+			if result != tt.expected {
+				t.Errorf("Expected extension '%s', got '%s' for content type '%s'", tt.expected, result, tt.contentType)
+			}
+		})
+	}
+}
