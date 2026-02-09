@@ -1,18 +1,36 @@
 package grpc
 
 import (
+	"math"
+
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
+// safeInt32 converts an int to int32 with bounds checking to prevent overflow
+func safeInt32(val int) int32 {
+	if val > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if val < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(val)
+}
+
+// safeInt64 converts an int to int64 (safe on all architectures)
+func safeInt64(val int) int64 {
+	return int64(val)
+}
+
 // convertShowToProto converts a models.Show to a proto Show message
 func convertShowToProto(show models.Show) *pb.Show {
 	return &pb.Show{
 		Name:     show.Name,
-		Id:       int64(show.ID),
-		Year:     int32(show.Year),
+		Id:       safeInt64(show.ID),
+		Year:     safeInt32(show.Year),
 		ImageUrl: show.ImageURL,
 	}
 }
@@ -34,9 +52,9 @@ func convertShowFromProto(pbShow *pb.Show) models.Show {
 func convertThirdPartyIdsToProto(ids models.ThirdPartyIds) *pb.ThirdPartyIds {
 	return &pb.ThirdPartyIds{
 		ImdbId:   ids.IMDBID,
-		TvdbId:   int64(ids.TVDBID),
-		TvMazeId: int64(ids.TVMazeID),
-		TraktId:  int64(ids.TraktID),
+		TvdbId:   safeInt64(ids.TVDBID),
+		TvMazeId: safeInt64(ids.TVMazeID),
+		TraktId:  safeInt64(ids.TraktID),
 	}
 }
 
@@ -73,13 +91,13 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 	}
 
 	return &pb.Subtitle{
-		Id:            int64(subtitle.ID),
-		ShowId:        int64(subtitle.ShowID),
+		Id:            safeInt64(subtitle.ID),
+		ShowId:        safeInt64(subtitle.ShowID),
 		ShowName:      subtitle.ShowName,
 		Name:          subtitle.Name,
 		Language:      subtitle.Language,
-		Season:        int32(subtitle.Season),
-		Episode:       int32(subtitle.Episode),
+		Season:        safeInt32(subtitle.Season),
+		Episode:       safeInt32(subtitle.Episode),
 		Filename:      subtitle.Filename,
 		DownloadUrl:   subtitle.DownloadURL,
 		Uploader:      subtitle.Uploader,
@@ -101,7 +119,7 @@ func convertSubtitleCollectionToProto(collection models.SubtitleCollection) *pb.
 	return &pb.SubtitleCollection{
 		ShowName:  collection.ShowName,
 		Subtitles: subtitles,
-		Total:     int64(collection.Total),
+		Total:     safeInt64(collection.Total),
 	}
 }
 
