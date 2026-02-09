@@ -22,6 +22,76 @@ var (
 	odalPageRegex   = regexp.MustCompile(`oldal=(\d+)`)
 )
 
+// languageToISO maps Hungarian language names to ISO 639-1 codes
+// Based on common languages found on feliratok.eu
+var languageToISO = map[string]string{
+	// Hungarian names (lowercase for case-insensitive matching)
+	"magyar":   "hu",
+	"angol":    "en",
+	"német":    "de",
+	"francia":  "fr",
+	"spanyol":  "es",
+	"olasz":    "it",
+	"orosz":    "ru",
+	"portugál": "pt",
+	"holland":  "nl",
+	"lengyel":  "pl",
+	"török":    "tr",
+	"arab":     "ar",
+	"héber":    "he",
+	"japán":    "ja",
+	"kínai":    "zh",
+	"koreai":   "ko",
+	"cseh":     "cs",
+	"dán":      "da",
+	"finn":     "fi",
+	"görög":    "el",
+	"norvég":   "no",
+	"svéd":     "sv",
+	"román":    "ro",
+	"szerb":    "sr",
+	"horvát":   "hr",
+	"bolgár":   "bg",
+	"ukrán":    "uk",
+	"thai":     "th",
+	"vietnámi": "vi",
+	"indonéz":  "id",
+	"hindi":    "hi",
+	"perzsa":   "fa",
+	"brazil":   "pt", // Brazilian Portuguese maps to pt
+
+	// English names (fallback)
+	"hungarian":  "hu",
+	"english":    "en",
+	"german":     "de",
+	"french":     "fr",
+	"spanish":    "es",
+	"italian":    "it",
+	"russian":    "ru",
+	"portuguese": "pt",
+	"dutch":      "nl",
+	"polish":     "pl",
+	"turkish":    "tr",
+	"arabic":     "ar",
+	"hebrew":     "he",
+	"japanese":   "ja",
+	"chinese":    "zh",
+	"korean":     "ko",
+	"czech":      "cs",
+	"danish":     "da",
+	"finnish":    "fi",
+	"greek":      "el",
+	"norwegian":  "no",
+	"swedish":    "sv",
+	"romanian":   "ro",
+	"serbian":    "sr",
+	"croatian":   "hr",
+	"bulgarian":  "bg",
+	"ukrainian":  "uk",
+	"vietnamese": "vi",
+	"indonesian": "id",
+}
+
 // SubtitleParser implements the Parser interface for parsing HTML subtitle listings
 type SubtitleParser struct {
 	baseURL string
@@ -40,6 +110,36 @@ func NewSubtitleParser(baseURL string) *SubtitleParser {
 	return &SubtitleParser{
 		baseURL: baseURL,
 	}
+}
+
+// convertLanguageToISO converts a language name (Hungarian or English) to ISO 639-1 code
+// Returns the ISO code if found, otherwise returns the original input
+func convertLanguageToISO(languageName string) string {
+	// Normalize to lowercase and trim
+	normalized := strings.ToLower(strings.TrimSpace(languageName))
+
+	if normalized == "" {
+		return ""
+	}
+
+	// Look up in the map
+	if isoCode, exists := languageToISO[normalized]; exists {
+		return isoCode
+	}
+
+	// If already looks like an ISO code (2-3 letters), return as-is
+	if len(normalized) == 2 || len(normalized) == 3 {
+		// Could be already an ISO code
+		return normalized
+	}
+
+	logger := config.GetLogger()
+	logger.Debug().
+		Str("languageName", languageName).
+		Msg("Unknown language name, returning original value")
+
+	// Return original if no mapping found
+	return languageName
 }
 
 // ParseHtml implements the Parser[models.Subtitle] interface
@@ -121,6 +221,9 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		return nil
 	}
 
+	// Convert language name to ISO 639-1 code
+	languageISO := convertLanguageToISO(language)
+
 	// Extract description (show name, episode, release info) from column 2
 	descriptionTd := tds.Eq(2).Find(".eredeti")
 	description := strings.TrimSpace(descriptionTd.Text())
@@ -166,7 +269,7 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		ID:            subtitleID,
 		Name:          description,
 		ShowName:      showName,
-		Language:      language,
+		Language:      languageISO,
 		Season:        season,
 		Episode:       episode,
 		Filename:      filename,

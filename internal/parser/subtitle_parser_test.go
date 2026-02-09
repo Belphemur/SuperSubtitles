@@ -38,8 +38,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	}
 
 	subtitle := result.Subtitles[0]
-	if subtitle.Language != "Magyar" {
-		t.Errorf("Expected language %q, got %q", "Magyar", subtitle.Language)
+	if subtitle.Language != "hu" {
+		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
 	}
 	// The name is the full eredeti text
 	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)"
@@ -123,6 +123,9 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 	}
 
 	subtitle := result.Subtitles[0]
+	if subtitle.Language != "hu" {
+		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
+	}
 	if subtitle.ShowName != "Billy the Kid" {
 		t.Errorf("Expected show name %q, got %q", "Billy the Kid", subtitle.ShowName)
 	}
@@ -239,6 +242,81 @@ func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T)
 			result := parser.extractFilenameFromDownloadLink(tt.link)
 			if result != tt.expected {
 				t.Errorf("Expected filename %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestConvertLanguageToISO(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		// Hungarian language names
+		{name: "Hungarian - Magyar", input: "Magyar", expected: "hu"},
+		{name: "Hungarian - magyar lowercase", input: "magyar", expected: "hu"},
+		{name: "English - Angol", input: "Angol", expected: "en"},
+		{name: "English - angol lowercase", input: "angol", expected: "en"},
+		{name: "German - Német", input: "Német", expected: "de"},
+		{name: "French - Francia", input: "Francia", expected: "fr"},
+		{name: "Spanish - Spanyol", input: "Spanyol", expected: "es"},
+		{name: "Italian - Olasz", input: "Olasz", expected: "it"},
+		{name: "Russian - Orosz", input: "Orosz", expected: "ru"},
+		{name: "Portuguese - Portugál", input: "Portugál", expected: "pt"},
+		{name: "Dutch - Holland", input: "Holland", expected: "nl"},
+		{name: "Polish - Lengyel", input: "Lengyel", expected: "pl"},
+		{name: "Turkish - Török", input: "Török", expected: "tr"},
+		{name: "Arabic - Arab", input: "Arab", expected: "ar"},
+		{name: "Hebrew - Héber", input: "Héber", expected: "he"},
+		{name: "Japanese - Japán", input: "Japán", expected: "ja"},
+		{name: "Chinese - Kínai", input: "Kínai", expected: "zh"},
+		{name: "Korean - Koreai", input: "Koreai", expected: "ko"},
+		{name: "Czech - Cseh", input: "Cseh", expected: "cs"},
+		{name: "Danish - Dán", input: "Dán", expected: "da"},
+		{name: "Finnish - Finn", input: "Finn", expected: "fi"},
+		{name: "Greek - Görög", input: "Görög", expected: "el"},
+		{name: "Norwegian - Norvég", input: "Norvég", expected: "no"},
+		{name: "Swedish - Svéd", input: "Svéd", expected: "sv"},
+		{name: "Romanian - Román", input: "Román", expected: "ro"},
+		{name: "Serbian - Szerb", input: "Szerb", expected: "sr"},
+		{name: "Croatian - Horvát", input: "Horvát", expected: "hr"},
+		{name: "Bulgarian - Bolgár", input: "Bolgár", expected: "bg"},
+		{name: "Ukrainian - Ukrán", input: "Ukrán", expected: "uk"},
+		{name: "Thai - Thai", input: "Thai", expected: "th"},
+		{name: "Vietnamese - Vietnámi", input: "Vietnámi", expected: "vi"},
+		{name: "Indonesian - Indonéz", input: "Indonéz", expected: "id"},
+		{name: "Hindi - Hindi", input: "Hindi", expected: "hi"},
+		{name: "Persian - Perzsa", input: "Perzsa", expected: "fa"},
+		{name: "Brazilian - Brazil", input: "Brazil", expected: "pt"},
+
+		// English language names (fallback)
+		{name: "English name - Hungarian", input: "Hungarian", expected: "hu"},
+		{name: "English name - English", input: "English", expected: "en"},
+		{name: "English name - German", input: "German", expected: "de"},
+		{name: "English name - French", input: "French", expected: "fr"},
+		{name: "English name - Spanish", input: "Spanish", expected: "es"},
+		{name: "English name - Portuguese", input: "Portuguese", expected: "pt"},
+
+		// Edge cases
+		{name: "Empty string", input: "", expected: ""},
+		{name: "Whitespace only", input: "   ", expected: ""},
+		{name: "Already ISO code - en", input: "en", expected: "en"},
+		{name: "Already ISO code - hu", input: "hu", expected: "hu"},
+		{name: "Already ISO code - uppercase", input: "EN", expected: "en"},
+		{name: "Mixed case", input: "MaGyAr", expected: "hu"},
+		{name: "With leading/trailing spaces", input: "  Angol  ", expected: "en"},
+
+		// Unknown language (should return original)
+		{name: "Unknown language", input: "Klingon", expected: "Klingon"},
+		{name: "Numeric input", input: "12345", expected: "12345"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := convertLanguageToISO(tt.input)
+			if result != tt.expected {
+				t.Errorf("convertLanguageToISO(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
 	}
