@@ -42,8 +42,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.Language != "hu" {
 		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
 	}
-	// The name is the full eredeti text
-	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)"
+	// The name should have parenthetical content removed
+	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels"
 	if subtitle.Name != expectedName {
 		t.Errorf("Expected name %q, got %q", expectedName, subtitle.Name)
 	}
@@ -318,6 +318,74 @@ func TestConvertLanguageToISO(t *testing.T) {
 			result := convertLanguageToISO(tt.input)
 			if result != tt.expected {
 				t.Errorf("convertLanguageToISO(%q) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRemoveParentheticalContent(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Episode with release info",
+			input:    "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX, AMZN.WEB-DL.720p-Kitsune, AMZN.WEB-DL.720p-RAWR, PCOK.WEB-DL.720p-playWEB, WEB.1080p-ETHEL, AMZN.WEB-DL.1080p-Kitsune, AMZN.WEB-DL.1080p-RAWR, PCOK.WEB-DL.1080p-BLOOM, PCOK.WEB-DL.1080p-playWEB, WEB.2160p-ETHEL, AMZN.WEB-DL.2160p-RAWR, PCOK.WEB-DL.2160p-playWEB, PCOK.WEB-DL.2160p-RAWR)",
+			expected: "The Copenhagen Test - 1x04 - Obsidian",
+		},
+		{
+			name:     "Season pack with release info",
+			input:    "Pocoyo (Season 4) (NF.WEBRip)",
+			expected: "Pocoyo",
+		},
+		{
+			name:     "Single parenthetical content",
+			input:    "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			expected: "Billy the Kid",
+		},
+		{
+			name:     "Outlander example",
+			input:    "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			expected: "Outlander - 7x16 - A Hundred Thousand Angels",
+		},
+		{
+			name:     "No parentheses",
+			input:    "Show Name - 1x01 - Episode Title",
+			expected: "Show Name - 1x01 - Episode Title",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only parentheses",
+			input:    "(Release Info)",
+			expected: "",
+		},
+		{
+			name:     "Multiple separate parentheses",
+			input:    "Show (Year) - Episode (Release)",
+			expected: "Show - Episode",
+		},
+		{
+			name:     "Trailing dash after removal",
+			input:    "Show Name -",
+			expected: "Show Name",
+		},
+		{
+			name:     "Trailing dash and space after parentheses",
+			input:    "Show Name - (Release Info)",
+			expected: "Show Name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := removeParentheticalContent(tt.input)
+			if result != tt.expected {
+				t.Errorf("removeParentheticalContent(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
 	}

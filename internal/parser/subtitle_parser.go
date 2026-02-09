@@ -17,9 +17,10 @@ import (
 
 // Pre-compiled regex patterns for performance
 var (
-	seasonPackRegex = regexp.MustCompile(`\(Season\s+(\d+)\)`)
-	episodeRegex    = regexp.MustCompile(`(\d+)x(\d+)`)
-	odalPageRegex   = regexp.MustCompile(`oldal=(\d+)`)
+	seasonPackRegex  = regexp.MustCompile(`\(Season\s+(\d+)\)`)
+	episodeRegex     = regexp.MustCompile(`(\d+)x(\d+)`)
+	odalPageRegex    = regexp.MustCompile(`oldal=(\d+)`)
+	parenthesesRegex = regexp.MustCompile(`\s*\([^)]*\)`)
 )
 
 // languageToISO maps Hungarian language names to ISO 639-1 codes
@@ -270,10 +271,13 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	// Extract filename from download link
 	filename := p.extractFilenameFromDownloadLink(downloadLink)
 
+	// Clean the subtitle name by removing parenthetical content
+	cleanedName := removeParentheticalContent(description)
+
 	return &models.Subtitle{
 		ID:            subtitleID,
 		ShowID:        showID,
-		Name:          description,
+		Name:          cleanedName,
 		ShowName:      showName,
 		Language:      languageISO,
 		Season:        season,
@@ -574,6 +578,20 @@ func (p *SubtitleParser) extractFilenameFromDownloadLink(link string) string {
 	}
 
 	return ""
+}
+
+// removeParentheticalContent removes all content within parentheses from a string
+// and trims any trailing whitespace or punctuation
+func removeParentheticalContent(text string) string {
+	// Remove all content within parentheses
+	result := parenthesesRegex.ReplaceAllString(text, "")
+
+	// Trim whitespace and trailing punctuation
+	result = strings.TrimSpace(result)
+	result = strings.TrimRight(result, ".-")
+	result = strings.TrimSpace(result)
+
+	return result
 }
 
 // extractPaginationInfo extracts current page and total pages from the document
