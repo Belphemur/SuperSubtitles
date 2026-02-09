@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.1.1...v1.1.2) (2026-02-09)
+
+
+### Bug Fixes
+
+* **subtitle:** fix getting proper subtitle info ([f8ac0a0](https://github.com/Belphemur/SuperSubtitles/commit/f8ac0a094f3a9a0a0637bbf958086ac2883a1b6c))
+
 ## [1.1.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.1.0...v1.1.1) (2026-02-09)
 
 
