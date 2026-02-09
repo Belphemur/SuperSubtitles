@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -281,177 +282,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 	}
 }
 
-func TestClient_GetSubtitles(t *testing.T) {
-	// Sample JSON response based on the SuperSubtitles API
-	jsonResponse := `{
-		"2": {
-			"language": "Angol",
-			"nev": "Outlander (Season 1) (1080p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "Outlander.S01.HDTV.720p.1080p.ENG.zip",
-			"felirat": "1435431909",
-			"evad": "1",
-			"ep": "1",
-			"feltolto": "J1GG4",
-			"pontos_talalat": "111",
-			"evadpakk": "0"
-		},
-		"1": {
-			"language": "Magyar",
-			"nev": "Outlander (Season 1) (720p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "Outlander.S01.HDTV.720p.HUN.zip",
-			"felirat": "1435431932",
-			"evad": "1",
-			"ep": "-1",
-			"feltolto": "BCsilla",
-			"pontos_talalat": "111",
-			"evadpakk": "1"
-		}
-	}`
-
-	// Create a test server that returns the sample JSON for any subtitle ID
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with sample JSON for any request to /index.php
-		if r.URL.Path == "/index.php" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(jsonResponse))
-		} else {
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
-	defer server.Close()
-
-	// Create a test config
-	testConfig := &config.Config{
-		SuperSubtitleDomain: server.URL,
-		ClientTimeout:       "10s",
-	}
-
-	// Create the client
-	client := NewClient(testConfig)
-
-	// Call GetSubtitles
-	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
-
-	// Test that the call succeeds
-	if err != nil {
-		t.Fatalf("GetSubtitles failed: %v", err)
-	}
-
-	// Test that we got the expected subtitle collection
-	if subtitles == nil {
-		t.Fatal("Expected subtitle collection, got nil")
-	}
-
-	// Test basic properties
-	if subtitles.Total != 2 {
-		t.Errorf("Expected 2 subtitles, got %d", subtitles.Total)
-	}
-
-	if subtitles.ShowName != "Outlander" {
-		t.Errorf("Expected show name 'Outlander', got '%s'", subtitles.ShowName)
-	}
-
-	if len(subtitles.Subtitles) != 2 {
-		t.Errorf("Expected 2 subtitles in collection, got %d", len(subtitles.Subtitles))
-	}
-
-	// Build a map of subtitles by language for order-independent assertions
-	// (SuperSubtitleResponse is a map so iteration order is non-deterministic)
-	subtitlesByLang := make(map[string]models.Subtitle)
-	for _, s := range subtitles.Subtitles {
-		subtitlesByLang[s.Language] = s
-	}
-
-	// Test English subtitle
-	if en, ok := subtitlesByLang["en"]; !ok {
-		t.Error("Expected English subtitle not found")
-	} else {
-		if en.Quality != models.Quality1080p {
-			t.Errorf("Expected English subtitle quality 1080p, got %v", en.Quality)
-		}
-		if en.Season != 1 {
-			t.Errorf("Expected English subtitle season 1, got %d", en.Season)
-		}
-		if en.Episode != 1 {
-			t.Errorf("Expected English subtitle episode 1, got %d", en.Episode)
-		}
-		if en.IsSeasonPack {
-			t.Errorf("Expected English subtitle IsSeasonPack false, got %t", en.IsSeasonPack)
-		}
-		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431909"
-		if en.DownloadURL != expectedURL {
-			t.Errorf("Expected English subtitle DownloadURL '%s', got '%s'", expectedURL, en.DownloadURL)
-		}
-	}
-
-	// Test Hungarian subtitle
-	if hu, ok := subtitlesByLang["hu"]; !ok {
-		t.Error("Expected Hungarian subtitle not found")
-	} else {
-		if hu.Quality != models.Quality720p {
-			t.Errorf("Expected Hungarian subtitle quality 720p, got %v", hu.Quality)
-		}
-		if !hu.IsSeasonPack {
-			t.Errorf("Expected Hungarian subtitle IsSeasonPack true, got %t", hu.IsSeasonPack)
-		}
-		expectedURL := "https://feliratok.eu/index.php?action=letolt&felirat=1435431932"
-		if hu.DownloadURL != expectedURL {
-			t.Errorf("Expected Hungarian subtitle DownloadURL '%s', got '%s'", expectedURL, hu.DownloadURL)
-		}
-	}
-}
-
-func TestClient_GetSubtitles_ServerError(t *testing.T) {
-	// Create a test server that returns an error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-
-	// Create a test config
-	testConfig := &config.Config{
-		SuperSubtitleDomain: server.URL,
-		ClientTimeout:       "10s",
-	}
-
-	// Create the client
-	client := NewClient(testConfig)
-
-	// Call GetSubtitles
-	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
-
-	// Test that the call fails with an error
-	if err == nil {
-		t.Fatal("Expected GetSubtitles to fail with server error, but it succeeded")
-	}
-
-	if subtitles != nil {
-		t.Errorf("Expected subtitles to be nil on error, got %v", subtitles)
-	}
-}
-
 func TestClient_GetShowSubtitles(t *testing.T) {
-	// Sample JSON response for subtitles
-	jsonResponse := `{
-		"1": {
-			"language": "Angol",
-			"nev": "Test Show (Season 1) (1080p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "Test.Show.S01.1080p.ENG.zip",
-			"felirat": "1435431909",
-			"evad": "1",
-			"ep": "1",
-			"feltolto": "TestUser",
-			"pontos_talalat": "111",
-			"evadpakk": "0"
-		}
-	}`
-
 	// Sample HTML for detail page with third-party IDs
 	detailPageHTML := `
 		<html>
@@ -472,11 +303,24 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/index.php" && r.URL.RawQuery == "action=xbmc&sid=12345" {
-			// Subtitles request
-			w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
+			// Subtitles request - HTML format
+			htmlResponse := `
+			<html><body>
+			<table><tbody>
+			<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+			<tr>
+				<td>Angol</td>
+				<td><a href="/subtitle.php?feliratid=1435431909">Test Show - 1x1 (1080p-RelGroup)</a></td>
+				<td>TestUser</td>
+				<td>2025-02-08</td>
+				<td><a href="/download?id=1435431909">Download</a></td>
+			</tr>
+			</tbody></table>
+			</body></html>`
+			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(jsonResponse))
+			_, _ = w.Write([]byte(htmlResponse))
 		} else if r.URL.Path == "/index.php" && r.URL.RawQuery == "tipus=adatlap&azon=a_1435431909" {
 			// Detail page request
 			w.Header().Set("Content-Type", "text/html")
@@ -549,37 +393,6 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 	}
 }
 
-func TestClient_GetSubtitles_InvalidJSON(t *testing.T) {
-	// Create a test server that returns invalid JSON
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("invalid json"))
-	}))
-	defer server.Close()
-
-	// Create a test config
-	testConfig := &config.Config{
-		SuperSubtitleDomain: server.URL,
-		ClientTimeout:       "10s",
-	}
-
-	// Create the client
-	client := NewClient(testConfig)
-
-	// Call GetSubtitles
-	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
-
-	// Test that the call fails with JSON decode error
-	if err == nil {
-		t.Fatal("Expected GetSubtitles to fail with JSON decode error, but it succeeded")
-	}
-
-	if subtitles != nil {
-		t.Errorf("Expected subtitles to be nil on error, got %v", subtitles)
-	}
-}
 func TestClient_CheckForUpdates(t *testing.T) {
 	// Sample JSON response for update check
 	jsonResponse := `{"film":"2","sorozat":"5"}`
@@ -833,5 +646,189 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 
 	if result.ContentType != "application/x-subrip" {
 		t.Errorf("Expected content type 'application/x-subrip', got '%s'", result.ContentType)
+	}
+}
+func TestClient_GetSubtitles_WithPagination(t *testing.T) {
+	// Create test HTML for 3 pages with pagination links
+	pageHTML := func(pageNum int, totalPages int) string {
+		subtitleRows := ""
+		for i := 1; i <= 3; i++ {
+			subtitleID := pageNum*100 + i
+			subtitleRows += `
+		<tr>
+			<td>Magyar</td>
+			<td><a href="/subtitle.php?feliratid=123">Stranger Things S01E0` + string(rune(48+i)) + ` - 1080p-RelGroup</a></td>
+			<td>Uploader` + string(rune(48+pageNum)) + `</td>
+			<td>2025-02-08</td>
+			<td><a href="/download?id=` + string(rune(48+subtitleID)) + `">Download</a></td>
+		</tr>`
+		}
+
+		paginationHTML := ""
+		for p := 1; p <= totalPages; p++ {
+			paginationHTML += `<a href="index.php?sid=3217&oldal=` + string(rune(48+p)) + `">` + string(rune(48+p)) + `</a> `
+		}
+
+		return `
+	<html><body>
+	<table><tbody>
+	<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+	` + subtitleRows + `
+	</tbody></table>
+	<div class="pagination">` + paginationHTML + `</div>
+	</body></html>`
+	}
+
+	requestCount := 0
+	pagesCalled := make(map[int]bool)
+	var mu sync.Mutex
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		if r.URL.Path == "/index.php" && (r.URL.RawQuery == "sid=3217" || r.URL.RawQuery == "sid=3217&oldal=1") {
+			// First page
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(pageHTML(1, 3)))
+			pagesCalled[1] = true
+			requestCount++
+			return
+		}
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=3217&oldal=2" {
+			// Page 2
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(pageHTML(2, 3)))
+			pagesCalled[2] = true
+			requestCount++
+			return
+		}
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=3217&oldal=3" {
+			// Page 3
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(pageHTML(3, 3)))
+			pagesCalled[3] = true
+			requestCount++
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	result, err := client.GetSubtitles(ctx, 3217)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	// Should have 9 total subtitles (3 per page × 3 pages)
+	expectedTotalSubtitles := 9
+	if result.Total != expectedTotalSubtitles {
+		t.Errorf("Expected %d total subtitles, got %d", expectedTotalSubtitles, result.Total)
+	}
+
+	// Should have made 3 requests
+	if requestCount != 3 {
+		t.Errorf("Expected 3 requests, got %d", requestCount)
+	}
+
+	// Verify all pages were called
+	if !pagesCalled[1] || !pagesCalled[2] || !pagesCalled[3] {
+		t.Errorf("Not all pages were called: page1=%v, page2=%v, page3=%v", pagesCalled[1], pagesCalled[2], pagesCalled[3])
+	}
+}
+
+func TestClient_GetSubtitles_SinglePage(t *testing.T) {
+	// Test with single page (no pagination)
+	singlePageHTML := `
+	<html><body>
+	<table><tbody>
+	<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+	<tr>
+		<td>Magyar</td>
+		<td><a href="/subtitle.php?feliratid=1">Game of Thrones S01E01 - 1080p-Group</a></td>
+		<td>UploaderA</td>
+		<td>2025-02-08</td>
+		<td><a href="/download?id=1">Download</a></td>
+	</tr>
+	</tbody></table>
+	</body></html>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=1234" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(singlePageHTML))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	result, err := client.GetSubtitles(ctx, 1234)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+	}
+
+	if result.Total != 1 {
+		t.Errorf("Expected 1 subtitle, got %d", result.Total)
+	}
+
+	if len(result.Subtitles) != 1 {
+		t.Errorf("Expected 1 subtitle, got %d", len(result.Subtitles))
+	}
+}
+
+func TestClient_GetSubtitles_NetworkError(t *testing.T) {
+	// Test error handling for network failure
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	result, err := client.GetSubtitles(ctx, 5555)
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if result != nil {
+		t.Fatalf("Expected nil result for error case, got: %v", result)
 	}
 }

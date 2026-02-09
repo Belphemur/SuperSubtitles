@@ -53,20 +53,21 @@ func NewSubtitleConverter() SubtitleConverter {
 // ConvertSuperSubtitle converts a single SuperSubtitle to normalized Subtitle
 func (c *DefaultSubtitleConverter) ConvertSuperSubtitle(superSub *models.SuperSubtitle) models.Subtitle {
 	return models.Subtitle{
-		ID:           superSub.SubtitleID,
-		ShowName:     c.extractShowName(superSub.Name),
-		Language:     c.convertLanguageToISO(superSub.Language),
-		Season:       c.convertSeasonNumber(superSub.Season),
-		Episode:      c.convertEpisodeNumber(superSub.Episode),
-		Filename:     superSub.Filename,
-		DownloadURL:  c.buildDownloadURL(superSub.BaseLink, superSub.SubtitleID),
-		Uploader:     superSub.Uploader,
-		UploadedAt:   c.convertUploadTime(superSub.SubtitleID),
-		Quality:      c.extractQuality(superSub.Name),
-		ReleaseGroup: superSub.Name, // Keep original name as release group info
-		Source:       superSub.Name, // Keep original name as source info
-		IsSeasonPack: c.convertIsSeasonPack(superSub.IsSeasonPack),
-		ExactMatch:   c.convertExactMatchScore(superSub.ExactMatch),
+		ID:            superSub.SubtitleID,
+		Name:          superSub.Name,
+		ShowName:      c.extractShowName(superSub.Name),
+		Language:      c.convertLanguageToISO(superSub.Language),
+		Season:        c.convertSeasonNumber(superSub.Season),
+		Episode:       c.convertEpisodeNumber(superSub.Episode),
+		Filename:      superSub.Filename,
+		DownloadURL:   c.buildDownloadURL(superSub.BaseLink, superSub.SubtitleID),
+		Uploader:      superSub.Uploader,
+		UploadedAt:    c.convertUploadTime(superSub.SubtitleID),
+		Quality:       c.extractQuality(superSub.Name),
+		Release:       superSub.Name,           // Keep original name as release info
+		ReleaseGroups: []string{superSub.Name}, // Wrap in slice for compatibility
+		Source:        superSub.Name,           // Keep original name as source info
+		IsSeasonPack:  c.convertIsSeasonPack(superSub.IsSeasonPack),
 	}
 }
 
@@ -180,15 +181,6 @@ func (c *DefaultSubtitleConverter) convertEpisodeNumber(episode string) int {
 // convertIsSeasonPack returns whether this is a season pack as a boolean
 func (c *DefaultSubtitleConverter) convertIsSeasonPack(isSeasonPack string) bool {
 	return isSeasonPack == "1"
-}
-
-// convertExactMatchScore converts the exact match string to an integer
-func (c *DefaultSubtitleConverter) convertExactMatchScore(exactMatch string) int {
-	score, err := strconv.Atoi(exactMatch)
-	if err != nil {
-		return 0
-	}
-	return score
 }
 
 // convertUploadTime converts the subtitle ID (timestamp) to a time.Time
