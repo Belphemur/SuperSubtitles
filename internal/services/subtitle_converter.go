@@ -1,7 +1,7 @@
 package services
 
 import (
-	"SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // SubtitleConverter defines the interface for converting subtitle data

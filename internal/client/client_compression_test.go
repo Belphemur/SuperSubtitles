@@ -1,13 +1,14 @@
 package client
 
 import (
-	"SuperSubtitles/internal/config"
 	"compress/gzip"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
 
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/zstd"

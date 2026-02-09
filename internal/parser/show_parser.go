@@ -1,12 +1,13 @@
 package parser
 
 import (
-	"SuperSubtitles/internal/config"
-	"SuperSubtitles/internal/models"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 
 	"github.com/PuerkitoBio/goquery"
 )

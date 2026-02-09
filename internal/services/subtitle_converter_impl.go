@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // DefaultSubtitleConverter is the default implementation of SubtitleConverter

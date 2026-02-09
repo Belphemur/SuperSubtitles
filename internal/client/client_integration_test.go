@@ -1,12 +1,13 @@
 package client
 
 import (
-	"SuperSubtitles/internal/config"
-	"SuperSubtitles/internal/models"
 	"context"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // TestClient_GetShowList_Integration is an integration test that calls the real SuperSubtitles website

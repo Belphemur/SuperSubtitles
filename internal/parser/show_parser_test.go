@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 func TestShowParser_ParseHtml(t *testing.T) {

@@ -1,13 +1,14 @@
 package client
 
 import (
-	"SuperSubtitles/internal/config"
-	"SuperSubtitles/internal/models"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 func TestClient_GetShowList(t *testing.T) {

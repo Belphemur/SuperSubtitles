@@ -10,17 +10,18 @@ SuperSubtitles is a Go proxy service that scrapes and normalizes subtitle data f
 
 Always run commands from the repository root.
 
-| Step | Command | Notes |
-|------|---------|-------|
-| **Build** | `go build ./...` | Compiles all packages. Fast (~2s). |
-| **Unit tests** | `go test ./...` | Runs all tests (~3s). Integration tests auto-skip when `CI=true`. |
-| **Tests with race detector** | `go test -race ./...` | Always run before submitting changes. |
-| **Vet** | `go vet ./...` | Always run after changes. |
-| **Format check** | `gofmt -s -l .` | Must produce no output. |
-| **Lint** | `golangci-lint run` | Uses `.golangci.yml` config. Always run before committing. |
-| **CI test command** | `go install gotest.tools/gotestsum@latest && gotestsum --format testname -- -race ./...` | Mirrors CI. Requires `$(go env GOPATH)/bin` in PATH. |
+| Step                         | Command                                                                                  | Notes                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Build**                    | `go build ./...`                                                                         | Compiles all packages. Fast (~2s).                                |
+| **Unit tests**               | `go test ./...`                                                                          | Runs all tests (~3s). Integration tests auto-skip when `CI=true`. |
+| **Tests with race detector** | `go test -race ./...`                                                                    | Always run before submitting changes.                             |
+| **Vet**                      | `go vet ./...`                                                                           | Always run after changes.                                         |
+| **Format check**             | `gofmt -s -l .`                                                                          | Must produce no output.                                           |
+| **Lint**                     | `golangci-lint run`                                                                      | Uses `.golangci.yml` config. Always run before committing.        |
+| **CI test command**          | `go install gotest.tools/gotestsum@latest && gotestsum --format testname -- -race ./...` | Mirrors CI. Requires `$(go env GOPATH)/bin` in PATH.              |
 
 ### Development Workflow
+
 1. Write or modify Go code
 2. Format: `gofmt -s -w .`
 3. Vet: `go vet ./...`
@@ -30,6 +31,7 @@ Always run commands from the repository root.
 7. Commit with conventional commit format
 
 **Important notes:**
+
 - `go test -race -coverprofile=coverage.txt -covermode=atomic ./...` may emit `no such tool "covdata"` warnings for packages with no test files. This is cosmetic and tests still pass.
 - Integration tests in `internal/client/client_integration_test.go` are skipped when `CI` env var is set. Do not remove these guards.
 - The `config` package `init()` function loads `config/config.yaml` on import. Tests that import config indirectly (through client or parser) rely on this file existing.
@@ -57,7 +59,7 @@ Always run commands from the repository root.
 SuperSubtitles/
 ├── cmd/proxy/main.go              # Application entry point
 ├── config/config.yaml             # Default configuration (YAML)
-├── go.mod / go.sum                # Go module (module name: SuperSubtitles)
+├── go.mod / go.sum                # Go module (module name: github.com/Belphemur/SuperSubtitles)
 ├── .golangci.yml                  # golangci-lint configuration
 ├── .goreleaser.yml                # GoReleaser build/release configuration
 ├── .releaserc.yml                 # semantic-release configuration
@@ -102,7 +104,7 @@ SuperSubtitles/
 
 ## Architecture & Conventions
 
-- **Standard Go layout:** `cmd/` for executables, `internal/` for library code. All imports use the module path `SuperSubtitles/internal/...`.
+- **Standard Go layout:** `cmd/` for executables, `internal/` for library code. All imports use the module path `github.com/Belphemur/SuperSubtitles/internal/...`.
 - **Interfaces:** Defined in the same package as implementations (e.g., `Client` interface in `client.go`, `SubtitleConverter` in `subtitle_converter.go`, `Parser[T]` in `interfaces.go`).
 - **Configuration:** Loaded via `viper` from `config/config.yaml` or `./config.yaml`. Env vars prefixed with `APP_`. Log level also settable via `LOG_LEVEL` env var.
 - **Logging:** Uses `rs/zerolog` with a console writer. Access via `config.GetLogger()`. Structured logging with chained `.Str()`, `.Int()`, `.Msg()` calls. Do not create new logger instances.
@@ -114,11 +116,13 @@ SuperSubtitles/
 ## CI/CD Pipeline
 
 ### CI (`.github/workflows/ci.yml`) — runs on every push/PR to main:
+
 - **Lint job:** `go mod verify` → `go vet ./...` → `gofmt -s -l .` → `golangci-lint run`
 - **Test job:** `gotestsum -- -race -coverprofile=coverage.txt -covermode=atomic ./...` → upload to Codecov
 - **Build job:** `CGO_ENABLED=0 go build -o super-subtitles ./cmd/proxy`
 
 ### Release (`.github/workflows/release.yml`) — runs on push to main:
+
 - Uses `semantic-release` to analyze conventional commits and determine version
 - `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
 - Builds and pushes multi-platform Docker images to `ghcr.io/belphemur/supersubtitles`
@@ -137,6 +141,7 @@ SuperSubtitles/
 ## Documentation Requirements
 
 **All new features and changes to existing features must be documented:**
+
 - **Always check repository memories first** - Review existing memories at the start of each task to understand patterns, conventions, and previously documented features
 - Update documentation in the `docs/` folder with architectural changes, new components, and data flows
 - Document code structure, file locations, and feature implementations in `docs/architecture.md`
@@ -147,6 +152,7 @@ SuperSubtitles/
 ## Testing Requirements
 
 **All code must have clear, comprehensive tests:**
+
 - Every new feature must include unit tests
 - Test files follow the `*_test.go` pattern in the same package
 - Use standard Go `testing` package (no external test frameworks like testify)

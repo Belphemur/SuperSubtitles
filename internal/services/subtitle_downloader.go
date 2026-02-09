@@ -1,8 +1,9 @@
 package services
 
 import (
-	"SuperSubtitles/internal/models"
 	"context"
+
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // SubtitleDownloader defines the interface for downloading subtitles

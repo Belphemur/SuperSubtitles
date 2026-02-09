@@ -1,10 +1,11 @@
 package main
 
 import (
-	"SuperSubtitles/internal/client"
-	"SuperSubtitles/internal/config"
 	"context"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/client"
+	"github.com/Belphemur/SuperSubtitles/internal/config"
 )
 
 func main() {

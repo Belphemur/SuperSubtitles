@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 func TestNewSubtitleConverter(t *testing.T) {

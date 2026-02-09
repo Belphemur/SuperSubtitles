@@ -1,10 +1,6 @@
 package client
 
 import (
-	"SuperSubtitles/internal/config"
-	"SuperSubtitles/internal/models"
-	"SuperSubtitles/internal/parser"
-	"SuperSubtitles/internal/services"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +11,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/parser"
+	"github.com/Belphemur/SuperSubtitles/internal/services"
 )
 
 // Client defines the interface for querying the SuperSubtitles website

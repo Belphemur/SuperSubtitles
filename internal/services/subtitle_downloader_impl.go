@@ -1,8 +1,6 @@
 package services
 
 import (
-	"SuperSubtitles/internal/config"
-	"SuperSubtitles/internal/models"
 	"archive/zip"
 	"bytes"
 	"context"
@@ -15,6 +13,9 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
 )

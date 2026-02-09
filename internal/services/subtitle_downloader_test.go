@@ -1,7 +1,6 @@
 package services
 
 import (
-	"SuperSubtitles/internal/models"
 	"archive/zip"
 	"bytes"
 	"context"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // createTestZip creates a test ZIP file with season pack structure

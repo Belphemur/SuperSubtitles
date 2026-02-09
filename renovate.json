@@ -1,17 +1,24 @@
 {
-  "extends": [
-    "config:base"
-  ],
-  "automerge": true,
-  "automergeType": "pr",
-  "packageRules": [
-    {
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true
-    },
-    {
-      "matchUpdateTypes": ["major"],
-      "automerge": false
-    }
-  ]
+    "extends": [
+        "config:base"
+    ],
+    "automerge": true,
+    "automergeType": "pr",
+    "packageRules": [
+        {
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "pin",
+                "digest"
+            ],
+            "automerge": true
+        },
+        {
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "automerge": false
+        }
+    ]
 }

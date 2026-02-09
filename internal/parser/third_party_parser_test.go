@@ -1,9 +1,10 @@
 package parser
 
 import (
-	"SuperSubtitles/internal/models"
 	"strings"
 	"testing"
+
+	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
