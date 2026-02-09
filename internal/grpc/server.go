@@ -66,9 +66,18 @@ func (s *server) GetSubtitles(ctx context.Context, req *pb.GetSubtitlesRequest) 
 func (s *server) GetShowSubtitles(ctx context.Context, req *pb.GetShowSubtitlesRequest) (*pb.GetShowSubtitlesResponse, error) {
 	s.logger.Debug().Int("show_count", len(req.Shows)).Msg("GetShowSubtitles called")
 
-	shows := make([]models.Show, len(req.Shows))
-	for i, pbShow := range req.Shows {
-		shows[i] = convertShowFromProto(pbShow)
+	// Filter out nil entries and convert proto shows to models
+	shows := make([]models.Show, 0, len(req.Shows))
+	for _, pbShow := range req.Shows {
+		if pbShow == nil {
+			s.logger.Warn().Msg("Skipping nil show entry in request")
+			continue
+		}
+		shows = append(shows, convertShowFromProto(pbShow))
+	}
+
+	if len(shows) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no valid shows provided")
 	}
 
 	showSubtitles, err := s.client.GetShowSubtitles(ctx, shows)
