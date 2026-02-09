@@ -24,20 +24,20 @@ type SuperSubtitleResponse map[string]SuperSubtitle
 
 // Subtitle represents a normalized subtitle in our application
 type Subtitle struct {
-	ID           string    `json:"id"`
-	ShowName     string    `json:"showName"`
-	Language     string    `json:"language"`
-	Season       int       `json:"season"`
-	Episode      int       `json:"episode"`
-	Filename     string    `json:"filename"`
-	DownloadURL  string    `json:"downloadUrl"`
-	Uploader     string    `json:"uploader"`
-	UploadedAt   time.Time `json:"uploadedAt"`
-	Quality      Quality   `json:"quality"`      // Video quality enum
-	ReleaseGroup string    `json:"releaseGroup"` // Original name from API
-	Source       string    `json:"source"`       // Original name from API
-	IsSeasonPack bool      `json:"isSeasonPack"`
-	ExactMatch   int       `json:"exactMatch"` // Converted exact match score
+	ID            string    `json:"id"`
+	ShowName      string    `json:"showName"` // Show name (may be empty in HTML parsing)
+	Name          string    `json:"name"`     // Subtitle name/title from HTML
+	Language      string    `json:"language"`
+	Season        int       `json:"season"`
+	Episode       int       `json:"episode"`
+	Filename      string    `json:"filename"` // Subtitle filename from download URL
+	DownloadURL   string    `json:"downloadUrl"`
+	Uploader      string    `json:"uploader"`
+	UploadedAt    time.Time `json:"uploadedAt"`
+	Qualities     []Quality `json:"qualities"`     // All matching qualities
+	ReleaseGroups []string  `json:"releaseGroups"` // Multiple release groups (comma-separated in HTML)
+	Release       string    `json:"release"`       // Release info (formats, quality) from HTML
+	IsSeasonPack  bool      `json:"isSeasonPack"`
 }
 
 // SubtitleCollection represents a collection of subtitles for a show

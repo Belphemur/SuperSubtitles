@@ -1,11 +1,20 @@
 package services
 
 import (
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+)
+
+// Pre-compiled regex patterns for performance
+var (
+	qualityRegex = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
+	qualityMatch = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
+	hasQuality   = regexp.MustCompile(`\d{3,4}p`)
 )
 
 // DefaultSubtitleConverter is the default implementation of SubtitleConverter
@@ -52,21 +61,24 @@ func NewSubtitleConverter() SubtitleConverter {
 
 // ConvertSuperSubtitle converts a single SuperSubtitle to normalized Subtitle
 func (c *DefaultSubtitleConverter) ConvertSuperSubtitle(superSub *models.SuperSubtitle) models.Subtitle {
+	qualities := c.extractQualities(superSub.Name)
+	releaseGroups := c.extractReleaseGroups(superSub.Name)
+
 	return models.Subtitle{
-		ID:           superSub.SubtitleID,
-		ShowName:     c.extractShowName(superSub.Name),
-		Language:     c.convertLanguageToISO(superSub.Language),
-		Season:       c.convertSeasonNumber(superSub.Season),
-		Episode:      c.convertEpisodeNumber(superSub.Episode),
-		Filename:     superSub.Filename,
-		DownloadURL:  c.buildDownloadURL(superSub.BaseLink, superSub.SubtitleID),
-		Uploader:     superSub.Uploader,
-		UploadedAt:   c.convertUploadTime(superSub.SubtitleID),
-		Quality:      c.extractQuality(superSub.Name),
-		ReleaseGroup: superSub.Name, // Keep original name as release group info
-		Source:       superSub.Name, // Keep original name as source info
-		IsSeasonPack: c.convertIsSeasonPack(superSub.IsSeasonPack),
-		ExactMatch:   c.convertExactMatchScore(superSub.ExactMatch),
+		ID:            superSub.SubtitleID,
+		Name:          superSub.Name,
+		ShowName:      c.extractShowName(superSub.Name),
+		Language:      c.convertLanguageToISO(superSub.Language),
+		Season:        c.convertSeasonNumber(superSub.Season),
+		Episode:       c.convertEpisodeNumber(superSub.Episode),
+		Filename:      superSub.Filename,
+		DownloadURL:   c.buildDownloadURL(superSub.BaseLink, superSub.SubtitleID),
+		Uploader:      superSub.Uploader,
+		UploadedAt:    c.convertUploadTime(superSub.SubtitleID),
+		Qualities:     qualities,
+		Release:       superSub.Name, // Keep original name as release info
+		ReleaseGroups: releaseGroups,
+		IsSeasonPack:  c.convertIsSeasonPack(superSub.IsSeasonPack),
 	}
 }
 
@@ -117,20 +129,176 @@ func (c *DefaultSubtitleConverter) extractShowName(name string) string {
 	return name
 }
 
-// extractQuality extracts quality information from subtitle name
-func (c *DefaultSubtitleConverter) extractQuality(name string) models.Quality {
-	nameLower := strings.ToLower(name)
+// extractQualities extracts all quality values from subtitle name, in order of appearance
+func (c *DefaultSubtitleConverter) extractQualities(name string) []models.Quality {
+	if name == "" {
+		return nil
+	}
 
-	// Iterate through all possible quality values to find matches
-	// Start from highest quality and work down for preference
-	for q := models.Quality2160p; q >= models.Quality360p; q-- {
-		qualityStr := strings.ToLower(q.String())
-		if strings.Contains(nameLower, qualityStr) {
-			return q
+	matches := qualityRegex.FindAllStringSubmatch(name, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	qualities := make([]models.Quality, 0, len(matches))
+	seen := make(map[models.Quality]struct{})
+	for _, match := range matches {
+		quality := parseQualityToken(match[1])
+		if quality == models.QualityUnknown {
+			continue
+		}
+		if _, exists := seen[quality]; exists {
+			continue
+		}
+		qualities = append(qualities, quality)
+		seen[quality] = struct{}{}
+	}
+
+	return qualities
+}
+
+func parseQualityToken(token string) models.Quality {
+	switch strings.ToLower(token) {
+	case "2160p", "4k":
+		return models.Quality2160p
+	case "1080p":
+		return models.Quality1080p
+	case "720p":
+		return models.Quality720p
+	case "480p":
+		return models.Quality480p
+	case "360p":
+		return models.Quality360p
+	default:
+		return models.QualityUnknown
+	}
+}
+
+// extractReleaseGroups extracts release groups and sources from subtitle name
+// Example: "Show (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)" → ["AMZN", "AMZN.WEB-DL", "FLUX", "SuccessfulCrab", "WEB"]
+func (c *DefaultSubtitleConverter) extractReleaseGroups(name string) []string {
+	if name == "" {
+		return nil
+	}
+
+	// Extract content within the LAST pair of parentheses to handle cases like:
+	// "Show (Season 1) (WEB.720p-GLHF, AMZN.1080p-PECULATE)"
+	endIdx := strings.LastIndex(name, ")")
+	if endIdx == -1 {
+		return nil
+	}
+
+	// Find the opening parenthesis for the last closing parenthesis
+	// by searching backwards from endIdx
+	startIdx := strings.LastIndex(name[:endIdx], "(")
+	if startIdx == -1 {
+		return nil
+	}
+
+	content := name[startIdx+1 : endIdx]
+	releaseGroupSet := make(map[string]struct{})
+
+	// Split by comma first to get individual release patterns
+	patterns := strings.Split(content, ",")
+
+	for _, pattern := range patterns {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+
+		// Extract release groups from patterns like:
+		// - "AMZN.WEB-DL.720p-FLUX" → AMZN, AMZN.WEB-DL, FLUX
+		// - "WEB.1080p-SuccessfulCrab" → WEB, SuccessfulCrab
+		// - "720p-RAWR" → RAWR
+		// - "SubRip" → (no release group)
+
+		// Find the first quality pattern position
+		qualityMatcher := qualityMatch.FindStringIndex(pattern)
+
+		var sourcePart, groupPart string
+
+		if qualityMatcher != nil {
+			// Quality pattern found, split before and after
+			qualityStart := qualityMatcher[0]
+			sourcePart = pattern[:qualityStart]
+
+			// Find if there's content after the last quality pattern
+			groupPart = pattern[qualityMatcher[1]:]
+		} else {
+			// No quality pattern found, treat entire pattern as potential source
+			sourcePart = pattern
+			groupPart = ""
+		}
+
+		// Clean up source and group parts
+		sourcePart = strings.TrimRight(sourcePart, ".-")
+		groupPart = strings.TrimLeft(groupPart, ".-")
+
+		// Process source part (e.g., "AMZN.WEB-DL" or "WEB")
+		if sourcePart != "" && !isQualityPattern(sourcePart) {
+			// Add the full source if it contains dots
+			if strings.Contains(sourcePart, ".") {
+				releaseGroupSet[sourcePart] = struct{}{}
+
+				// Also extract individual components
+				// For "AMZN.WEB-DL", split by dots: ["AMZN", "WEB-DL"]
+				dotParts := strings.Split(sourcePart, ".")
+				for _, dotPart := range dotParts {
+					dotPart = strings.TrimSpace(dotPart)
+					if dotPart != "" && !isQualityPattern(dotPart) {
+						releaseGroupSet[dotPart] = struct{}{}
+					}
+				}
+			} else if !isQualityPattern(sourcePart) {
+				// Simple source like "WEB"
+				releaseGroupSet[sourcePart] = struct{}{}
+			}
+		}
+
+		// Process group part (e.g., "-FLUX" or "-SuccessfulCrab")
+		if groupPart != "" {
+			// Extract text after dashes
+			// For "-FLUX", split by dash: ["", "FLUX"]
+			dashParts := strings.Split(groupPart, "-")
+			for _, dashPart := range dashParts {
+				dashPart = strings.TrimSpace(dashPart)
+				if dashPart != "" && !isQualityPattern(dashPart) {
+					releaseGroupSet[dashPart] = struct{}{}
+				}
+			}
 		}
 	}
 
-	return models.QualityUnknown
+	// Convert set to slice
+	if len(releaseGroupSet) == 0 {
+		return nil
+	}
+
+	groups := make([]string, 0, len(releaseGroupSet))
+	for group := range releaseGroupSet {
+		groups = append(groups, group)
+	}
+
+	// Sort for deterministic output
+	sort.Strings(groups)
+	return groups
+}
+
+// isQualityPattern checks if a string is a quality pattern or contains quality indicators
+func isQualityPattern(s string) bool {
+	lowerS := strings.ToLower(s)
+
+	// Check exact matches for known quality patterns
+	qualityPatterns := []string{"2160p", "4k", "1080p", "720p", "480p", "360p", "subrip", "h.264", "h.265", "h264", "h265", "x.264", "x.265", "x264", "x265", "hevc", "avc"}
+	for _, pattern := range qualityPatterns {
+		if lowerS == pattern {
+			return true
+		}
+	}
+
+	// Check if string contains quality patterns with digits and 'p' (e.g., "1080p", "720p")
+	return hasQuality.MatchString(lowerS)
 }
 
 // convertLanguageToISO converts SuperSubtitles language to ISO code
@@ -144,6 +312,9 @@ func (c *DefaultSubtitleConverter) convertLanguageToISO(language string) string 
 
 // buildDownloadURL constructs the download URL for a subtitle
 func (c *DefaultSubtitleConverter) buildDownloadURL(baseLink, subtitleID string) string {
+	// Normalize baseLink by removing trailing slashes
+	baseLink = strings.TrimRight(baseLink, "/")
+
 	// Avoid duplicate /index.php in the URL
 	if strings.HasSuffix(baseLink, "/index.php") {
 		return baseLink + "?action=letolt&felirat=" + subtitleID
@@ -180,15 +351,6 @@ func (c *DefaultSubtitleConverter) convertEpisodeNumber(episode string) int {
 // convertIsSeasonPack returns whether this is a season pack as a boolean
 func (c *DefaultSubtitleConverter) convertIsSeasonPack(isSeasonPack string) bool {
 	return isSeasonPack == "1"
-}
-
-// convertExactMatchScore converts the exact match string to an integer
-func (c *DefaultSubtitleConverter) convertExactMatchScore(exactMatch string) int {
-	score, err := strconv.Atoi(exactMatch)
-	if err != nil {
-		return 0
-	}
-	return score
 }
 
 // convertUploadTime converts the subtitle ID (timestamp) to a time.Time

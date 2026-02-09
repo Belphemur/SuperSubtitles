@@ -190,29 +190,32 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithGzipCompression tests that GetSubtitles works with gzip compression
 func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
-	jsonResponse := `{
-		"1": {
-			"language": "Magyar",
-			"nev": "Outlander (Season 1) (1080p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "Outlander.S01.1080p.HUN.zip",
-			"felirat": "1435431932",
-			"evad": "1",
-			"ep": "1",
-			"feltolto": "TestUser",
-			"pontos_talalat": "111",
-			"evadpakk": "0"
-		}
-	}`
+	htmlResponse := `<html><body>
+<table><tbody>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr>
+	<td>cat</td>
+	<td>Magyar</td>
+	<td>
+		<a href="/subtitle.php?feliratid=12345">
+		Billy the Kid - 3x07 - The Last Buffalo (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
+		</a>
+	</td>
+	<td>gricsi</td>
+	<td>2026-01-31</td>
+	<td><a href="/download?file=12345">Letöltés</a></td>
+</tr>
+</tbody></table>
+</body></html>`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "action=xbmc") {
-			w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
+			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("Content-Encoding", "gzip")
 			w.WriteHeader(http.StatusOK)
 
 			gzWriter := gzip.NewWriter(w)
-			_, _ = gzWriter.Write([]byte(jsonResponse))
+			_, _ = gzWriter.Write([]byte(htmlResponse))
 			_ = gzWriter.Close()
 			return
 		}
@@ -237,36 +240,47 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 		t.Errorf("Expected 1 subtitle, got %d", subtitles.Total)
 	}
 
-	if subtitles.ShowName != "Outlander" {
-		t.Errorf("Expected show name 'Outlander', got %q", subtitles.ShowName)
+	if subtitles.ShowName != "Billy the Kid" {
+		t.Errorf("Expected show name 'Billy the Kid', got %q", subtitles.ShowName)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Season != 3 {
+		t.Errorf("Expected season 3, got %d", subtitles.Subtitles[0].Season)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Episode != 7 {
+		t.Errorf("Expected episode 7, got %d", subtitles.Subtitles[0].Episode)
 	}
 }
 
 // TestClient_GetSubtitles_WithBrotliCompression tests that GetSubtitles works with brotli compression
 func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
-	jsonResponse := `{
-		"1": {
-			"language": "Magyar",
-			"nev": "Breaking Bad (Season 1) (1080p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "Breaking.Bad.S01.1080p.HUN.zip",
-			"felirat": "1435431933",
-			"evad": "1",
-			"ep": "1",
-			"feltolto": "TestUser",
-			"pontos_talalat": "111",
-			"evadpakk": "0"
-		}
-	}`
+	htmlResponse := `<html><body>
+<table><tbody>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr>
+	<td>cat</td>
+	<td>Magyar</td>
+	<td>
+		<a href="/subtitle.php?feliratid=23456">
+		Billy the Kid - 3x06 - The Chain Gang (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
+		</a>
+	</td>
+	<td>gricsi</td>
+	<td>2026-01-21</td>
+	<td><a href="/download?file=23456">Letöltés</a></td>
+</tr>
+</tbody></table>
+</body></html>`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "action=xbmc") {
-			w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
+			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("Content-Encoding", "br")
 			w.WriteHeader(http.StatusOK)
 
 			brWriter := brotli.NewWriter(w)
-			_, _ = brWriter.Write([]byte(jsonResponse))
+			_, _ = brWriter.Write([]byte(htmlResponse))
 			_ = brWriter.Close()
 			return
 		}
@@ -291,37 +305,48 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 		t.Errorf("Expected 1 subtitle, got %d", subtitles.Total)
 	}
 
-	if subtitles.ShowName != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got %q", subtitles.ShowName)
+	if subtitles.ShowName != "Billy the Kid" {
+		t.Errorf("Expected show name 'Billy the Kid', got %q", subtitles.ShowName)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Season != 3 {
+		t.Errorf("Expected season 3, got %d", subtitles.Subtitles[0].Season)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Episode != 6 {
+		t.Errorf("Expected episode 6, got %d", subtitles.Subtitles[0].Episode)
 	}
 }
 
 // TestClient_GetSubtitles_WithZstdCompression tests that GetSubtitles works with zstd compression
 func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
-	jsonResponse := `{
-		"1": {
-			"language": "Magyar",
-			"nev": "The Wire (Season 1) (1080p)",
-			"baselink": "https://feliratok.eu/index.php",
-			"fnev": "The.Wire.S01.1080p.HUN.zip",
-			"felirat": "1435431934",
-			"evad": "1",
-			"ep": "1",
-			"feltolto": "TestUser",
-			"pontos_talalat": "111",
-			"evadpakk": "0"
-		}
-	}`
+	htmlResponse := `<html><body>
+<table><tbody>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr>
+	<td>cat</td>
+	<td>Magyar</td>
+	<td>
+		<a href="/subtitle.php?feliratid=34567">
+		Billy the Kid - 3x05 - Breaking the Shackles (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
+		</a>
+	</td>
+	<td>gricsi</td>
+	<td>2026-01-12</td>
+	<td><a href="/download?file=34567">Letöltés</a></td>
+</tr>
+</tbody></table>
+</body></html>`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "action=xbmc") {
-			w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
+			w.Header().Set("Content-Type", "text/html")
 			w.Header().Set("Content-Encoding", "zstd")
 			w.WriteHeader(http.StatusOK)
 
 			// zstd.NewWriter() with default options never fails
 			zstdWriter, _ := zstd.NewWriter(w)
-			_, _ = zstdWriter.Write([]byte(jsonResponse))
+			_, _ = zstdWriter.Write([]byte(htmlResponse))
 			_ = zstdWriter.Close()
 			return
 		}
@@ -346,7 +371,15 @@ func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
 		t.Errorf("Expected 1 subtitle, got %d", subtitles.Total)
 	}
 
-	if subtitles.ShowName != "The Wire" {
-		t.Errorf("Expected show name 'The Wire', got %q", subtitles.ShowName)
+	if subtitles.ShowName != "Billy the Kid" {
+		t.Errorf("Expected show name 'Billy the Kid', got %q", subtitles.ShowName)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Season != 3 {
+		t.Errorf("Expected season 3, got %d", subtitles.Subtitles[0].Season)
+	}
+
+	if len(subtitles.Subtitles) > 0 && subtitles.Subtitles[0].Episode != 5 {
+		t.Errorf("Expected episode 5, got %d", subtitles.Subtitles[0].Episode)
 	}
 }
