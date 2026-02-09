@@ -161,4 +161,16 @@ SuperSubtitles/
 - Add benchmark tests for performance-critical code
 - Tests must be clear, well-documented, and maintainable
 
+### HTML Test Fixtures
+
+**Always use `internal/testutil/html_fixtures.go` for generating HTML test data:**
+
+- **Never hardcode HTML strings in tests** — use the centralized generator functions instead
+- Use `GenerateSubtitleTableHTML()` for subtitle listing tests
+- Use `GenerateSubtitleTableHTMLWithPagination()` for pagination tests
+- Use `GenerateShowTableHTML()` for show listing tests
+- Use `GenerateThirdPartyIDHTML()` for third-party ID extraction tests
+- Configure fixtures using option structs (`SubtitleRowOptions`, `ShowRowOptions`) for clarity
+- This ensures consistency across all tests and makes HTML structure changes easy to maintain
+
 Trust these instructions. Only search the codebase if information here is incomplete or found to be in error.

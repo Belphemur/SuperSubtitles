@@ -167,12 +167,68 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 - `internal/models/download_request.go` - Request/response models
 - `internal/client/client.go` - Client integration
 
+## Testing Infrastructure
+
+### HTML Fixture Generator (`internal/testutil/html_fixtures.go`)
+
+The project uses a **programmatic HTML generation system** for tests instead of hardcoded HTML strings. This provides maintainable, flexible test fixtures that match the actual structure of feliratok.eu pages.
+
+**Key Features:**
+
+- **Type-safe configuration**: `SubtitleRowOptions` and `ShowRowOptions` structs define table rows with sensible defaults
+- **Automatic styling**: Background colors alternate automatically, flag images map to languages
+- **Pagination support**: `GenerateSubtitleTableHTMLWithPagination` includes page navigation elements
+- **Realistic structure**: Generated HTML matches the actual feliratok.eu DOM structure (table classes, div nesting, onclick handlers)
+
+**Available Generators:**
+
+| Function                                     | Purpose                                        | Key Parameters                                          |
+| -------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `GenerateSubtitleTableHTML`                  | Basic subtitle listing table                   | `[]SubtitleRowOptions` with language, titles, uploader  |
+| `GenerateSubtitleTableHTMLWithPagination`    | Subtitle table with page navigation            | Rows + `currentPage`, `totalPages`, `useOldalParam`     |
+| `GenerateShowTableHTML`                      | TV show listing with year headers              | `[]ShowRowOptions` with show ID, name, year             |
+| `GenerateThirdPartyIDHTML`                   | Episode detail page with IMDB/TVDB/TVMaze/Trakt | Individual ID parameters                                |
+| `GeneratePaginationHTML`                     | Standalone pagination elements                 | `currentPage`, `totalPages`, `useOldalParam`            |
+
+**Example Usage:**
+
+```go
+html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+    {
+        ShowID:           2967,
+        Language:         "Magyar",
+        MagyarTitle:      "Test Show S01E01",
+        EredetiTitle:     "Test Show S01E01",
+        Uploader:         "TestUser",
+        UploadDate:       "2024-01-15",
+        DownloadAction:   "letolt",
+        DownloadFilename: "test.srt",
+        SubtitleID:       "1737439811",
+    },
+})
+```
+
+**Benefits:**
+
+- **Maintainability**: Changing HTML structure requires updating one generator, not dozens of test strings
+- **Readability**: Tests clearly express intent through configuration structs
+- **Flexibility**: Easy to add edge cases (missing fields, different languages, status flags)
+- **Consistency**: All tests use the same HTML structure, reducing false negatives
+
+### Test Strategy
+
+- **No external test frameworks**: All tests use the Go standard library `testing` package with `httptest` for HTTP mocking
+- **Programmatic fixtures**: HTML fixtures generated via `testutil` package instead of hardcoded strings
+- **Parallel page fetching**: Tests verify pagination with 2-page parallel batches
+- **Integration test guards**: `client_integration_test.go` checks for `CI` / `SKIP_INTEGRATION_TESTS` env vars to skip live requests
+- **Benchmark coverage**: Performance tests for critical paths (subtitle conversion, ZIP extraction)
+
 ## Key Design Decisions
 
 - **Partial failure resilience**: The client returns whatever data it successfully fetched, logging warnings for failed endpoints rather than failing the entire operation.
 - **Generic parser interfaces**: `Parser[T]` and `SingleResultParser[T]` allow type-safe HTML parsing for different model types.
 - **Batch processing**: Show subtitle fetching is batched (20 concurrent) to avoid overwhelming the upstream server.
-- **No external test frameworks**: All tests use the Go standard library `testing` package with `httptest` for HTTP mocking.
+- **Programmatic test fixtures**: HTML fixtures generated via reusable utility functions to improve test maintainability and consistency.
 
 ## Configuration
 
