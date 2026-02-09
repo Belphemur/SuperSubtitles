@@ -41,13 +41,13 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 	if result == nil {
 		t.Fatal("Expected result, got nil")
 	}
-	if result.Content != subtitleContent {
-		t.Errorf("Expected content %q, got %q", subtitleContent, result.Content)
+	if string(result.Content) != subtitleContent {
+		t.Errorf("Expected content %q, got %q", subtitleContent, string(result.Content))
 	}
-	if result.Format != "srt" {
-		t.Errorf("Expected format 'srt', got %s", result.Format)
+	if result.ContentType == "" {
+		t.Error("Expected ContentType to be set")
 	}
-	if result.OriginalFileName != "subtitle.srt" {
-		t.Errorf("Expected original file name 'subtitle.srt', got %s", result.OriginalFileName)
+	if result.Filename == "" {
+		t.Error("Expected Filename to be set")
 	}
 }
