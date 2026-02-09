@@ -68,7 +68,7 @@ func (p *SubtitleParser) ParseHtmlWithPagination(body io.Reader) (*SubtitlePageR
 
 	// Find all table rows that contain subtitle information
 	// Structure: <tr><td>Category</td><td>Language</td><td>Description with link</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
-	doc.Find("tr").Each(func(i int, row *goquery.Selection) {
+	doc.Find("tbody").ChildrenFiltered("tr").Each(func(i int, row *goquery.Selection) {
 		tds := row.Find("td")
 		if tds.Length() < 5 {
 			return // Not a subtitle row
@@ -122,7 +122,7 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	}
 
 	// Extract description (show name, episode, release info) from column 2
-	descriptionTd := tds.Eq(2)
+	descriptionTd := tds.Eq(2).Find(".eredeti")
 	description := strings.TrimSpace(descriptionTd.Text())
 	if description == "" {
 		return nil
@@ -298,7 +298,6 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []model
 				releaseGroups = append(releaseGroups, group)
 			}
 		}
-
 		// Detect quality from each release, keep unique qualities
 		detectedQuality := p.detectQuality(release)
 		if detectedQuality != models.QualityUnknown {
@@ -307,7 +306,6 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []model
 				seenQualities[detectedQuality] = struct{}{}
 			}
 		}
-
 	}
 
 	return qualities, releaseGroups
