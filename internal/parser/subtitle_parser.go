@@ -15,6 +15,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Pre-compiled regex patterns for performance
+var (
+	seasonPackRegex = regexp.MustCompile(`\(Season\s+(\d+)\)`)
+	episodeRegex    = regexp.MustCompile(`(\d+)x(\d+)`)
+	odalPageRegex   = regexp.MustCompile(`oldal=(\d+)`)
+)
+
 // SubtitleParser implements the Parser interface for parsing HTML subtitle listings
 type SubtitleParser struct {
 	baseURL string
@@ -60,7 +67,7 @@ func (p *SubtitleParser) ParseHtmlWithPagination(body io.Reader) (*SubtitlePageR
 	var subtitles []models.Subtitle
 
 	// Find all table rows that contain subtitle information
-	// Structure: <tr><td>Language</td><td>Description with link</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+	// Structure: <tr><td>Category</td><td>Language</td><td>Description with link</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
 	doc.Find("tr").Each(func(i int, row *goquery.Selection) {
 		tds := row.Find("td")
 		if tds.Length() < 5 {
@@ -180,7 +187,6 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 	logger := config.GetLogger()
 
 	// Check if it's a season pack by looking for "(Season XX)" pattern
-	seasonPackRegex := regexp.MustCompile(`\(Season\s+(\d+)\)`)
 	if matches := seasonPackRegex.FindStringSubmatch(description); len(matches) > 1 {
 		isSeasonPack = true
 		seasonNum, _ := strconv.Atoi(matches[1])
@@ -210,7 +216,6 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 
 	// Parse regular episode format: "ShowName - SxEE Episode Title (release info)"
 	// The season/episode pattern is SxEE (e.g., 7x16)
-	episodeRegex := regexp.MustCompile(`(\d+)x(\d+)`)
 	if matches := episodeRegex.FindStringSubmatch(description); len(matches) > 2 {
 		seasonNum, _ := strconv.Atoi(matches[1])
 		episodeNum, _ := strconv.Atoi(matches[2])
@@ -368,7 +373,7 @@ func (p *SubtitleParser) constructDownloadURL(link string) string {
 func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 	// Try to extract numeric ID from various patterns
 	patterns := []string{
-		`feliratid=(\d+)`,
+		`felirat=(\d+)`,
 		`id=(\d+)`,
 		`/(\d+)(?:/|$)`, // Matches /123/ or /123 at end of string
 		`(\d+)\.`,
@@ -423,8 +428,7 @@ func (p *SubtitleParser) extractPaginationInfo(doc *goquery.Document) (currentPa
 
 		// Look for oldal parameter (page parameter in Hungarian)
 		if strings.Contains(href, "oldal=") {
-			re := regexp.MustCompile(`oldal=(\d+)`)
-			if matches := re.FindStringSubmatch(href); len(matches) > 1 {
+			if matches := odalPageRegex.FindStringSubmatch(href); len(matches) > 1 {
 				pageNum, _ := strconv.Atoi(matches[1])
 				if pageNum > maxPage {
 					maxPage = pageNum

@@ -71,8 +71,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.DownloadURL != expectedURL {
 		t.Errorf("Expected download URL %q, got %q", expectedURL, subtitle.DownloadURL)
 	}
-	if subtitle.ID != "16" {
-		t.Errorf("Expected ID %q, got %q", "16", subtitle.ID)
+	if subtitle.ID != "1737439811" {
+		t.Errorf("Expected ID %q, got %q", "1737439811", subtitle.ID)
 	}
 	if subtitle.Filename != "outlander.s07e16.srt" {
 		t.Errorf("Expected filename %q, got %q", "outlander.s07e16.srt", subtitle.Filename)

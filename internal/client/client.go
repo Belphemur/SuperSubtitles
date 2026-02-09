@@ -214,12 +214,12 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 
 	// If only one page, return early
 	if firstPageResult.TotalPages <= 1 {
-		return buildSubtitleCollection(firstPageResult.Subtitles, showID), nil
+		return buildSubtitleCollection(firstPageResult.Subtitles), nil
 	}
 
 	// Fetch remaining pages in parallel (2 at a time)
 	const batchSize = 2
-	var allSubtitles []models.Subtitle
+	var allSubtitles = make([]models.Subtitle, 0, len(firstPageResult.Subtitles)*firstPageResult.TotalPages)
 	allSubtitles = append(allSubtitles, firstPageResult.Subtitles...)
 
 	for page := 2; page <= firstPageResult.TotalPages; page += batchSize {
@@ -313,11 +313,11 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 		Int("totalSubtitles", len(allSubtitles)).
 		Msg("Successfully fetched all pages")
 
-	return buildSubtitleCollection(allSubtitles, showID), nil
+	return buildSubtitleCollection(allSubtitles), nil
 }
 
 // buildSubtitleCollection constructs a SubtitleCollection from subtitles
-func buildSubtitleCollection(subtitles []models.Subtitle, _ int) *models.SubtitleCollection {
+func buildSubtitleCollection(subtitles []models.Subtitle) *models.SubtitleCollection {
 	showName := ""
 	if len(subtitles) > 0 {
 		showName = subtitles[0].ShowName

@@ -97,7 +97,7 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 
 1. Fetch first page: `GET /index.php?sid=<showID>`
 2. Parse HTML using `SubtitleParser.ParseHtmlWithPagination`:
-   - Extracts subtitles from 5-column table (Language | Description | Uploader | Date | Download)
+   - Extracts subtitles from 6-column table (Category | Language | Description | Uploader | Date | Download)
    - Parses description for season/episode/release info
    - Detects all qualities from release string
    - Splits comma-separated release groups

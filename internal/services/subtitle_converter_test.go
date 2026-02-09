@@ -713,7 +713,7 @@ func TestDefaultSubtitleConverter_BuildDownloadURL(t *testing.T) {
 			name:     "URL with trailing slash",
 			baseLink: "https://feliratok.eu/",
 			subID:    "789",
-			expected: "https://feliratok.eu//index.php?action=letolt&felirat=789",
+			expected: "https://feliratok.eu/index.php?action=letolt&felirat=789",
 		},
 	}
 

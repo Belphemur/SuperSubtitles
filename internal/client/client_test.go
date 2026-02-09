@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -659,16 +660,16 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 		<tr>
 			<td>cat</td>
 			<td>Magyar</td>
-			<td><a href="/subtitle.php?feliratid=123">Stranger Things S01E0` + string(rune(48+i)) + ` - 1080p-RelGroup</a></td>
-			<td>Uploader` + string(rune(48+pageNum)) + `</td>
+			<td><a href="/subtitle.php?feliratid=123">Stranger Things S01E0` + strconv.Itoa(i) + ` - 1080p-RelGroup</a></td>
+			<td>Uploader` + strconv.Itoa(pageNum) + `</td>
 			<td>2025-02-08</td>
-			<td><a href="/download?id=` + string(rune(48+subtitleID)) + `">Download</a></td>
+			<td><a href="/download?id=` + strconv.Itoa(subtitleID) + `">Download</a></td>
 		</tr>`
 		}
 
 		paginationHTML := ""
 		for p := 1; p <= totalPages; p++ {
-			paginationHTML += `<a href="index.php?sid=3217&oldal=` + string(rune(48+p)) + `">` + string(rune(48+p)) + `</a> `
+			paginationHTML += `<a href="index.php?sid=3217&oldal=` + strconv.Itoa(p) + `">` + strconv.Itoa(p) + `</a> `
 		}
 
 		return `

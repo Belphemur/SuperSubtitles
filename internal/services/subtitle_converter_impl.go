@@ -10,6 +10,13 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
+// Pre-compiled regex patterns for performance
+var (
+	qualityRegex = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
+	qualityMatch = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
+	hasQuality   = regexp.MustCompile(`\d{3,4}p`)
+)
+
 // DefaultSubtitleConverter is the default implementation of SubtitleConverter
 type DefaultSubtitleConverter struct {
 	languageMap map[string]string
@@ -64,6 +71,7 @@ func (c *DefaultSubtitleConverter) ConvertSuperSubtitle(superSub *models.SuperSu
 		Language:      c.convertLanguageToISO(superSub.Language),
 		Season:        c.convertSeasonNumber(superSub.Season),
 		Episode:       c.convertEpisodeNumber(superSub.Episode),
+		Filename:      superSub.Filename,
 		DownloadURL:   c.buildDownloadURL(superSub.BaseLink, superSub.SubtitleID),
 		Uploader:      superSub.Uploader,
 		UploadedAt:    c.convertUploadTime(superSub.SubtitleID),
@@ -127,7 +135,6 @@ func (c *DefaultSubtitleConverter) extractQualities(name string) []models.Qualit
 		return nil
 	}
 
-	qualityRegex := regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
 	matches := qualityRegex.FindAllStringSubmatch(name, -1)
 	if len(matches) == 0 {
 		return nil
@@ -207,18 +214,17 @@ func (c *DefaultSubtitleConverter) extractReleaseGroups(name string) []string {
 		// - "SubRip" → (no release group)
 
 		// Find the first quality pattern position
-		qualityRegex := regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
-		qualityMatch := qualityRegex.FindStringIndex(pattern)
+		qualityMatcher := qualityMatch.FindStringIndex(pattern)
 
 		var sourcePart, groupPart string
 
-		if qualityMatch != nil {
+		if qualityMatcher != nil {
 			// Quality pattern found, split before and after
-			qualityStart := qualityMatch[0]
+			qualityStart := qualityMatcher[0]
 			sourcePart = pattern[:qualityStart]
 
 			// Find if there's content after the last quality pattern
-			groupPart = pattern[qualityMatch[1]:]
+			groupPart = pattern[qualityMatcher[1]:]
 		} else {
 			// No quality pattern found, treat entire pattern as potential source
 			sourcePart = pattern
@@ -292,7 +298,6 @@ func isQualityPattern(s string) bool {
 	}
 
 	// Check if string contains quality patterns with digits and 'p' (e.g., "1080p", "720p")
-	hasQuality := regexp.MustCompile(`\d{3,4}p`)
 	return hasQuality.MatchString(lowerS)
 }
 
@@ -307,6 +312,9 @@ func (c *DefaultSubtitleConverter) convertLanguageToISO(language string) string 
 
 // buildDownloadURL constructs the download URL for a subtitle
 func (c *DefaultSubtitleConverter) buildDownloadURL(baseLink, subtitleID string) string {
+	// Normalize baseLink by removing trailing slashes
+	baseLink = strings.TrimRight(baseLink, "/")
+
 	// Avoid duplicate /index.php in the URL
 	if strings.HasSuffix(baseLink, "/index.php") {
 		return baseLink + "?action=letolt&felirat=" + subtitleID
