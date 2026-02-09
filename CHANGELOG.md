@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.2.0...v1.2.1) (2026-02-09)
+
+
+### Performance Improvements
+
+* **client:** optimize third-party ID fetching to use first page only ([7dce918](https://github.com/Belphemur/SuperSubtitles/commit/7dce9183be6a15a5e2e660e90a38df0bb1333aae))
+
 # [1.2.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.1.2...v1.2.0) (2026-02-09)
 
 
