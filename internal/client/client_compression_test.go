@@ -192,8 +192,9 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 	htmlResponse := `<html><body>
 <table><tbody>
-<tr><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
 <tr>
+	<td>cat</td>
 	<td>Magyar</td>
 	<td>
 		<a href="/subtitle.php?feliratid=12345">
@@ -256,8 +257,9 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 	htmlResponse := `<html><body>
 <table><tbody>
-<tr><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
 <tr>
+	<td>cat</td>
 	<td>Magyar</td>
 	<td>
 		<a href="/subtitle.php?feliratid=23456">
@@ -320,8 +322,9 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
 	htmlResponse := `<html><body>
 <table><tbody>
-<tr><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
+<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
 <tr>
+	<td>cat</td>
 	<td>Magyar</td>
 	<td>
 		<a href="/subtitle.php?feliratid=34567">
