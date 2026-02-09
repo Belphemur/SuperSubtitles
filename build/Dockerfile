@@ -15,7 +15,7 @@ RUN apk add --no-cache ca-certificates
 RUN adduser -D $USER
 
 # Copy pre-built binary from the platform-specific directory
-COPY ${TARGETPLATFORM}/super-subtitles /app/super-subtitles
+COPY ${TARGETPLATFORM}/SuperSubtitles /app/super-subtitles
 
 # Copy default configuration
 COPY config/config.yaml /app/config/config.yaml
@@ -26,8 +26,5 @@ USER $USER:$USER
 
 # Expose port for the proxy server
 EXPOSE 8080
-
-# Volume for persistent data
-VOLUME ["/app/data"]
 
 CMD ["/app/super-subtitles"]
