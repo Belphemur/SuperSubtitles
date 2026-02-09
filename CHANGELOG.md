@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.1.2...v1.2.0) (2026-02-09)
+
+
+### Features
+
+* **parser:** convert language names to ISO 639-1 codes ([d8603bf](https://github.com/Belphemur/SuperSubtitles/commit/d8603bfc684294d16d053d08e674aef293cab340))
+
 ## [1.1.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.1.1...v1.1.2) (2026-02-09)
 
 
