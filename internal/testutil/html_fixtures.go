@@ -17,7 +17,7 @@ type SubtitleRowOptions struct {
 	UploadDate       string
 	DownloadAction   string
 	DownloadFilename string
-	SubtitleID       string
+	SubtitleID       int
 	BackgroundColor  string // Default alternates
 	Status           string // Optional status like "fordítás alatt (Alice)"
 }
@@ -80,8 +80,8 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 		if row.ShowID == 0 {
 			row.ShowID = 2967
 		}
-		if row.SubtitleID == "" {
-			row.SubtitleID = fmt.Sprintf("%d", 1737439811+i)
+		if row.SubtitleID == 0 {
+			row.SubtitleID = 1737439811 + i
 		}
 
 		uploaderTag := row.Uploader
@@ -100,28 +100,28 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 			<td align="left">
 				<a href="index.php?sid=%d"> <img class="kategk" src="img/sorozat_cat/%d.jpg"></a>
 			</td>
-			<td align="center" class="lang" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" class="lang" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				<small><img src="img/flags/%s" alt="%s" border="0" width="30" title="%s"></small>
 				%s
 			</td>
-			<td align="left" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')" style="cursor: pointer;">
+			<td align="left" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')" style="cursor: pointer;">
 					<div class="magyar">%s</div>
 					<div class="eredeti">%s</div>%s
 			</td>
-			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				%s
 			</td>
-			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				%s
 			</td>
 			<td align="center">
-				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%s">
+				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%d">
 				<img src="img/download.png" border="0" alt="Letöltés" width="20"></a>
 			</td>
 		</tr>
 		
 		<tr><td colspan="7" id="adatlap" style="background-color: %s;">
-				<div class="0" style="display:none;" id="a_%s">
+				<div class="0" style="display:none;" id="a_%d">
 					<div id="ajaxloader" style="width: 100%%; height:20px;">
 						<img style="margin:0 auto; display: block;" src="img/ajaxloader.gif">
 					</div>
@@ -202,8 +202,8 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 		if row.ShowID == 0 {
 			row.ShowID = 2967
 		}
-		if row.SubtitleID == "" {
-			row.SubtitleID = fmt.Sprintf("%d", 1737439811+i)
+		if row.SubtitleID == 0 {
+			row.SubtitleID = 1737439811 + i
 		}
 
 		uploaderTag := row.Uploader
@@ -222,28 +222,28 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 			<td align="left">
 				<a href="index.php?sid=%d"> <img class="kategk" src="img/sorozat_cat/%d.jpg"></a>
 			</td>
-			<td align="center" class="lang" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" class="lang" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				<small><img src="img/flags/%s" alt="%s" border="0" width="30" title="%s"></small>
 				%s
 			</td>
-			<td align="left" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')" style="cursor: pointer;">
+			<td align="left" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')" style="cursor: pointer;">
 					<div class="magyar">%s</div>
 					<div class="eredeti">%s</div>%s
 			</td>
-			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				%s
 			</td>
-			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%s')">
+			<td align="center" onmouseover="this.style.cursor='pointer';" onclick="adatlapnyitas('a_%d')">
 				%s
 			</td>
 			<td align="center">
-				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%s">
+				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%d">
 				<img src="img/download.png" border="0" alt="Letöltés" width="20"></a>
 			</td>
 		</tr>
 		
 		<tr><td colspan="7" id="adatlap" style="background-color: %s;">
-				<div class="0" style="display:none;" id="a_%s">
+				<div class="0" style="display:none;" id="a_%d">
 					<div id="ajaxloader" style="width: 100%%; height:20px;">
 						<img style="margin:0 auto; display: block;" src="img/ajaxloader.gif">
 					</div>

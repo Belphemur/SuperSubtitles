@@ -17,9 +17,10 @@ import (
 
 // Pre-compiled regex patterns for performance
 var (
-	seasonPackRegex = regexp.MustCompile(`\(Season\s+(\d+)\)`)
-	episodeRegex    = regexp.MustCompile(`(\d+)x(\d+)`)
-	odalPageRegex   = regexp.MustCompile(`oldal=(\d+)`)
+	seasonPackRegex  = regexp.MustCompile(`\(Season\s+(\d+)\)`)
+	episodeRegex     = regexp.MustCompile(`(\d+)x(\d+)`)
+	odalPageRegex    = regexp.MustCompile(`oldal=(\d+)`)
+	parenthesesRegex = regexp.MustCompile(`\s*\([^)]*\)`)
 )
 
 // languageToISO maps Hungarian language names to ISO 639-1 codes
@@ -215,6 +216,11 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		return nil
 	}
 
+	// Extract show ID from category column (column 0)
+	// The category column contains a link like: <a href="index.php?sid=13051">
+	categoryTd := tds.Eq(0)
+	showID := p.extractShowIDFromCategory(categoryTd)
+
 	// Extract language from column 1
 	language := strings.TrimSpace(tds.Eq(1).Text())
 	if language == "" {
@@ -265,9 +271,13 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	// Extract filename from download link
 	filename := p.extractFilenameFromDownloadLink(downloadLink)
 
+	// Clean the subtitle name by removing parenthetical content
+	cleanedName := removeParentheticalContent(description)
+
 	return &models.Subtitle{
 		ID:            subtitleID,
-		Name:          description,
+		ShowID:        showID,
+		Name:          cleanedName,
 		ShowName:      showName,
 		Language:      languageISO,
 		Season:        season,
@@ -281,6 +291,38 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		Release:       releaseInfo,
 		IsSeasonPack:  isSeasonPack,
 	}
+}
+
+// extractShowIDFromCategory extracts the show ID from the category column's link
+// Example: <a href="index.php?sid=13051"> or <a href="/index.php?sid=13051">
+func (p *SubtitleParser) extractShowIDFromCategory(categoryTd *goquery.Selection) int {
+	logger := config.GetLogger()
+
+	// Find the link in the category column
+	href, exists := categoryTd.Find("a").Attr("href")
+	if !exists {
+		return 0
+	}
+
+	// Parse URL to extract sid parameter
+	parsedURL, err := url.Parse(href)
+	if err != nil {
+		logger.Debug().Str("href", href).Err(err).Msg("Failed to parse category link")
+		return 0
+	}
+
+	sidStr := parsedURL.Query().Get("sid")
+	if sidStr == "" {
+		return 0
+	}
+
+	showID, err := strconv.Atoi(sidStr)
+	if err != nil {
+		logger.Debug().Str("sid", sidStr).Err(err).Msg("Failed to convert sid to integer")
+		return 0
+	}
+
+	return showID
 }
 
 // parseDescription extracts show name, season, episode, release info, and season pack flag
@@ -471,7 +513,7 @@ func (p *SubtitleParser) constructDownloadURL(link string) string {
 }
 
 // extractIDFromDownloadLink extracts a unique ID from the download link
-func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
+func (p *SubtitleParser) extractIDFromDownloadLink(link string) int {
 	// Parse the URL to extract query parameters
 	parsedURL, err := url.Parse(link)
 	if err == nil && parsedURL.RawQuery != "" {
@@ -479,17 +521,23 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 
 		// Check for felirat parameter (most common in download links)
 		if felirat := queryParams.Get("felirat"); felirat != "" {
-			return felirat
+			if id, err := strconv.Atoi(felirat); err == nil {
+				return id
+			}
 		}
 
 		// Check for feliratid parameter (sometimes used)
 		if feliratid := queryParams.Get("feliratid"); feliratid != "" {
-			return feliratid
+			if id, err := strconv.Atoi(feliratid); err == nil {
+				return id
+			}
 		}
 
 		// Check for generic id parameter
 		if id := queryParams.Get("id"); id != "" {
-			return id
+			if idNum, err := strconv.Atoi(id); err == nil {
+				return idNum
+			}
 		}
 	}
 
@@ -502,12 +550,16 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 	for _, pattern := range patterns {
 		re := regexp.MustCompile(pattern)
 		if matches := re.FindStringSubmatch(link); len(matches) > 1 {
-			return matches[1]
+			if id, err := strconv.Atoi(matches[1]); err == nil {
+				return id
+			}
 		}
 	}
 
-	// Last resort: use the entire link as ID
-	return link
+	// Last resort: log and return a sentinel invalid ID (-1)
+	logger := config.GetLogger()
+	logger.Debug().Str("link", link).Msg("Failed to extract ID from download link; returning invalid ID sentinel")
+	return -1
 }
 
 // extractFilenameFromDownloadLink extracts the filename from the fnev parameter in the download link
@@ -528,6 +580,20 @@ func (p *SubtitleParser) extractFilenameFromDownloadLink(link string) string {
 	}
 
 	return ""
+}
+
+// removeParentheticalContent removes all content within parentheses from a string
+// and trims any trailing whitespace or punctuation
+func removeParentheticalContent(text string) string {
+	// Remove all content within parentheses
+	result := parenthesesRegex.ReplaceAllString(text, "")
+
+	// Trim whitespace and trailing punctuation
+	result = strings.TrimSpace(result)
+	result = strings.TrimRight(result, ".-")
+	result = strings.TrimSpace(result)
+
+	return result
 }
 
 // extractPaginationInfo extracts current page and total pages from the document

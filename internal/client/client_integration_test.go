@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -129,8 +130,8 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 
 	// Verify that subtitles have basic required fields
 	for i, subtitle := range subtitles.Subtitles {
-		if subtitle.ID == "" {
-			t.Errorf("Subtitle %d: ID is empty", i)
+		if subtitle.ID == 0 {
+			t.Errorf("Subtitle %d: ID is 0", i)
 		}
 		if subtitle.Language == "" {
 			t.Errorf("Subtitle %d: Language is empty", i)
@@ -144,7 +145,7 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 
 		// Log first few subtitles for debugging
 		if i < 3 {
-			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d, IsSeasonPack=%t",
+			t.Logf("Subtitle %d: ID=%d, Language=%s, Qualities=%v, Season=%d, Episode=%d, IsSeasonPack=%t",
 				i, subtitle.ID, subtitle.Language, subtitle.Qualities,
 				subtitle.Season, subtitle.Episode, subtitle.IsSeasonPack)
 		}
@@ -260,8 +261,8 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 
 	// Verify that subtitles have basic required fields (check first few)
 	for i, subtitle := range result.SubtitleCollection.Subtitles {
-		if subtitle.ID == "" {
-			t.Errorf("Subtitle %d: ID is empty", i)
+		if subtitle.ID == 0 {
+			t.Errorf("Subtitle %d: ID is 0", i)
 		}
 		if subtitle.Language == "" {
 			t.Errorf("Subtitle %d: Language is empty", i)
@@ -272,7 +273,7 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 
 		// Log first few subtitles for debugging
 		if i < 3 {
-			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d, SeasonPack=%t",
+			t.Logf("Subtitle %d: ID=%d, Language=%s, Qualities=%v, Season=%d, Episode=%d, SeasonPack=%t",
 				i, subtitle.ID, subtitle.Language, subtitle.Qualities,
 				subtitle.Season, subtitle.Episode, subtitle.IsSeasonPack)
 		}
@@ -297,4 +298,251 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 	if result.ThirdPartyIds.TraktID != 0 {
 		t.Logf("Successfully extracted Trakt ID: %d", result.ThirdPartyIds.TraktID)
 	}
+}
+
+// TestClient_GetRecentSubtitles_Integration is an integration test that calls the real SuperSubtitles website
+// to fetch recently uploaded subtitles
+func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
+	// Skip this test if running in CI environment
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping integration test in CI environment")
+	}
+
+	// Skip if explicitly requested to skip integration tests
+	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
+		t.Skip("Skipping integration test due to SKIP_INTEGRATION_TESTS environment variable")
+	}
+
+	// Create a config that points to the real SuperSubtitles website
+	testConfig := &config.Config{
+		SuperSubtitleDomain: "https://feliratok.eu",
+		ClientTimeout:       "30s", // Use a reasonable timeout for real network calls
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call GetRecentSubtitles without filter (get all recent subtitles)
+	ctx := context.Background()
+	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+
+	// Test that the call succeeds
+	if err != nil {
+		t.Fatalf("Integration test failed: GetRecentSubtitles returned error: %v", err)
+	}
+
+	// Basic smoke test: ensure we got some results
+	if len(showSubtitles) == 0 {
+		t.Error("Integration test failed: expected to get at least some recent subtitles, but got 0")
+		return
+	}
+
+	// Log summary information
+	t.Logf("\n========================================")
+	t.Logf("Successfully fetched recent subtitles")
+	t.Logf("Total shows with recent subtitles: %d", len(showSubtitles))
+	t.Logf("========================================\n")
+
+	// Count total subtitles across all shows
+	totalSubtitles := 0
+	for _, ss := range showSubtitles {
+		totalSubtitles += ss.SubtitleCollection.Total
+	}
+	t.Logf("Total recent subtitles: %d\n", totalSubtitles)
+
+	// Display detailed information about each show and its subtitles
+	for i, ss := range showSubtitles {
+		t.Logf("─────────────────────────────────────────")
+		t.Logf("Show #%d: %s (ID: %d, Year: %d)", i+1, ss.Name, ss.ID, ss.Year)
+		t.Logf("Image URL: %s", ss.ImageURL)
+
+		// Display third-party IDs if available
+		if ss.ThirdPartyIds.IMDBID != "" || ss.ThirdPartyIds.TVDBID != 0 ||
+			ss.ThirdPartyIds.TVMazeID != 0 || ss.ThirdPartyIds.TraktID != 0 {
+			t.Logf("Third-party IDs:")
+			if ss.ThirdPartyIds.IMDBID != "" {
+				t.Logf("  • IMDB: %s", ss.ThirdPartyIds.IMDBID)
+			}
+			if ss.ThirdPartyIds.TVDBID != 0 {
+				t.Logf("  • TVDB: %d", ss.ThirdPartyIds.TVDBID)
+			}
+			if ss.ThirdPartyIds.TVMazeID != 0 {
+				t.Logf("  • TVMaze: %d", ss.ThirdPartyIds.TVMazeID)
+			}
+			if ss.ThirdPartyIds.TraktID != 0 {
+				t.Logf("  • Trakt: %d", ss.ThirdPartyIds.TraktID)
+			}
+		}
+
+		// Display subtitle information
+		t.Logf("Recent subtitles: %d", ss.SubtitleCollection.Total)
+
+		// Show details for first few subtitles
+		maxSubtitlesToShow := 5
+		if ss.SubtitleCollection.Total < maxSubtitlesToShow {
+			maxSubtitlesToShow = ss.SubtitleCollection.Total
+		}
+
+		for j := 0; j < maxSubtitlesToShow; j++ {
+			sub := ss.SubtitleCollection.Subtitles[j]
+
+			// Format subtitle info
+			episodeInfo := ""
+			if sub.IsSeasonPack {
+				episodeInfo = " (Season Pack)"
+			} else if sub.Season > 0 && sub.Episode > 0 {
+				episodeInfo = fmt.Sprintf(" (S%02dE%02d)", sub.Season, sub.Episode)
+			}
+
+			qualitiesStr := ""
+			if len(sub.Qualities) > 0 {
+				qualityStrs := make([]string, len(sub.Qualities))
+				for k, q := range sub.Qualities {
+					qualityStrs[k] = q.String()
+				}
+				qualitiesStr = " [" + strings.Join(qualityStrs, ", ") + "]"
+			}
+
+			t.Logf("  %d. [%s] %s%s%s", j+1, sub.Language, sub.Name, episodeInfo, qualitiesStr)
+			t.Logf("     Uploader: %s | ID: %d", sub.Uploader, sub.ID)
+		}
+
+		if ss.SubtitleCollection.Total > maxSubtitlesToShow {
+			t.Logf("  ... and %d more subtitle(s)", ss.SubtitleCollection.Total-maxSubtitlesToShow)
+		}
+
+		// Verify data integrity
+		if ss.ID == 0 {
+			t.Errorf("Show %d: ID is 0", i)
+		}
+		if ss.Name == "" {
+			t.Errorf("Show %d: Name is empty", i)
+		}
+		if ss.SubtitleCollection.Total == 0 {
+			t.Errorf("Show %d: Expected subtitles but Total is 0", i)
+		}
+		if len(ss.SubtitleCollection.Subtitles) != ss.SubtitleCollection.Total {
+			t.Errorf("Show %d: Subtitle count mismatch - Total: %d, actual length: %d",
+				i, ss.SubtitleCollection.Total, len(ss.SubtitleCollection.Subtitles))
+		}
+
+		// Verify subtitle data integrity
+		for j, sub := range ss.SubtitleCollection.Subtitles {
+			if sub.ID == 0 {
+				t.Errorf("Show %d, Subtitle %d: ID is 0", i, j)
+			}
+			if sub.Language == "" {
+				t.Errorf("Show %d, Subtitle %d: Language is empty", i, j)
+			}
+			if sub.DownloadURL == "" {
+				t.Errorf("Show %d, Subtitle %d: DownloadURL is empty", i, j)
+			}
+			if sub.Uploader == "" {
+				t.Errorf("Show %d, Subtitle %d: Uploader is empty", i, j)
+			}
+		}
+
+		// Only show first 3 shows in detail to avoid too much output
+		if i >= 2 {
+			if len(showSubtitles) > 3 {
+				t.Logf("\n... and %d more show(s) with recent subtitles", len(showSubtitles)-3)
+			}
+			break
+		}
+	}
+
+	t.Logf("\n========================================")
+	t.Logf("Integration test completed successfully!")
+	t.Logf("========================================")
+}
+
+// TestClient_GetRecentSubtitles_WithFilter_Integration is an integration test that calls
+// the real SuperSubtitles website to fetch recent subtitles with ID filtering
+func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
+	// Skip this test if running in CI environment
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping integration test in CI environment")
+	}
+
+	// Skip if explicitly requested to skip integration tests
+	if os.Getenv("SKIP_INTEGRATION_TESTS") != "" {
+		t.Skip("Skipping integration test due to SKIP_INTEGRATION_TESTS environment variable")
+	}
+
+	// Create a config that points to the real SuperSubtitles website
+	testConfig := &config.Config{
+		SuperSubtitleDomain: "https://feliratok.eu",
+		ClientTimeout:       "30s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	// First, get all recent subtitles to find a valid ID to use as filter
+	t.Log("Fetching all recent subtitles to determine filter ID...")
+	allSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	if err != nil {
+		t.Fatalf("Failed to fetch recent subtitles: %v", err)
+	}
+
+	if len(allSubtitles) == 0 {
+		t.Skip("No recent subtitles available to test filtering")
+	}
+
+	// Find a subtitle ID in the middle of the list to use as filter
+	var filterID int
+	if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 1 {
+		middleIdx := len(allSubtitles[0].SubtitleCollection.Subtitles) / 2
+		filterID = allSubtitles[0].SubtitleCollection.Subtitles[middleIdx].ID
+	} else if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 0 {
+		filterID = allSubtitles[0].SubtitleCollection.Subtitles[0].ID
+	} else {
+		t.Skip("No suitable subtitle ID found for filter test")
+	}
+
+	t.Logf("\n========================================")
+	t.Logf("Testing with filter ID: %d", filterID)
+	t.Logf("========================================\n")
+
+	// Now fetch with filter
+	filteredSubtitles, err := client.GetRecentSubtitles(ctx, filterID)
+	if err != nil {
+		t.Fatalf("Integration test failed: GetRecentSubtitles with filter returned error: %v", err)
+	}
+
+	// Log results
+	t.Logf("Shows returned with filter: %d", len(filteredSubtitles))
+
+	totalFiltered := 0
+	for _, ss := range filteredSubtitles {
+		totalFiltered += ss.SubtitleCollection.Total
+	}
+	t.Logf("Total subtitles with filter: %d", totalFiltered)
+
+	// Verify filtering worked (should have fewer or equal subtitles compared to unfiltered)
+	totalUnfiltered := 0
+	for _, ss := range allSubtitles {
+		totalUnfiltered += ss.SubtitleCollection.Total
+	}
+
+	if totalFiltered > totalUnfiltered {
+		t.Errorf("Filtered result has more subtitles (%d) than unfiltered (%d)",
+			totalFiltered, totalUnfiltered)
+	}
+
+	// Verify all filtered subtitles have IDs greater than the filter ID
+	for i, ss := range filteredSubtitles {
+		for j, sub := range ss.SubtitleCollection.Subtitles {
+			if sub.ID <= filterID {
+				t.Errorf("Show %d, Subtitle %d: ID %d is not greater than filter ID %d",
+					i, j, sub.ID, filterID)
+			}
+		}
+	}
+
+	t.Logf("\n========================================")
+	t.Logf("Filter test completed successfully!")
+	t.Logf("Verified all returned IDs > %d", filterID)
+	t.Logf("========================================")
 }

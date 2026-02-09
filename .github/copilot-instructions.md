@@ -74,7 +74,12 @@ SuperSubtitles/
 ├── build/
 │   └── Dockerfile                 # Docker image for GoReleaser multi-platform builds
 ├── docs/
-│   └── architecture.md            # Architecture documentation
+│   ├── architecture.md            # Architecture index (links to focused docs)
+│   ├── overview.md                # High-level architecture
+│   ├── data-flow.md               # Detailed operation flows
+│   ├── testing.md                 # Testing infrastructure
+│   ├── design-decisions.md        # Architectural decisions
+│   └── deployment.md              # Config, CI/CD, deployment
 ├── internal/
 │   ├── client/
 │   │   ├── client.go              # HTTP client (Client interface + implementation)
@@ -96,16 +101,18 @@ SuperSubtitles/
 │   │   ├── show_parser_test.go    # Tests with inline HTML fixtures
 │   │   ├── third_party_parser.go  # HTML parser for third-party IDs
 │   │   └── third_party_parser_test.go
-│   └── services/
-│       ├── subtitle_converter.go       # SubtitleConverter interface
-│       ├── subtitle_converter_impl.go  # Converts API response → normalized models
-│       └── subtitle_converter_test.go  # Includes benchmark tests
+│   ├── services/
+│   │   ├── subtitle_downloader.go       # SubtitleDownloader interface
+│   │   ├── subtitle_downloader_impl.go  # ZIP extraction, caching, format detection
+│   │   └── subtitle_downloader_test.go  # Tests with benchmark coverage
+│   └── testutil/
+│       └── html_fixtures.go       # Programmatic HTML test fixture generators
 ```
 
 ## Architecture & Conventions
 
 - **Standard Go layout:** `cmd/` for executables, `internal/` for library code. All imports use the module path `github.com/Belphemur/SuperSubtitles/internal/...`.
-- **Interfaces:** Defined in the same package as implementations (e.g., `Client` interface in `client.go`, `SubtitleConverter` in `subtitle_converter.go`, `Parser[T]` in `interfaces.go`).
+- **Interfaces:** Defined in the same package as implementations (e.g., `Client` interface in `client.go`, `SubtitleDownloader` in `subtitle_downloader.go`, `Parser[T]` in `interfaces.go`).
 - **Configuration:** Loaded via `viper` from `config/config.yaml` or `./config.yaml`. Env vars prefixed with `APP_`. Log level also settable via `LOG_LEVEL` env var.
 - **Logging:** Uses `rs/zerolog` with a console writer. Access via `config.GetLogger()`. Structured logging with chained `.Str()`, `.Int()`, `.Msg()` calls. Do not create new logger instances.
 - **Error handling:** Custom error types (e.g., `ErrNotFound`) with `Is()` method for `errors.Is()` support. Wrap errors with `fmt.Errorf("...: %w", err)`. Partial failures return data with logged warnings rather than failing entirely.
@@ -143,9 +150,16 @@ SuperSubtitles/
 **All new features and changes to existing features must be documented:**
 
 - **Always check repository memories first** - Review existing memories at the start of each task to understand patterns, conventions, and previously documented features
-- Update documentation in the `docs/` folder with architectural changes, new components, and data flows
-- Document code structure, file locations, and feature implementations in `docs/architecture.md`
-- Include test coverage information
+- Architecture documentation is split into focused files in `docs/`:
+  - Start with [docs/architecture.md](../docs/architecture.md) (index) to find the right document
+  - [docs/overview.md](../docs/overview.md) - High-level architecture and component relationships
+  - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features
+  - [docs/testing.md](../docs/testing.md) - Testing infrastructure and patterns
+  - [docs/design-decisions.md](../docs/design-decisions.md) - Architectural decisions with rationale
+  - [docs/deployment.md](../docs/deployment.md) - Configuration, CI/CD, dependencies
+- Update the appropriate focused documentation file(s) when making changes
+- For new features, update data-flow.md with the operation flow and design-decisions.md with any architectural choices
+- Include test coverage information in testing.md if adding new test patterns
 - Always check existing documentation and repository memories before starting work
 - Store new memories about code structure and features using the `store_memory` tool, including which files implement them
 

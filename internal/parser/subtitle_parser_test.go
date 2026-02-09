@@ -24,7 +24,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 			UploadDate:       "2025-01-21",
 			DownloadAction:   "letolt",
 			DownloadFilename: "outlander.s07e16.srt",
-			SubtitleID:       "1737439811",
+			SubtitleID:       1737439811,
 		},
 	})
 
@@ -42,8 +42,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.Language != "hu" {
 		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
 	}
-	// The name is the full eredeti text
-	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)"
+	// The name should have parenthetical content removed
+	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels"
 	if subtitle.Name != expectedName {
 		t.Errorf("Expected name %q, got %q", expectedName, subtitle.Name)
 	}
@@ -62,8 +62,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.DownloadURL != expectedURL {
 		t.Errorf("Expected download URL %q, got %q", expectedURL, subtitle.DownloadURL)
 	}
-	if subtitle.ID != "1737439811" {
-		t.Errorf("Expected ID %q, got %q", "1737439811", subtitle.ID)
+	if subtitle.ID != 1737439811 {
+		t.Errorf("Expected ID %d, got %d", 1737439811, subtitle.ID)
 	}
 	if subtitle.Filename != "outlander.s07e16.srt" {
 		t.Errorf("Expected filename %q, got %q", "outlander.s07e16.srt", subtitle.Filename)
@@ -109,7 +109,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 			UploadDate:       "2024-09-14",
 			DownloadAction:   "letolt",
 			DownloadFilename: "billy.s02.zip",
-			SubtitleID:       "1726325505",
+			SubtitleID:       1726325505,
 		},
 	})
 
@@ -193,7 +193,7 @@ func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
 			UploadDate:       "2025-01-17",
 			DownloadAction:   "letolt",
 			DownloadFilename: "outlander.s07e15.srt",
-			SubtitleID:       "1737139076",
+			SubtitleID:       1737139076,
 		},
 	})
 
@@ -320,5 +320,133 @@ func TestConvertLanguageToISO(t *testing.T) {
 				t.Errorf("convertLanguageToISO(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestRemoveParentheticalContent(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Episode with release info",
+			input:    "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX, AMZN.WEB-DL.720p-Kitsune, AMZN.WEB-DL.720p-RAWR, PCOK.WEB-DL.720p-playWEB, WEB.1080p-ETHEL, AMZN.WEB-DL.1080p-Kitsune, AMZN.WEB-DL.1080p-RAWR, PCOK.WEB-DL.1080p-BLOOM, PCOK.WEB-DL.1080p-playWEB, WEB.2160p-ETHEL, AMZN.WEB-DL.2160p-RAWR, PCOK.WEB-DL.2160p-playWEB, PCOK.WEB-DL.2160p-RAWR)",
+			expected: "The Copenhagen Test - 1x04 - Obsidian",
+		},
+		{
+			name:     "Season pack with release info",
+			input:    "Pocoyo (Season 4) (NF.WEBRip)",
+			expected: "Pocoyo",
+		},
+		{
+			name:     "Single parenthetical content",
+			input:    "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			expected: "Billy the Kid",
+		},
+		{
+			name:     "Outlander example",
+			input:    "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			expected: "Outlander - 7x16 - A Hundred Thousand Angels",
+		},
+		{
+			name:     "No parentheses",
+			input:    "Show Name - 1x01 - Episode Title",
+			expected: "Show Name - 1x01 - Episode Title",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only parentheses",
+			input:    "(Release Info)",
+			expected: "",
+		},
+		{
+			name:     "Multiple separate parentheses",
+			input:    "Show (Year) - Episode (Release)",
+			expected: "Show - Episode",
+		},
+		{
+			name:     "Trailing dash after removal",
+			input:    "Show Name -",
+			expected: "Show Name",
+		},
+		{
+			name:     "Trailing dash and space after parentheses",
+			input:    "Show Name - (Release Info)",
+			expected: "Show Name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := removeParentheticalContent(tt.input)
+			if result != tt.expected {
+				t.Errorf("removeParentheticalContent(%q) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
+	// Test that show ID is correctly extracted from the main page HTML
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           13051,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "The Copenhagen Test - 1x04 (SubRip)",
+			EredetiTitle:     "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX)",
+			Uploader:         "Anonymus",
+			UploaderBold:     false,
+			UploadDate:       "2026-02-09",
+			DownloadAction:   "letolt",
+			DownloadFilename: "The.Copenhagen.Test.S01E04.srt",
+			SubtitleID:       1770617276,
+		},
+		{
+			ShowID:           11930,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Három hónap jegyesség - a másik út - 7x18 (SubRip)",
+			EredetiTitle:     "90 Day Fiancé: The Other Way - 7x18 - Adios (HMAX.WEBRip)",
+			Uploader:         "Anonymus",
+			UploaderBold:     false,
+			UploadDate:       "2026-02-08",
+			DownloadAction:   "letolt",
+			DownloadFilename: "90.Day.Fiance.The.Other.Way.S07E18.srt",
+			SubtitleID:       1770577432,
+		},
+	})
+
+	parser := NewSubtitleParser("https://feliratok.eu")
+	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("ParseHtmlWithPagination failed: %v", err)
+	}
+
+	if len(result.Subtitles) != 2 {
+		t.Fatalf("Expected 2 subtitles, got %d", len(result.Subtitles))
+	}
+
+	// Test first subtitle
+	subtitle1 := result.Subtitles[0]
+	if subtitle1.ShowID != 13051 {
+		t.Errorf("Expected ShowID %d, got %d", 13051, subtitle1.ShowID)
+	}
+	if subtitle1.ID != 1770617276 {
+		t.Errorf("Expected ID %d, got %d", 1770617276, subtitle1.ID)
+	}
+
+	// Test second subtitle
+	subtitle2 := result.Subtitles[1]
+	if subtitle2.ShowID != 11930 {
+		t.Errorf("Expected ShowID %d, got %d", 11930, subtitle2.ShowID)
+	}
+	if subtitle2.ID != 1770577432 {
+		t.Errorf("Expected ID %d, got %d", 1770577432, subtitle2.ID)
 	}
 }

@@ -65,6 +65,7 @@ func TestDownloadSubtitle_NonZipFile(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if result.Filename != "123456789.srt" {
@@ -110,6 +111,7 @@ func TestDownloadSubtitle_ZipFileNoEpisode(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if !bytes.Equal(result.Content, zipContent) {
@@ -253,6 +255,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 
 			if result == nil {
 				t.Fatal("Expected result, got nil")
+				return
 			}
 
 			if result.Filename != tt.expectedFile {
@@ -925,6 +928,7 @@ func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Verify we got episode 2 content
@@ -1009,6 +1013,7 @@ func TestExtractEpisodeFromZip_MultipleMatches(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Verify we got the .srt file (highest priority)
