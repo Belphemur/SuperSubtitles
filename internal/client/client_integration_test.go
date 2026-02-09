@@ -272,9 +272,9 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 
 		// Log first few subtitles for debugging
 		if i < 3 {
-			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d",
+			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d, SeasonPack=%t",
 				i, subtitle.ID, subtitle.Language, subtitle.Qualities,
-				subtitle.Season, subtitle.Episode)
+				subtitle.Season, subtitle.Episode, subtitle.IsSeasonPack)
 		}
 
 		// Only check first few to avoid spam
