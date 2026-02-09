@@ -371,12 +371,31 @@ func (p *SubtitleParser) constructDownloadURL(link string) string {
 
 // extractIDFromDownloadLink extracts a unique ID from the download link
 func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
-	// Try to extract numeric ID from various patterns
+	// Parse the URL to extract query parameters
+	parsedURL, err := url.Parse(link)
+	if err == nil && parsedURL.RawQuery != "" {
+		queryParams := parsedURL.Query()
+
+		// Check for felirat parameter (most common in download links)
+		if felirat := queryParams.Get("felirat"); felirat != "" {
+			return felirat
+		}
+
+		// Check for feliratid parameter (sometimes used)
+		if feliratid := queryParams.Get("feliratid"); feliratid != "" {
+			return feliratid
+		}
+
+		// Check for generic id parameter
+		if id := queryParams.Get("id"); id != "" {
+			return id
+		}
+	}
+
+	// Fallback: try to extract numeric ID from path segments
 	patterns := []string{
-		`felirat=(\d+)`,
-		`id=(\d+)`,
 		`/(\d+)(?:/|$)`, // Matches /123/ or /123 at end of string
-		`(\d+)\.`,
+		`(\d+)\.`,       // Matches digits before extension in filename
 	}
 
 	for _, pattern := range patterns {
@@ -386,7 +405,7 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 		}
 	}
 
-	// Fallback: use the entire link as ID
+	// Last resort: use the entire link as ID
 	return link
 }
 
