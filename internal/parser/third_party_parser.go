@@ -57,22 +57,22 @@ func (p *ThirdPartyIdParser) ParseHtml(body io.Reader) (models.ThirdPartyIds, er
 			}
 		} else if strings.Contains(href, "thetvdb.com") {
 			if tvdbID, err := p.extractTVDBIDFromURL(href); err == nil {
-				result.TVDBID = tvdbID
-				logger.Info().Int("tvdbID", tvdbID).Msg("Successfully extracted TVDB ID")
+				result.TVDBID = uint(tvdbID)
+				logger.Info().Uint("tvdbID", result.TVDBID).Msg("Successfully extracted TVDB ID")
 			} else {
 				logger.Debug().Str("href", href).Err(err).Msg("Failed to extract TVDB ID from URL")
 			}
 		} else if strings.Contains(href, "tvmaze.com") {
 			if tvMazeID, err := p.extractTVMazeIDFromURL(href); err == nil {
-				result.TVMazeID = tvMazeID
-				logger.Info().Int("tvMazeID", tvMazeID).Msg("Successfully extracted TVMaze ID")
+				result.TVMazeID = uint(tvMazeID)
+				logger.Info().Uint("tvMazeID", result.TVMazeID).Msg("Successfully extracted TVMaze ID")
 			} else {
 				logger.Debug().Str("href", href).Err(err).Msg("Failed to extract TVMaze ID from URL")
 			}
 		} else if strings.Contains(href, "trakt.tv") {
 			if traktID, err := p.extractTraktIDFromURL(href); err == nil {
-				result.TraktID = traktID
-				logger.Info().Int("traktID", traktID).Msg("Successfully extracted Trakt ID")
+				result.TraktID = uint(traktID)
+				logger.Info().Uint("traktID", result.TraktID).Msg("Successfully extracted Trakt ID")
 			} else {
 				logger.Debug().Str("href", href).Err(err).Msg("Failed to extract Trakt ID from URL")
 			}
@@ -81,9 +81,9 @@ func (p *ThirdPartyIdParser) ParseHtml(body io.Reader) (models.ThirdPartyIds, er
 
 	logger.Info().
 		Str("imdbId", result.IMDBID).
-		Int("tvdbId", result.TVDBID).
-		Int("tvMazeId", result.TVMazeID).
-		Int("traktId", result.TraktID).
+		Uint("tvdbId", result.TVDBID).
+		Uint("tvMazeId", result.TVMazeID).
+		Uint("traktId", result.TraktID).
 		Msg("Completed third-party ID extraction")
 
 	return result, nil

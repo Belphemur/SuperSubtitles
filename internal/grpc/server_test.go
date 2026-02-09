@@ -396,3 +396,123 @@ func TestQualityConversion(t *testing.T) {
 		}
 	}
 }
+
+// TestGetSubtitles_Error tests error handling in subtitle retrieval
+func TestGetSubtitles_Error(t *testing.T) {
+	mock := &mockClient{
+		getSubtitlesFunc: func(ctx context.Context, showID int) (*models.SubtitleCollection, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	_, err := srv.GetSubtitles(ctx, &pb.GetSubtitlesRequest{ShowId: 1})
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+}
+
+// TestGetShowSubtitles_Error tests error handling in show subtitles retrieval
+func TestGetShowSubtitles_Error(t *testing.T) {
+	mock := &mockClient{
+		getShowSubtitlesFunc: func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.GetShowSubtitlesRequest{
+		Shows: []*pb.Show{
+			{Name: "Breaking Bad", Id: 1, Year: 2008},
+		},
+	}
+
+	_, err := srv.GetShowSubtitles(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+}
+
+// TestCheckForUpdates_Error tests error handling in update check
+func TestCheckForUpdates_Error(t *testing.T) {
+	mock := &mockClient{
+		checkForUpdatesFunc: func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	_, err := srv.CheckForUpdates(ctx, &pb.CheckForUpdatesRequest{ContentId: "12345"})
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+}
+
+// TestDownloadSubtitle_Error tests error handling in subtitle download
+func TestDownloadSubtitle_Error(t *testing.T) {
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, downloadURL string, req models.DownloadRequest) (*models.DownloadResult, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{
+		DownloadUrl: "http://example.com/download",
+		SubtitleId:  "101",
+		Episode:     1,
+	}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+}
+
+// TestGetRecentSubtitles_Error tests error handling in recent subtitles retrieval
+func TestGetRecentSubtitles_Error(t *testing.T) {
+	mock := &mockClient{
+		getRecentSubtitlesFunc: func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
+			return nil, errors.New("network error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	_, err := srv.GetRecentSubtitles(ctx, &pb.GetRecentSubtitlesRequest{SinceId: 100})
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+}
+
+// TestConvertShowFromProto_NilShow tests nil handling in show conversion
+func TestConvertShowFromProto_NilShow(t *testing.T) {
+	result := convertShowFromProto(nil)
+	if result.ID != 0 || result.Name != "" {
+		t.Errorf("Expected zero value Show, got %+v", result)
+	}
+}
+
+// TestConvertSubtitleToProto_ZeroTimestamp tests zero timestamp handling
+func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
+	subtitle := models.Subtitle{
+		ID:         101,
+		ShowID:     1,
+		Language:   "hun",
+		UploadedAt: time.Time{}, // Zero value
+	}
+
+	result := convertSubtitleToProto(subtitle)
+	if result.UploadedAt != nil {
+		t.Error("Expected nil UploadedAt for zero time, got non-nil")
+	}
+}

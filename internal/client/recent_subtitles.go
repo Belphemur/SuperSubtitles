@@ -47,7 +47,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 	// Filter subtitles by ID (only those with ID > sinceID)
 	filteredSubtitles := make([]models.Subtitle, 0)
 	for _, subtitle := range subtitles {
-		if sinceID == 0 || subtitle.ID > sinceID {
+		if sinceID == 0 || subtitle.ID > uint(sinceID) {
 			filteredSubtitles = append(filteredSubtitles, subtitle)
 		}
 	}
@@ -59,10 +59,10 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 	}
 
 	// Group subtitles by show ID to avoid duplicate fetches
-	subtitlesByShow := make(map[int][]models.Subtitle)
+	subtitlesByShow := make(map[uint][]models.Subtitle)
 	for _, subtitle := range filteredSubtitles {
 		if subtitle.ShowID == 0 {
-			logger.Debug().Int("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
+			logger.Debug().Uint("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
 			continue
 		}
 		subtitlesByShow[subtitle.ShowID] = append(subtitlesByShow[subtitle.ShowID], subtitle)
@@ -78,7 +78,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 	// Convert map to slice for batched processing
 	type showBatch struct {
-		showID    int
+		showID    uint
 		subtitles []models.Subtitle
 	}
 	var showBatches []showBatch
@@ -112,9 +112,9 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 				subtitles := item.subtitles
 
 				// Fetch show details using the first valid subtitle ID to get episode ID
-				var episodeID int
+				var episodeID uint
 				if len(subtitles) == 0 {
-					logger.Warn().Int("showID", sid).Msg("No subtitles for show, skipping")
+					logger.Warn().Uint("showID", sid).Msg("No subtitles for show, skipping")
 					return
 				}
 				for _, subtitle := range subtitles {
@@ -124,7 +124,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 					}
 				}
 				if episodeID == 0 {
-					logger.Warn().Int("showID", sid).Msg("No valid subtitle IDs for show, skipping")
+					logger.Warn().Uint("showID", sid).Msg("No valid subtitle IDs for show, skipping")
 					return
 				}
 
@@ -133,7 +133,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 				req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
 				if err != nil {
-					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Failed to create detail request")
+					logger.Warn().Err(err).Uint("showID", sid).Str("detailURL", detailURL).Msg("Failed to create detail request")
 					batchResults[idx] = showResult{err: fmt.Errorf("failed to create detail request for show %d (%s): %w", sid, detailURL, err)}
 					return
 				}
@@ -141,7 +141,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 				resp, err := c.httpClient.Do(req)
 				if err != nil {
-					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
+					logger.Warn().Err(err).Uint("showID", sid).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
 					batchResults[idx] = showResult{err: fmt.Errorf("failed to fetch detail page for show %d (%s): %w", sid, detailURL, err)}
 					return
 				}
@@ -149,7 +149,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 				if resp.StatusCode != http.StatusOK {
 					err := fmt.Errorf("detail page for show %d (%s) returned status %d", sid, detailURL, resp.StatusCode)
-					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Detail page error")
+					logger.Warn().Err(err).Uint("showID", sid).Str("detailURL", detailURL).Msg("Detail page error")
 					batchResults[idx] = showResult{err: err}
 					return
 				}
@@ -157,7 +157,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 				// Parse third-party IDs from HTML
 				thirdPartyIds, err := c.thirdPartyParser.ParseHtml(resp.Body)
 				if err != nil {
-					logger.Warn().Err(err).Int("showID", sid).Msg("Failed to parse third-party IDs, continuing with empty IDs")
+					logger.Warn().Err(err).Uint("showID", sid).Msg("Failed to parse third-party IDs, continuing with empty IDs")
 					thirdPartyIds = models.ThirdPartyIds{}
 				}
 
@@ -178,7 +178,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 				subtitleCollection := models.SubtitleCollection{
 					ShowName:  showName,
 					Subtitles: subtitles,
-					Total:     len(subtitles),
+					Total:     uint(len(subtitles)),
 				}
 
 				// Create ShowSubtitles object
@@ -188,7 +188,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 					SubtitleCollection: subtitleCollection,
 				}
 
-				logger.Debug().Int("showID", sid).Str("showName", showName).Int("subtitleCount", len(subtitles)).Msg("Successfully processed show")
+				logger.Debug().Uint("showID", sid).Str("showName", showName).Int("subtitleCount", len(subtitles)).Msg("Successfully processed show")
 
 				batchResults[idx] = showResult{showSubtitles: showSubtitles}
 			}()

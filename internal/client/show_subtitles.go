@@ -71,15 +71,15 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 			defer wg.Done()
 
 			// Get subtitles for this show
-			subtitles, err := c.GetSubtitles(ctx, show.ID)
+			subtitles, err := c.GetSubtitles(ctx, int(show.ID))
 			if err != nil {
-				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to fetch subtitles for show")
+				logger.Warn().Err(err).Uint("showID", show.ID).Str("showName", show.Name).Msg("Failed to fetch subtitles for show")
 				results[i] = showResult{err: fmt.Errorf("failed to get subtitles for show %d: %w", show.ID, err)}
 				return
 			}
 
 			// Find a valid episode ID from the subtitles (use first non-zero subtitle ID)
-			var episodeID int
+			var episodeID uint
 			for _, s := range subtitles.Subtitles {
 				if s.ID > 0 {
 					episodeID = s.ID
@@ -87,7 +87,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 				}
 			}
 			if episodeID == 0 {
-				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, cannot fetch third-party IDs")
+				logger.Warn().Uint("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, cannot fetch third-party IDs")
 				// Create ShowSubtitles without third-party IDs
 				results[i] = showResult{
 					showSubtitles: models.ShowSubtitles{
@@ -105,7 +105,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 			// Fetch detail page HTML
 			req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
 			if err != nil {
-				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to create detail page request")
+				logger.Warn().Err(err).Uint("showID", show.ID).Str("showName", show.Name).Msg("Failed to create detail page request")
 				results[i] = showResult{err: fmt.Errorf("failed to create detail page request for show %d: %w", show.ID, err)}
 				return
 			}
@@ -113,14 +113,14 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 
 			resp, err := c.httpClient.Do(req)
 			if err != nil {
-				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
+				logger.Warn().Err(err).Uint("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
 				results[i] = showResult{err: fmt.Errorf("failed to fetch detail page for show %d: %w", show.ID, err)}
 				return
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				logger.Warn().Int("statusCode", resp.StatusCode).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Detail page returned non-OK status")
+				logger.Warn().Int("statusCode", resp.StatusCode).Uint("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Detail page returned non-OK status")
 				results[i] = showResult{err: fmt.Errorf("detail page for show %d returned status %d", show.ID, resp.StatusCode)}
 				return
 			}
@@ -128,7 +128,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 			// Parse third-party IDs from HTML
 			thirdPartyIds, err := c.thirdPartyParser.ParseHtml(resp.Body)
 			if err != nil {
-				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to parse third-party IDs")
+				logger.Warn().Err(err).Uint("showID", show.ID).Str("showName", show.Name).Msg("Failed to parse third-party IDs")
 				// Don't fail completely, just log and continue with empty third-party IDs
 				thirdPartyIds = models.ThirdPartyIds{}
 			}
@@ -140,7 +140,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 				SubtitleCollection: *subtitles,
 			}
 
-			logger.Debug().Int("showID", show.ID).Str("showName", show.Name).Str("imdbId", thirdPartyIds.IMDBID).Int("tvdbId", thirdPartyIds.TVDBID).Msg("Successfully processed show")
+			logger.Debug().Uint("showID", show.ID).Str("showName", show.Name).Str("imdbId", thirdPartyIds.IMDBID).Uint("tvdbId", thirdPartyIds.TVDBID).Msg("Successfully processed show")
 			results[i] = showResult{showSubtitles: showSubtitles}
 		}()
 	}

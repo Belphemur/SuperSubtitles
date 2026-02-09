@@ -163,6 +163,6 @@ func buildSubtitleCollection(subtitles []models.Subtitle) *models.SubtitleCollec
 	return &models.SubtitleCollection{
 		ShowName:  showName,
 		Subtitles: subtitles,
-		Total:     len(subtitles),
+		Total:     uint(len(subtitles)),
 	}
 }

@@ -123,7 +123,7 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 		t.Error("Integration test failed: expected to get at least some subtitles, but got 0")
 	}
 
-	if len(subtitles.Subtitles) != subtitles.Total {
+	if len(subtitles.Subtitles) != int(subtitles.Total) {
 		t.Errorf("Integration test failed: subtitle count mismatch - Total: %d, actual length: %d",
 			subtitles.Total, len(subtitles.Subtitles))
 	}
@@ -254,7 +254,7 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 		t.Error("Integration test failed: expected to get at least some subtitles")
 	}
 
-	if len(result.SubtitleCollection.Subtitles) != result.SubtitleCollection.Total {
+	if len(result.SubtitleCollection.Subtitles) != int(result.SubtitleCollection.Total) {
 		t.Errorf("Integration test failed: subtitle count mismatch - Total: %d, actual length: %d",
 			result.SubtitleCollection.Total, len(result.SubtitleCollection.Subtitles))
 	}
@@ -344,7 +344,7 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 	t.Logf("========================================\n")
 
 	// Count total subtitles across all shows
-	totalSubtitles := 0
+	totalSubtitles := uint(0)
 	for _, ss := range showSubtitles {
 		totalSubtitles += ss.SubtitleCollection.Total
 	}
@@ -379,8 +379,8 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 
 		// Show details for first few subtitles
 		maxSubtitlesToShow := 5
-		if ss.SubtitleCollection.Total < maxSubtitlesToShow {
-			maxSubtitlesToShow = ss.SubtitleCollection.Total
+		if int(ss.SubtitleCollection.Total) < maxSubtitlesToShow {
+			maxSubtitlesToShow = int(ss.SubtitleCollection.Total)
 		}
 
 		for j := 0; j < maxSubtitlesToShow; j++ {
@@ -407,8 +407,8 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 			t.Logf("     Uploader: %s | ID: %d", sub.Uploader, sub.ID)
 		}
 
-		if ss.SubtitleCollection.Total > maxSubtitlesToShow {
-			t.Logf("  ... and %d more subtitle(s)", ss.SubtitleCollection.Total-maxSubtitlesToShow)
+		if int(ss.SubtitleCollection.Total) > maxSubtitlesToShow {
+			t.Logf("  ... and %d more subtitle(s)", int(ss.SubtitleCollection.Total)-maxSubtitlesToShow)
 		}
 
 		// Verify data integrity
@@ -421,7 +421,7 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 		if ss.SubtitleCollection.Total == 0 {
 			t.Errorf("Show %d: Expected subtitles but Total is 0", i)
 		}
-		if len(ss.SubtitleCollection.Subtitles) != ss.SubtitleCollection.Total {
+		if len(ss.SubtitleCollection.Subtitles) != int(ss.SubtitleCollection.Total) {
 			t.Errorf("Show %d: Subtitle count mismatch - Total: %d, actual length: %d",
 				i, ss.SubtitleCollection.Total, len(ss.SubtitleCollection.Subtitles))
 		}
@@ -494,9 +494,9 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 	var filterID int
 	if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 1 {
 		middleIdx := len(allSubtitles[0].SubtitleCollection.Subtitles) / 2
-		filterID = allSubtitles[0].SubtitleCollection.Subtitles[middleIdx].ID
+		filterID = int(allSubtitles[0].SubtitleCollection.Subtitles[middleIdx].ID)
 	} else if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 0 {
-		filterID = allSubtitles[0].SubtitleCollection.Subtitles[0].ID
+		filterID = int(allSubtitles[0].SubtitleCollection.Subtitles[0].ID)
 	} else {
 		t.Skip("No suitable subtitle ID found for filter test")
 	}
@@ -516,14 +516,14 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 
 	totalFiltered := 0
 	for _, ss := range filteredSubtitles {
-		totalFiltered += ss.SubtitleCollection.Total
+		totalFiltered += int(ss.SubtitleCollection.Total)
 	}
 	t.Logf("Total subtitles with filter: %d", totalFiltered)
 
 	// Verify filtering worked (should have fewer or equal subtitles compared to unfiltered)
 	totalUnfiltered := 0
 	for _, ss := range allSubtitles {
-		totalUnfiltered += ss.SubtitleCollection.Total
+		totalUnfiltered += int(ss.SubtitleCollection.Total)
 	}
 
 	if totalFiltered > totalUnfiltered {
@@ -534,7 +534,7 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 	// Verify all filtered subtitles have IDs greater than the filter ID
 	for i, ss := range filteredSubtitles {
 		for j, sub := range ss.SubtitleCollection.Subtitles {
-			if sub.ID <= filterID {
+			if sub.ID <= uint(filterID) {
 				t.Errorf("Show %d, Subtitle %d: ID %d is not greater than filter ID %d",
 					i, j, sub.ID, filterID)
 			}

@@ -6,7 +6,7 @@ A Go gRPC service that interfaces with [feliratok.eu](https://feliratok.eu), a H
 
 - **gRPC API** — Clean, type-safe API with Protocol Buffers for all operations
 - **Show Listing Scraping** — Fetches and deduplicates TV shows from multiple feliratok.eu endpoints in parallel
-- **Subtitle Fetching** — Retrieves subtitle metadata (language, quality, season/episode, uploader, download URLs) via JSON API
+- **Subtitle Fetching** — Retrieves subtitle metadata (language, quality, season/episode, uploader, download URLs) by scraping paginated HTML subtitle listing pages
 - **Third-Party ID Extraction** — Automatically extracts IMDB, TVDB, TVMaze, and Trakt IDs from show detail pages
 - **Data Normalization** — Converts Hungarian language names to ISO 639-1 codes, parses quality strings (360p–2160p), builds proper download URLs
 - **Update Checking** — Queries for new subtitles since a given content ID
@@ -24,9 +24,9 @@ A Go gRPC service that interfaces with [feliratok.eu](https://feliratok.eu), a H
 ### Prerequisites
 
 - Go 1.25 or later
-- `protoc` (Protocol Buffer compiler) for regenerating proto code
-- `golangci-lint` (for linting)
-- `pnpm` (for semantic-release dependencies, optional)
+- `protoc` (Protocol Buffer compiler) — for regenerating proto code
+- `golangci-lint` — for linting
+- `pnpm` — for semantic-release dependencies (optional)
 
 ### Build
 
@@ -84,6 +84,13 @@ For detailed information about the architecture, module organization, design dec
 If you modify the proto definitions, regenerate the Go code using `go generate`:
 
 ```bash
+# Install protoc compiler plugins (one-time setup)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Ensure protoc plugins are in PATH
+export PATH=$PATH:$(go env GOPATH)/bin
+
 # Generate from proto definitions
 go generate ./api/proto/v1
 
@@ -91,7 +98,7 @@ go generate ./api/proto/v1
 cd api/proto/v1 && go generate
 ```
 
-**Note:** Required tools (`protoc-gen-go`, `protoc-gen-go-grpc`) are automatically installed if not present.
+**Note:** Requires `protoc` (Protocol Buffer compiler) to be installed and the `protoc-gen-go` and `protoc-gen-go-grpc` plugins in your PATH.
 
 ### Run Tests
 

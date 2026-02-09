@@ -95,7 +95,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 	}
 
 	// Should have 9 total subtitles (3 per page × 3 pages)
-	expectedTotalSubtitles := 9
+	expectedTotalSubtitles := uint(9)
 	if result.Total != expectedTotalSubtitles {
 		t.Errorf("Expected %d total subtitles, got %d", expectedTotalSubtitles, result.Total)
 	}

@@ -26,6 +26,13 @@ service SuperSubtitlesService {
 Proto files are compiled to Go code using `go generate`:
 
 ```bash
+# Install protoc compiler plugins (one-time setup)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Ensure protoc plugins are in PATH
+export PATH=$PATH:$(go env GOPATH)/bin
+
 # Generate proto code
 cd api/proto/v1
 go generate
@@ -36,11 +43,9 @@ go generate ./api/proto/v1
 
 **Required tools:**
 
-- `protoc` (Protocol Buffer compiler)
-- `protoc-gen-go` (Go plugin for protoc)
-- `protoc-gen-go-grpc` (gRPC plugin for protoc)
-
-These are automatically installed by the generate script if not present.
+- `protoc` (Protocol Buffer compiler) — must be installed separately
+- `protoc-gen-go` (Go plugin for protoc) — install with `go install`
+- `protoc-gen-go-grpc` (gRPC plugin for protoc) — install with `go install`
 
 ## Server Implementation
 
@@ -63,7 +68,10 @@ pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClie
 reflection.Register(grpcServer)
 
 // Listen and serve
-listener, _ := net.Listen("tcp", address)
+listener, err := net.Listen("tcp", address)
+if err != nil {
+    log.Fatalf("failed to listen on %s: %v", address, err)
+}
 grpcServer.Serve(listener)
 ```
 

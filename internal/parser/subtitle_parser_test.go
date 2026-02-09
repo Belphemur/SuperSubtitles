@@ -130,8 +130,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 	if subtitle.ShowName != "Billy the Kid" {
 		t.Errorf("Expected show name %q, got %q", "Billy the Kid", subtitle.ShowName)
 	}
-	if subtitle.Season != 2 || subtitle.Episode != -1 {
-		t.Errorf("Expected season 2 episode -1, got %d %d", subtitle.Season, subtitle.Episode)
+	if subtitle.Season != 2 || subtitle.Episode != 0 {
+		t.Errorf("Expected season 2 episode 0 (season pack), got %d %d", subtitle.Season, subtitle.Episode)
 	}
 	if !subtitle.IsSeasonPack {
 		t.Errorf("Expected IsSeasonPack true")

@@ -63,9 +63,9 @@ func (p *ShowParser) ParseHtml(body io.Reader) ([]models.Show, error) {
 				if show := p.extractShowFromGoquery(link, currentYear); show != nil {
 					shows = append(shows, *show)
 					logger.Debug().
-						Int("id", show.ID).
+						Uint("id", show.ID).
 						Str("name", show.Name).
-						Int("year", show.Year).
+						Uint("year", show.Year).
 						Msg("Successfully extracted show")
 				} else {
 					logger.Debug().Int("row", i).Int("link", j).Msg("Failed to extract show from link")
@@ -131,8 +131,8 @@ func (p *ShowParser) extractShowFromGoquery(link *goquery.Selection, year int) *
 
 	return &models.Show{
 		Name:     name,
-		ID:       id,
-		Year:     year,
+		ID:       uint(id),
+		Year:     uint(year),
 		ImageURL: imageURL,
 	}
 }

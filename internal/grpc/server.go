@@ -31,12 +31,12 @@ func NewServer(c client.Client) pb.SuperSubtitlesServiceServer {
 
 // GetShowList implements SuperSubtitlesServiceServer.GetShowList
 func (s *server) GetShowList(ctx context.Context, req *pb.GetShowListRequest) (*pb.GetShowListResponse, error) {
-	s.logger.Debug().Msg("GetShowList called")
+	s.logger.Debug().Interface("request", req).Msg("GetShowList called")
 
 	shows, err := s.client.GetShowList(ctx)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to get show list")
-		return nil, status.Errorf(codes.Internal, "failed to get show list: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get show list")
 	}
 
 	pbShows := make([]*pb.Show, len(shows))
@@ -50,15 +50,15 @@ func (s *server) GetShowList(ctx context.Context, req *pb.GetShowListRequest) (*
 
 // GetSubtitles implements SuperSubtitlesServiceServer.GetSubtitles
 func (s *server) GetSubtitles(ctx context.Context, req *pb.GetSubtitlesRequest) (*pb.GetSubtitlesResponse, error) {
-	s.logger.Debug().Int32("show_id", req.ShowId).Msg("GetSubtitles called")
+	s.logger.Debug().Uint64("show_id", req.ShowId).Msg("GetSubtitles called")
 
 	collection, err := s.client.GetSubtitles(ctx, int(req.ShowId))
 	if err != nil {
-		s.logger.Error().Err(err).Int32("show_id", req.ShowId).Msg("Failed to get subtitles")
-		return nil, status.Errorf(codes.Internal, "failed to get subtitles: %v", err)
+		s.logger.Error().Err(err).Uint64("show_id", req.ShowId).Msg("Failed to get subtitles")
+		return nil, status.Error(codes.Internal, "failed to get subtitles")
 	}
 
-	s.logger.Debug().Int32("show_id", req.ShowId).Int("count", len(collection.Subtitles)).Msg("GetSubtitles completed")
+	s.logger.Debug().Uint64("show_id", req.ShowId).Int("count", len(collection.Subtitles)).Msg("GetSubtitles completed")
 	return &pb.GetSubtitlesResponse{
 		SubtitleCollection: convertSubtitleCollectionToProto(*collection),
 	}, nil
@@ -76,7 +76,7 @@ func (s *server) GetShowSubtitles(ctx context.Context, req *pb.GetShowSubtitlesR
 	showSubtitles, err := s.client.GetShowSubtitles(ctx, shows)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to get show subtitles")
-		return nil, status.Errorf(codes.Internal, "failed to get show subtitles: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get show subtitles")
 	}
 
 	pbShowSubtitles := make([]*pb.ShowSubtitles, len(showSubtitles))
@@ -95,19 +95,19 @@ func (s *server) CheckForUpdates(ctx context.Context, req *pb.CheckForUpdatesReq
 	result, err := s.client.CheckForUpdates(ctx, req.ContentId)
 	if err != nil {
 		s.logger.Error().Err(err).Str("content_id", req.ContentId).Msg("Failed to check for updates")
-		return nil, status.Errorf(codes.Internal, "failed to check for updates: %v", err)
+		return nil, status.Error(codes.Internal, "failed to check for updates")
 	}
 
 	s.logger.Debug().
 		Str("content_id", req.ContentId).
-		Int("film_count", result.FilmCount).
-		Int("series_count", result.SeriesCount).
+		Uint("film_count", result.FilmCount).
+		Uint("series_count", result.SeriesCount).
 		Bool("has_updates", result.HasUpdates).
 		Msg("CheckForUpdates completed")
 
 	return &pb.CheckForUpdatesResponse{
-		FilmCount:   int32(result.FilmCount),
-		SeriesCount: int32(result.SeriesCount),
+		FilmCount:   uint64(result.FilmCount),
+		SeriesCount: uint64(result.SeriesCount),
 		HasUpdates:  result.HasUpdates,
 	}, nil
 }
@@ -117,7 +117,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	s.logger.Debug().
 		Str("download_url", req.DownloadUrl).
 		Str("subtitle_id", req.SubtitleId).
-		Int32("episode", req.Episode).
+		Uint32("episode", req.Episode).
 		Msg("DownloadSubtitle called")
 
 	downloadReq := models.DownloadRequest{
@@ -128,7 +128,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	result, err := s.client.DownloadSubtitle(ctx, req.DownloadUrl, downloadReq)
 	if err != nil {
 		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
-		return nil, status.Errorf(codes.Internal, "failed to download subtitle: %v", err)
+		return nil, status.Error(codes.Internal, "failed to download subtitle")
 	}
 
 	s.logger.Debug().
@@ -146,12 +146,12 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 
 // GetRecentSubtitles implements SuperSubtitlesServiceServer.GetRecentSubtitles
 func (s *server) GetRecentSubtitles(ctx context.Context, req *pb.GetRecentSubtitlesRequest) (*pb.GetRecentSubtitlesResponse, error) {
-	s.logger.Debug().Int32("since_id", req.SinceId).Msg("GetRecentSubtitles called")
+	s.logger.Debug().Uint64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
 	showSubtitles, err := s.client.GetRecentSubtitles(ctx, int(req.SinceId))
 	if err != nil {
-		s.logger.Error().Err(err).Int32("since_id", req.SinceId).Msg("Failed to get recent subtitles")
-		return nil, status.Errorf(codes.Internal, "failed to get recent subtitles: %v", err)
+		s.logger.Error().Err(err).Uint64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
+		return nil, status.Error(codes.Internal, "failed to get recent subtitles")
 	}
 
 	pbShowSubtitles := make([]*pb.ShowSubtitles, len(showSubtitles))
@@ -159,7 +159,7 @@ func (s *server) GetRecentSubtitles(ctx context.Context, req *pb.GetRecentSubtit
 		pbShowSubtitles[i] = convertShowSubtitlesToProto(ss)
 	}
 
-	s.logger.Debug().Int32("since_id", req.SinceId).Int("count", len(pbShowSubtitles)).Msg("GetRecentSubtitles completed")
+	s.logger.Debug().Uint64("since_id", req.SinceId).Int("count", len(pbShowSubtitles)).Msg("GetRecentSubtitles completed")
 	return &pb.GetRecentSubtitlesResponse{ShowSubtitles: pbShowSubtitles}, nil
 }
 
@@ -168,17 +168,20 @@ func (s *server) GetRecentSubtitles(ctx context.Context, req *pb.GetRecentSubtit
 func convertShowToProto(show models.Show) *pb.Show {
 	return &pb.Show{
 		Name:     show.Name,
-		Id:       int32(show.ID),
-		Year:     int32(show.Year),
+		Id:       uint64(show.ID),
+		Year:     uint32(show.Year),
 		ImageUrl: show.ImageURL,
 	}
 }
 
 func convertShowFromProto(pbShow *pb.Show) models.Show {
+	if pbShow == nil {
+		return models.Show{}
+	}
 	return models.Show{
 		Name:     pbShow.Name,
-		ID:       int(pbShow.Id),
-		Year:     int(pbShow.Year),
+		ID:       uint(pbShow.Id),
+		Year:     uint(pbShow.Year),
 		ImageURL: pbShow.ImageUrl,
 	}
 }
@@ -186,9 +189,9 @@ func convertShowFromProto(pbShow *pb.Show) models.Show {
 func convertThirdPartyIdsToProto(ids models.ThirdPartyIds) *pb.ThirdPartyIds {
 	return &pb.ThirdPartyIds{
 		ImdbId:   ids.IMDBID,
-		TvdbId:   int32(ids.TVDBID),
-		TvMazeId: int32(ids.TVMazeID),
-		TraktId:  int32(ids.TraktID),
+		TvdbId:   uint64(ids.TVDBID),
+		TvMazeId: uint64(ids.TVMazeID),
+		TraktId:  uint64(ids.TraktID),
 	}
 }
 
@@ -215,18 +218,23 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 		qualities[i] = convertQualityToProto(q)
 	}
 
+	var uploadedAt *timestamppb.Timestamp
+	if !subtitle.UploadedAt.IsZero() {
+		uploadedAt = timestamppb.New(subtitle.UploadedAt)
+	}
+
 	return &pb.Subtitle{
-		Id:            int32(subtitle.ID),
-		ShowId:        int32(subtitle.ShowID),
+		Id:            uint64(subtitle.ID),
+		ShowId:        uint64(subtitle.ShowID),
 		ShowName:      subtitle.ShowName,
 		Name:          subtitle.Name,
 		Language:      subtitle.Language,
-		Season:        int32(subtitle.Season),
-		Episode:       int32(subtitle.Episode),
+		Season:        uint32(subtitle.Season),
+		Episode:       uint32(subtitle.Episode),
 		Filename:      subtitle.Filename,
 		DownloadUrl:   subtitle.DownloadURL,
 		Uploader:      subtitle.Uploader,
-		UploadedAt:    timestamppb.New(subtitle.UploadedAt),
+		UploadedAt:    uploadedAt,
 		Qualities:     qualities,
 		ReleaseGroups: subtitle.ReleaseGroups,
 		Release:       subtitle.Release,
@@ -243,7 +251,7 @@ func convertSubtitleCollectionToProto(collection models.SubtitleCollection) *pb.
 	return &pb.SubtitleCollection{
 		ShowName:  collection.ShowName,
 		Subtitles: subtitles,
-		Total:     int32(collection.Total),
+		Total:     uint64(collection.Total),
 	}
 }
 

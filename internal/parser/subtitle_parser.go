@@ -181,8 +181,8 @@ func (p *SubtitleParser) ParseHtmlWithPagination(body io.Reader) (*SubtitlePageR
 			logger.Debug().
 				Str("language", subtitle.Language).
 				Str("name", subtitle.Name).
-				Int("season", subtitle.Season).
-				Int("episode", subtitle.Episode).
+				Uint("season", subtitle.Season).
+				Uint("episode", subtitle.Episode).
 				Bool("seasonPack", subtitle.IsSeasonPack).
 				Msg("Successfully extracted subtitle")
 		}
@@ -275,13 +275,13 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	cleanedName := removeParentheticalContent(description)
 
 	return &models.Subtitle{
-		ID:            subtitleID,
-		ShowID:        showID,
+		ID:            uint(subtitleID),
+		ShowID:        uint(showID),
 		Name:          cleanedName,
 		ShowName:      showName,
 		Language:      languageISO,
-		Season:        season,
-		Episode:       episode,
+		Season:        uint(season),
+		Episode:       uint(episode),
 		Filename:      filename,
 		DownloadURL:   downloadURL,
 		Uploader:      uploader,
@@ -336,7 +336,7 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 		isSeasonPack = true
 		seasonNum, _ := strconv.Atoi(matches[1])
 		season = seasonNum
-		episode = -1
+		episode = 0 // Use 0 for season packs since we're using uint
 
 		// Extract show name (everything before "(Season")
 		parts := strings.Split(description, "(Season")
@@ -396,8 +396,8 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 	// Fallback: couldn't parse episode info
 	logger.Debug().Str("description", description).Msg("Failed to parse season/episode from description")
 	showName = description
-	season = -1
-	episode = -1
+	season = 0
+	episode = 0
 	return
 }
 

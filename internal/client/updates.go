@@ -51,14 +51,14 @@ func (c *client) CheckForUpdates(ctx context.Context, contentID string) (*models
 	}
 
 	result := &models.UpdateCheckResult{
-		FilmCount:   updateResponse.Film,
-		SeriesCount: updateResponse.Sorozat,
+		FilmCount:   uint(updateResponse.Film),
+		SeriesCount: uint(updateResponse.Sorozat),
 		HasUpdates:  updateResponse.Film > 0 || updateResponse.Sorozat > 0,
 	}
 
 	logger.Info().
-		Int("filmCount", result.FilmCount).
-		Int("seriesCount", result.SeriesCount).
+		Uint("filmCount", result.FilmCount).
+		Uint("seriesCount", result.SeriesCount).
 		Bool("hasUpdates", result.HasUpdates).
 		Msg("Successfully checked for updates")
 

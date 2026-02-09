@@ -6,13 +6,13 @@ import (
 
 // Subtitle represents a normalized subtitle in our application
 type Subtitle struct {
-	ID            int       `json:"id"`
-	ShowID        int       `json:"showId"`   // Show ID from feliratok.eu (extracted from category link)
+	ID            uint      `json:"id"`
+	ShowID        uint      `json:"showId"`   // Show ID from feliratok.eu (extracted from category link)
 	ShowName      string    `json:"showName"` // Show name (may be empty in HTML parsing)
 	Name          string    `json:"name"`     // Subtitle name/title from HTML
 	Language      string    `json:"language"`
-	Season        int       `json:"season"`
-	Episode       int       `json:"episode"`
+	Season        uint      `json:"season"`
+	Episode       uint      `json:"episode"`
 	Filename      string    `json:"filename"` // Subtitle filename from download URL
 	DownloadURL   string    `json:"downloadUrl"`
 	Uploader      string    `json:"uploader"`
@@ -27,5 +27,5 @@ type Subtitle struct {
 type SubtitleCollection struct {
 	ShowName  string     `json:"showName"`
 	Subtitles []Subtitle `json:"subtitles"`
-	Total     int        `json:"total"`
+	Total     uint       `json:"total"`
 }

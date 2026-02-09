@@ -77,10 +77,10 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 			continue
 		}
 		for _, s := range r.shows {
-			if _, exists := seen[s.ID]; exists {
+			if _, exists := seen[int(s.ID)]; exists {
 				continue
 			}
-			seen[s.ID] = struct{}{}
+			seen[int(s.ID)] = struct{}{}
 			merged = append(merged, s)
 		}
 	}
