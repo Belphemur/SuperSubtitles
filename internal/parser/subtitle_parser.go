@@ -336,7 +336,7 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 		isSeasonPack = true
 		seasonNum, _ := strconv.Atoi(matches[1])
 		season = seasonNum
-		episode = 0 // Use 0 for season packs since we're using uint
+		episode = 0 // 0 represents entire season pack (all episodes in the season)
 
 		// Extract show name (everything before "(Season")
 		parts := strings.Split(description, "(Season")

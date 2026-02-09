@@ -219,6 +219,8 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 	}
 
 	var uploadedAt *timestamppb.Timestamp
+	// Only set timestamp if UploadedAt is not zero
+	// This prevents serializing invalid dates (year 0001-01-01) to clients
 	if !subtitle.UploadedAt.IsZero() {
 		uploadedAt = timestamppb.New(subtitle.UploadedAt)
 	}

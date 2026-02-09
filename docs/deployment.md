@@ -126,6 +126,8 @@ Located at `build/Dockerfile`, used by GoReleaser for multi-platform builds.
 - Go 1.25+
 - golangci-lint (for linting)
 - gotestsum (optional, for pretty test output)
+- protoc v3.21+ (Protocol Buffer compiler, for regenerating proto code)
+- protoc-gen-go and protoc-gen-go-grpc (install via `go install`)
 
 ### Setup
 
