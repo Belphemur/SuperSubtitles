@@ -1,3 +1,18 @@
+# [1.4.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.3.0...v1.4.0) (2026-02-09)
+
+
+### Bug Fixes
+
+* **grpc:** add nil check for show entries in GetShowSubtitles ([f696527](https://github.com/Belphemur/SuperSubtitles/commit/f6965276fc019e354a3b38718c320be69d6407cd))
+* **grpc:** add safe int conversion to prevent overflow in proto mappings ([499d087](https://github.com/Belphemur/SuperSubtitles/commit/499d087c188725ff2dd17976be0c15dc2b781276))
+* **parser:** simplify show name extraction using DOM sibling traversal ([c4aaee4](https://github.com/Belphemur/SuperSubtitles/commit/c4aaee4f3792ae69d78f703bfa827d1d034bdccf))
+* use go generate for pro generation ([4865d99](https://github.com/Belphemur/SuperSubtitles/commit/4865d994a32ff9a18caa30849d325710d2ce4b45))
+
+
+### Features
+
+* **grpc:** add complete gRPC API with proto definitions and server implementation ([a23fa78](https://github.com/Belphemur/SuperSubtitles/commit/a23fa78375cccb418b9548e7269e967d07eb5abf))
+
 # [1.3.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.2.1...v1.3.0) (2026-02-09)
 
 
