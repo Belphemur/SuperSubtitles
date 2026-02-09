@@ -91,7 +91,10 @@ go generate ./api/proto/v1
 cd api/proto/v1 && go generate
 ```
 
-**Note:** Required tools (`protoc-gen-go`, `protoc-gen-go-grpc`) are automatically installed if not present.
+**Prerequisites:** Ensure you have the following tools installed:
+- `protoc` (Protocol Buffer compiler)
+- `protoc-gen-go` (install via `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`)
+- `protoc-gen-go-grpc` (install via `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest`)
 
 ### Run Tests
 
