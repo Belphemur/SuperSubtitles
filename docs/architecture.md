@@ -89,17 +89,6 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 3. Results are merged and deduplicated by show ID, preserving first-occurrence order
 4. Partial failures are tolerated — if at least one endpoint succeeds, results are returned
 
-### Subtitle Fetching via API (JSON)
-
-1. `GetSubtitles` calls the JSON API endpoint (`?action=xbmc&sid=<id>`)
-2. Response is a map of `SuperSubtitle` objects (Hungarian field names)
-3. `SubtitleConverter.ConvertResponse` normalizes each entry:
-   - Language names (Hungarian → ISO 639-1)
-   - Quality detection from subtitle name string
-   - Season/episode number parsing (with -1 for season packs)
-   - Download URL construction
-   - Upload timestamp conversion
-
 ### Subtitle Fetching
 
 `GetSubtitles` fetches subtitles from HTML pages with automatic parallel pagination support.

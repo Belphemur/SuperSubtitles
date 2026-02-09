@@ -28,6 +28,8 @@ SuperSubtitles/
 │   │   ├── interfaces.go          # Generic Parser[T] interfaces
 │   │   ├── show_parser.go         # HTML parser for shows
 │   │   ├── show_parser_test.go    # Show parser tests
+│   │   ├── subtitle_parser.go     # HTML parser for subtitles + pagination
+│   │   ├── subtitle_parser_test.go # Subtitle parser tests
 │   │   ├── third_party_parser.go  # HTML parser for third-party IDs
 │   │   └── third_party_parser_test.go
 │   └── services/
@@ -70,7 +72,7 @@ Application entry point. Currently a CLI tool that demonstrates fetching and log
 
 - `client.go` — Main `Client` interface with methods for:
   - Getting show lists from multiple endpoints in parallel
-  - Fetching subtitles via JSON API
+  - Fetching subtitles via HTML parsing with pagination
   - Extracting third-party IDs from show detail pages
   - Checking for updates
   - Downloading subtitles with optional episode extraction
@@ -116,6 +118,7 @@ Application entry point. Currently a CLI tool that demonstrates fetching and log
   - Handles year header rows
 - `third_party_parser.go` — Extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt) from show detail page HTML
   - Uses regex and URL parsing to extract IDs from links
+- `subtitle_parser.go` — Parses subtitle tables and pagination links from HTML
 - Test files with inline HTML fixtures for comprehensive coverage
 
 ### `internal/services/`
