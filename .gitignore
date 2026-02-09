@@ -37,6 +37,7 @@ bin/
 _output/
 
 # Coverage
+coverage
 coverage.txt
 test-results/
 
