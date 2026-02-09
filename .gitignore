@@ -34,7 +34,6 @@ Thumbs.db
 
 # Node.js
 node_modules/
-pnpm-lock.yaml
 
 # Build output
 dist/
