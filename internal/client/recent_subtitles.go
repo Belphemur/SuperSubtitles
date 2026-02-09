@@ -62,7 +62,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 	subtitlesByShow := make(map[int][]models.Subtitle)
 	for _, subtitle := range filteredSubtitles {
 		if subtitle.ShowID == 0 {
-				logger.Debug().Int("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
+			logger.Debug().Int("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
 			continue
 		}
 		subtitlesByShow[subtitle.ShowID] = append(subtitlesByShow[subtitle.ShowID], subtitle)
