@@ -145,7 +145,7 @@ func (p *ThirdPartyIdParser) extractTVMazeIDFromURL(href string) (int, error) {
 	logger := config.GetLogger()
 
 	// TVMaze URLs are like: http://www.tvmaze.com/shows/60743
-	re := regexp.MustCompile(`tvmaze\.com/shows/(\d+)`)
+	re := regexp.MustCompile(`^https?://(?:www\.)?tvmaze\.com/shows/(\d+)`)
 	matches := re.FindStringSubmatch(href)
 	if len(matches) < 2 {
 		logger.Debug().Str("href", href).Msg("No TVMaze ID found in URL")
