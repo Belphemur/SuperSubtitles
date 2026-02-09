@@ -322,3 +322,63 @@ func TestConvertLanguageToISO(t *testing.T) {
 		})
 	}
 }
+
+func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
+	// Test that show ID is correctly extracted from the main page HTML
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           13051,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "The Copenhagen Test - 1x04 (SubRip)",
+			EredetiTitle:     "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX)",
+			Uploader:         "Anonymus",
+			UploaderBold:     false,
+			UploadDate:       "2026-02-09",
+			DownloadAction:   "letolt",
+			DownloadFilename: "The.Copenhagen.Test.S01E04.srt",
+			SubtitleID:       "1770617276",
+		},
+		{
+			ShowID:           11930,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Három hónap jegyesség - a másik út - 7x18 (SubRip)",
+			EredetiTitle:     "90 Day Fiancé: The Other Way - 7x18 - Adios (HMAX.WEBRip)",
+			Uploader:         "Anonymus",
+			UploaderBold:     false,
+			UploadDate:       "2026-02-08",
+			DownloadAction:   "letolt",
+			DownloadFilename: "90.Day.Fiance.The.Other.Way.S07E18.srt",
+			SubtitleID:       "1770577432",
+		},
+	})
+
+	parser := NewSubtitleParser("https://feliratok.eu")
+	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("ParseHtmlWithPagination failed: %v", err)
+	}
+
+	if len(result.Subtitles) != 2 {
+		t.Fatalf("Expected 2 subtitles, got %d", len(result.Subtitles))
+	}
+
+	// Test first subtitle
+	subtitle1 := result.Subtitles[0]
+	if subtitle1.ShowID != 13051 {
+		t.Errorf("Expected ShowID %d, got %d", 13051, subtitle1.ShowID)
+	}
+	if subtitle1.ID != "1770617276" {
+		t.Errorf("Expected ID %q, got %q", "1770617276", subtitle1.ID)
+	}
+
+	// Test second subtitle
+	subtitle2 := result.Subtitles[1]
+	if subtitle2.ShowID != 11930 {
+		t.Errorf("Expected ShowID %d, got %d", 11930, subtitle2.ShowID)
+	}
+	if subtitle2.ID != "1770577432" {
+		t.Errorf("Expected ID %q, got %q", "1770577432", subtitle2.ID)
+	}
+}

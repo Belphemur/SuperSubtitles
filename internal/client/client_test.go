@@ -434,6 +434,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -485,6 +486,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -643,6 +645,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if string(result.Content) != subtitleContent {
@@ -733,6 +736,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Should have 9 total subtitles (3 per page × 3 pages)
@@ -797,6 +801,7 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if result.Total != 1 {
@@ -834,58 +839,64 @@ func TestClient_GetSubtitles_NetworkError(t *testing.T) {
 	}
 }
 
-func TestClient_fetchFirstPageSubtitles(t *testing.T) {
-	// Test that fetchFirstPageSubtitles only fetches the first page and ignores pagination
-	pageHTML := testutil.GenerateSubtitleTableHTMLWithPagination(
-		[]testutil.SubtitleRowOptions{
-			{
-				ShowID:           8888,
-				Language:         "Magyar",
-				FlagImage:        "hungary.gif",
-				MagyarTitle:      "First Page Subtitle 1",
-				EredetiTitle:     "First Page Subtitle 1 - 1080p",
-				Uploader:         "TestUploader",
-				UploaderBold:     false,
-				UploadDate:       "2025-02-09",
-				DownloadAction:   "letolt",
-				DownloadFilename: "test1.srt",
-				SubtitleID:       "111",
-			},
-			{
-				ShowID:           8888,
-				Language:         "Magyar",
-				FlagImage:        "hungary.gif",
-				MagyarTitle:      "First Page Subtitle 2",
-				EredetiTitle:     "First Page Subtitle 2 - 720p",
-				Uploader:         "TestUploader",
-				UploaderBold:     false,
-				UploadDate:       "2025-02-09",
-				DownloadAction:   "letolt",
-				DownloadFilename: "test2.srt",
-				SubtitleID:       "222",
-			},
-		},
-		1, // Current page
-		5, // Total pages (pagination exists but should be ignored)
-		true,
-	)
-
-	requestCount := 0
+func TestClient_GetRecentSubtitles(t *testing.T) {
+	// Track requests to detail pages
+	var detailRequests []string
 	var mu sync.Mutex
 
+	// Create a test server that serves main page and detail pages
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		defer mu.Unlock()
-
-		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=8888" {
-			requestCount++
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("tab") == "sorozat" {
+			// Main show page with recent subtitles
+			htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+				{
+					ShowID:           13051,
+					Language:         "Magyar",
+					FlagImage:        "hungary.gif",
+					MagyarTitle:      "The Copenhagen Test - 1x04 (SubRip)",
+					EredetiTitle:     "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX)",
+					Uploader:         "Anonymus",
+					UploaderBold:     false,
+					UploadDate:       "2026-02-09",
+					DownloadAction:   "letolt",
+					DownloadFilename: "The.Copenhagen.Test.S01E04.srt",
+					SubtitleID:       "1770617276",
+				},
+				{
+					ShowID:           11930,
+					Language:         "Magyar",
+					FlagImage:        "hungary.gif",
+					MagyarTitle:      "Három hónap jegyesség - 7x18 (SubRip)",
+					EredetiTitle:     "90 Day Fiancé: The Other Way - 7x18 - Adios (HMAX.WEBRip)",
+					Uploader:         "Anonymus",
+					UploaderBold:     false,
+					UploadDate:       "2026-02-08",
+					DownloadAction:   "letolt",
+					DownloadFilename: "90.Day.Fiance.The.Other.Way.S07E18.srt",
+					SubtitleID:       "1770577432",
+				},
+			})
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(pageHTML))
+			_, _ = w.Write([]byte(htmlContent))
 			return
 		}
-		// If any other page is requested, it's an error
-		t.Errorf("Unexpected request for page: %s", r.URL.RawQuery)
+
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("tipus") == "adatlap" {
+			// Detail page request
+			azon := r.URL.Query().Get("azon")
+			mu.Lock()
+			detailRequests = append(detailRequests, azon)
+			mu.Unlock()
+
+			// Return HTML with third-party IDs
+			htmlContent := testutil.GenerateThirdPartyIDHTML("tt1234567", 98765, 43210, 56789)
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(htmlContent))
+			return
+		}
+
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
@@ -895,44 +906,148 @@ func TestClient_fetchFirstPageSubtitles(t *testing.T) {
 		ClientTimeout:       "10s",
 	}
 
-	clientImpl := NewClient(testConfig).(*client)
+	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 8888)
-
+	// Test without filter (all subtitles)
+	showSubtitles, err := client.GetRecentSubtitles(ctx, "")
 	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
+		t.Fatalf("GetRecentSubtitles failed: %v", err)
 	}
 
-	if result == nil {
-		t.Fatal("Expected result, got nil")
+	if len(showSubtitles) != 2 {
+		t.Fatalf("Expected 2 shows, got %d", len(showSubtitles))
 	}
 
-	// Should have exactly 2 subtitles (only from first page)
-	if result.Total != 2 {
-		t.Fatalf("Expected 2 subtitles, got %d", result.Total)
+	// Verify detail pages were fetched
+	if len(detailRequests) != 2 {
+		t.Errorf("Expected 2 detail requests, got %d", len(detailRequests))
 	}
 
-	if len(result.Subtitles) != 2 {
-		t.Fatalf("Expected 2 subtitles in array, got %d", len(result.Subtitles))
-	}
+	// Verify show data
+	for _, ss := range showSubtitles {
+		if ss.Show.ID != 13051 && ss.Show.ID != 11930 {
+			t.Errorf("Unexpected show ID: %d", ss.Show.ID)
+		}
 
-	// Should have made exactly 1 request (only first page)
-	if requestCount != 1 {
-		t.Errorf("Expected 1 request (first page only), got %d", requestCount)
-	}
+		if ss.ThirdPartyIds.IMDBID != "tt1234567" {
+			t.Errorf("Expected IMDB ID tt1234567, got %s", ss.ThirdPartyIds.IMDBID)
+		}
 
-	// Verify subtitle data
-	if result.Subtitles[0].ID != "111" {
-		t.Errorf("Expected first subtitle ID '111', got '%s'", result.Subtitles[0].ID)
-	}
-	if result.Subtitles[1].ID != "222" {
-		t.Errorf("Expected second subtitle ID '222', got '%s'", result.Subtitles[1].ID)
+		if ss.SubtitleCollection.Total == 0 {
+			t.Error("Expected subtitles in collection")
+		}
 	}
 }
 
-func TestClient_fetchFirstPageSubtitles_Error(t *testing.T) {
-	// Test error handling for network failure
+func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
+	// Create a test server that serves main page
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("tab") == "sorozat" {
+			// Main show page with subtitles having different IDs
+			htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+				{
+					ShowID:           13051,
+					Language:         "Magyar",
+					MagyarTitle:      "Show 1 - 1x01",
+					EredetiTitle:     "Show 1 - 1x01 - Episode (WEB.720p)",
+					Uploader:         "User1",
+					UploadDate:       "2026-02-09",
+					DownloadAction:   "letolt",
+					DownloadFilename: "show1.s01e01.srt",
+					SubtitleID:       "1770617276", // Higher ID
+				},
+				{
+					ShowID:           11930,
+					Language:         "Magyar",
+					MagyarTitle:      "Show 2 - 1x02",
+					EredetiTitle:     "Show 2 - 1x02 - Episode (WEB.720p)",
+					Uploader:         "User2",
+					UploadDate:       "2026-02-08",
+					DownloadAction:   "letolt",
+					DownloadFilename: "show2.s01e02.srt",
+					SubtitleID:       "1770577432", // Lower ID
+				},
+			})
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(htmlContent))
+			return
+		}
+
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("tipus") == "adatlap" {
+			// Detail page request
+			htmlContent := testutil.GenerateThirdPartyIDHTML("tt7654321", 12345, 54321, 98765)
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(htmlContent))
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	// Test with filter (only subtitles with ID > 1770600000)
+	showSubtitles, err := client.GetRecentSubtitles(ctx, "1770600000")
+	if err != nil {
+		t.Fatalf("GetRecentSubtitles failed: %v", err)
+	}
+
+	// Should only return the subtitle with ID 1770617276
+	if len(showSubtitles) != 1 {
+		t.Fatalf("Expected 1 show, got %d", len(showSubtitles))
+	}
+
+	if showSubtitles[0].Show.ID != 13051 {
+		t.Errorf("Expected show ID 13051, got %d", showSubtitles[0].Show.ID)
+	}
+}
+
+func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
+	// Create a test server that returns empty main page
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.Query().Get("tab") == "sorozat" {
+			// Empty table
+			htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{})
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(htmlContent))
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+
+	showSubtitles, err := client.GetRecentSubtitles(ctx, "")
+	if err != nil {
+		t.Fatalf("GetRecentSubtitles failed: %v", err)
+	}
+
+	if len(showSubtitles) != 0 {
+		t.Errorf("Expected 0 shows, got %d", len(showSubtitles))
+	}
+}
+
+func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
+	// Create a test server that returns an error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -943,58 +1058,11 @@ func TestClient_fetchFirstPageSubtitles_Error(t *testing.T) {
 		ClientTimeout:       "10s",
 	}
 
-	clientImpl := NewClient(testConfig).(*client)
+	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 9999)
-
+	_, err := client.GetRecentSubtitles(ctx, "")
 	if err == nil {
 		t.Fatal("Expected error, got nil")
-	}
-
-	if result != nil {
-		t.Fatalf("Expected nil result for error case, got: %v", result)
-	}
-}
-
-func TestClient_fetchFirstPageSubtitles_EmptyPage(t *testing.T) {
-	// Test with an empty page (no subtitles)
-	emptyPageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{})
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=7777" {
-			w.Header().Set("Content-Type", "text/html")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(emptyPageHTML))
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer server.Close()
-
-	testConfig := &config.Config{
-		SuperSubtitleDomain: server.URL,
-		ClientTimeout:       "10s",
-	}
-
-	clientImpl := NewClient(testConfig).(*client)
-	ctx := context.Background()
-
-	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 7777)
-
-	if err != nil {
-		t.Fatalf("Expected no error for empty page, got: %v", err)
-	}
-
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-	}
-
-	if result.Total != 0 {
-		t.Errorf("Expected 0 subtitles for empty page, got %d", result.Total)
-	}
-
-	if len(result.Subtitles) != 0 {
-		t.Errorf("Expected 0 subtitles in array for empty page, got %d", len(result.Subtitles))
 	}
 }

@@ -215,6 +215,11 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		return nil
 	}
 
+	// Extract show ID from category column (column 0)
+	// The category column contains a link like: <a href="index.php?sid=13051">
+	categoryTd := tds.Eq(0)
+	showID := p.extractShowIDFromCategory(categoryTd)
+
 	// Extract language from column 1
 	language := strings.TrimSpace(tds.Eq(1).Text())
 	if language == "" {
@@ -267,6 +272,7 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 
 	return &models.Subtitle{
 		ID:            subtitleID,
+		ShowID:        showID,
 		Name:          description,
 		ShowName:      showName,
 		Language:      languageISO,
@@ -281,6 +287,38 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		Release:       releaseInfo,
 		IsSeasonPack:  isSeasonPack,
 	}
+}
+
+// extractShowIDFromCategory extracts the show ID from the category column's link
+// Example: <a href="index.php?sid=13051"> or <a href="/index.php?sid=13051">
+func (p *SubtitleParser) extractShowIDFromCategory(categoryTd *goquery.Selection) int {
+	logger := config.GetLogger()
+
+	// Find the link in the category column
+	href, exists := categoryTd.Find("a").Attr("href")
+	if !exists {
+		return 0
+	}
+
+	// Parse URL to extract sid parameter
+	parsedURL, err := url.Parse(href)
+	if err != nil {
+		logger.Debug().Str("href", href).Err(err).Msg("Failed to parse category link")
+		return 0
+	}
+
+	sidStr := parsedURL.Query().Get("sid")
+	if sidStr == "" {
+		return 0
+	}
+
+	showID, err := strconv.Atoi(sidStr)
+	if err != nil {
+		logger.Debug().Str("sid", sidStr).Err(err).Msg("Failed to convert sid to integer")
+		return 0
+	}
+
+	return showID
 }
 
 // parseDescription extracts show name, season, episode, release info, and season pack flag
