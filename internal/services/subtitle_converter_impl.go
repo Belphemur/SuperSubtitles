@@ -13,7 +13,6 @@ import (
 // Pre-compiled regex patterns for performance
 var (
 	qualityRegex = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
-	qualityMatch = regexp.MustCompile(`(?i)(2160p|4k|1080p|720p|480p|360p)`)
 	hasQuality   = regexp.MustCompile(`\d{3,4}p`)
 )
 
@@ -214,7 +213,7 @@ func (c *DefaultSubtitleConverter) extractReleaseGroups(name string) []string {
 		// - "SubRip" → (no release group)
 
 		// Find the first quality pattern position
-		qualityMatcher := qualityMatch.FindStringIndex(pattern)
+		qualityMatcher := qualityRegex.FindStringIndex(pattern)
 
 		var sourcePart, groupPart string
 
