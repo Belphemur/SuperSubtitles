@@ -411,7 +411,6 @@ func (p *SubtitleParser) extractPaginationInfo(doc *goquery.Document) (currentPa
 
 	// Default values
 	currentPage = 1
-	totalPages = 1
 
 	// In feliratok.eu, pagination looks like "1 2 3" where the current page is usually just text
 	// and other pages are links. We look for links with "oldal=" to find the max page.
