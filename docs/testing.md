@@ -34,7 +34,7 @@ html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
         UploadDate:       "2024-01-15",
         DownloadAction:   "letolt",
         DownloadFilename: "test.srt",
-        SubtitleID:       "1737439811",
+        SubtitleID:       1737439811,
     },
 })
 ```
@@ -70,15 +70,14 @@ html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 
 ### Client Tests
 
-- `internal/client/client_test.go` - 20+ unit tests covering:
-  - Show list fetching with parallel endpoints
-  - Subtitle fetching with pagination
-  - Recent subtitles with filtering
-  - Show subtitles with batching
-  - Update checking
-  - Download operations
-  - Error handling
-  - Partial failure resilience
+- `internal/client/show_list_test.go` - Show list fetching with parallel endpoints
+- `internal/client/updates_test.go` - Update checking logic and edge cases
+- `internal/client/subtitles_test.go` - Subtitle fetching with pagination (3 tests)
+- `internal/client/recent_subtitles_test.go` - Recent subtitles with filtering (4 tests)
+- `internal/client/show_subtitles_test.go` - Show subtitles with batching (1 test)
+- `internal/client/download_test.go` - Download operations
+- `internal/client/client_compression_test.go` - Compression support tests (gzip, brotli, zstd)
+- `internal/client/compression_transport_test.go` - Compression transport unit tests
 - `internal/client/client_integration_test.go` - Live integration tests (skipped in CI)
 
 ### Service Tests

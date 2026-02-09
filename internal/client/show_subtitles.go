@@ -78,12 +78,16 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 				return
 			}
 
-			// Find an episode ID from the subtitles (use first subtitle's ID)
+			// Find a valid episode ID from the subtitles (use first non-zero subtitle ID)
 			var episodeID int
-			if len(subtitles.Subtitles) > 0 {
-				episodeID = subtitles.Subtitles[0].ID
-			} else {
-				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No subtitles found, cannot fetch third-party IDs")
+			for _, s := range subtitles.Subtitles {
+				if s.ID > 0 {
+					episodeID = s.ID
+					break
+				}
+			}
+			if episodeID == 0 {
+				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, cannot fetch third-party IDs")
 				// Create ShowSubtitles without third-party IDs
 				results[i] = showResult{
 					showSubtitles: models.ShowSubtitles{

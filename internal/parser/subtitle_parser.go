@@ -556,8 +556,10 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) int {
 		}
 	}
 
-	// Last resort: return 0 for invalid ID
-	return 0
+	// Last resort: log and return a sentinel invalid ID (-1)
+	logger := config.GetLogger()
+	logger.Debug().Str("link", link).Msg("Failed to extract ID from download link; returning invalid ID sentinel")
+	return -1
 }
 
 // extractFilenameFromDownloadLink extracts the filename from the fnev parameter in the download link
