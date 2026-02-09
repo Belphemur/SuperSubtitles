@@ -8,8 +8,19 @@ SuperSubtitles/
 │   └── main.go                    # CLI entry point
 ├── internal/
 │   ├── client/
-│   │   ├── client.go              # HTTP client interface & implementation
-│   │   ├── client_test.go         # Unit tests
+│   │   ├── client.go              # HTTP client interface & constructor
+│   │   ├── show_list.go           # Show list fetching implementation
+│   │   ├── subtitles.go           # Subtitle fetching with pagination
+│   │   ├── show_subtitles.go      # Show subtitles with third-party IDs
+│   │   ├── updates.go             # Update checking implementation
+│   │   ├── download.go            # Subtitle download delegation
+│   │   ├── recent_subtitles.go    # Recent subtitles fetching
+│   │   ├── show_list_test.go      # Show list tests
+│   │   ├── subtitles_test.go      # Subtitle fetching tests
+│   │   ├── show_subtitles_test.go # Show subtitles tests
+│   │   ├── updates_test.go        # Update check tests
+│   │   ├── download_test.go       # Download tests
+│   │   ├── recent_subtitles_test.go # Recent subtitles tests
 │   │   ├── client_integration_test.go  # Integration tests (skipped in CI)
 │   │   ├── client_compression_test.go  # Compression support tests
 │   │   ├── compression_transport.go    # GZIP/Brotli/Zstd support
@@ -70,14 +81,17 @@ Application entry point. Currently a CLI tool that demonstrates fetching and log
 
 **HTTP client with feliratok.eu integration**
 
-- `client.go` — Main `Client` interface with methods for:
-  - Getting show lists from multiple endpoints in parallel
-  - Fetching subtitles via HTML parsing with pagination
-  - Extracting third-party IDs from show detail pages
-  - Checking for updates
-  - Downloading subtitles with optional episode extraction
+The client package is organized by feature with each file containing related functionality:
+
+- `client.go` — `Client` interface definition and constructor (`NewClient`)
+- `show_list.go` — Show list fetching from multiple endpoints in parallel
+- `subtitles.go` — Subtitle fetching via HTML parsing with pagination support
+- `show_subtitles.go` — Fetching show subtitles with third-party ID extraction
+- `updates.go` — Update checking implementation
+- `download.go` — Subtitle download delegation to SubtitleDownloader service
+- `recent_subtitles.go` — Recent subtitles fetching and filtering
 - `compression_transport.go` — HTTP transport supporting GZIP, Brotli, and Zstd compression
-- `client_test.go` — Unit tests with `httptest` mock servers
+- `*_test.go` — Unit tests for each feature (one test file per implementation file)
 - `client_integration_test.go` — Real API tests (skipped in CI)
 - `client_compression_test.go` — Compression support tests
 - `errors.go` — Custom error types (e.g., `ErrNotFound`)
