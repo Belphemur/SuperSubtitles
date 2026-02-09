@@ -13,8 +13,21 @@ High-level description of what the application does, its architecture diagram, a
 **Contents:**
 
 - What the app does (7 main features)
-- High-level architecture diagram
-- Component relationships (Client, Parser, Services, Models, Config)
+- High-level architecture diagram with gRPC server
+- Component relationships (gRPC Server, Client, Parser, Services, Models, Config)
+
+### [gRPC API](./grpc-api.md)
+
+Complete gRPC API documentation including proto definitions, endpoints, and usage examples.
+
+**Contents:**
+
+- Proto definition and code generation
+- All 6 RPC methods with examples
+- Data models and enums
+- Error handling and testing
+- Configuration and deployment
+- Design decisions (no TLS, model conversion, reflection)
 
 ### [Data Flow](./data-flow.md)
 
@@ -81,6 +94,7 @@ Configuration, CI/CD, dependencies, and deployment information.
 docs/
 ├── architecture.md        # This file (index)
 ├── overview.md           # High-level architecture
+├── grpc-api.md           # gRPC API documentation
 ├── data-flow.md          # Detailed operation flows
 ├── testing.md            # Testing infrastructure
 ├── design-decisions.md   # Architectural decisions

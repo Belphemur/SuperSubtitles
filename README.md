@@ -1,9 +1,10 @@
 # SuperSubtitles
 
-A Go proxy service that interfaces with [feliratok.eu](https://feliratok.eu), a Hungarian subtitle repository. SuperSubtitles scrapes TV show listings, fetches subtitles with intelligent parsing, extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt), and provides normalized subtitle data with support for downloading individual episodes from season packs.
+A Go gRPC service that interfaces with [feliratok.eu](https://feliratok.eu), a Hungarian subtitle repository. SuperSubtitles scrapes TV show listings, fetches subtitles with intelligent parsing, extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt), and provides normalized subtitle data via a clean gRPC API. Supports downloading individual episodes from season packs with intelligent caching.
 
 ## Features
 
+- **gRPC API** — Clean, type-safe API with Protocol Buffers for all operations
 - **Show Listing Scraping** — Fetches and deduplicates TV shows from multiple feliratok.eu endpoints in parallel
 - **Subtitle Fetching** — Retrieves subtitle metadata (language, quality, season/episode, uploader, download URLs) via JSON API
 - **Third-Party ID Extraction** — Automatically extracts IMDB, TVDB, TVMaze, and Trakt IDs from show detail pages
@@ -16,12 +17,14 @@ A Go proxy service that interfaces with [feliratok.eu](https://feliratok.eu), a 
   - LRU caching with 1-hour TTL for ZIP files
   - ZIP bomb detection to prevent malicious archives
 - **Partial Failure Resilience** — Returns available data even when some endpoints fail, logging warnings instead of crashing
+- **Graceful Shutdown** — Handles SIGTERM/SIGINT with proper cleanup of in-flight requests
 
 ## Quick Start
 
 ### Prerequisites
 
 - Go 1.25 or later
+- `protoc` (Protocol Buffer compiler) for regenerating proto code
 - `golangci-lint` (for linting)
 - `pnpm` (for semantic-release dependencies, optional)
 
@@ -38,15 +41,16 @@ go build -o super-subtitles ./cmd/proxy
 ### Run
 
 ```bash
-# Run the CLI tool (demonstrates fetching and logging show data)
+# Run the gRPC server
 ./super-subtitles
 ```
 
-The application will:
+The server will:
 
 1. Load configuration from `config/config.yaml`
-2. Fetch TV shows from multiple feliratok.eu endpoints
-3. Log the first 5 shows as examples
+2. Start gRPC server on configured address and port
+3. Enable gRPC reflection for introspection tools
+4. Wait for requests (use grpcurl, client SDKs, or Postman to interact)
 
 ### Configuration
 
@@ -126,7 +130,42 @@ chore(deps): update goquery to v1.11
 
 ## API Overview
 
-The main `Client` interface provides:
+SuperSubtitles exposes a gRPC API with 6 main operations. For complete API documentation, see **[docs/grpc-api.md](docs/grpc-api.md)**.
+
+### gRPC Service
+
+```protobuf
+service SuperSubtitlesService {
+  rpc GetShowList(GetShowListRequest) returns (GetShowListResponse);
+  rpc GetSubtitles(GetSubtitlesRequest) returns (GetSubtitlesResponse);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (GetShowSubtitlesResponse);
+  rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
+  rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (GetRecentSubtitlesResponse);
+}
+```
+
+### Example: Using grpcurl
+
+```bash
+# List all available services
+grpcurl -plaintext localhost:8080 list
+
+# Get all shows
+grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowList
+
+# Get subtitles for a specific show
+grpcurl -plaintext -d '{"show_id": 1234}' \
+  localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetSubtitles
+
+# Download a subtitle
+grpcurl -plaintext -d '{"download_url": "http://...", "subtitle_id": "101", "episode": 3}' \
+  localhost:8080 supersubtitles.v1.SuperSubtitlesService/DownloadSubtitle
+```
+
+### Internal Client Interface
+
+The gRPC server wraps the internal `Client` interface:
 
 ```go
 type Client interface {
@@ -135,32 +174,16 @@ type Client interface {
     GetShowSubtitles(ctx context.Context, shows []Show) ([]ShowSubtitles, error)
     CheckForUpdates(ctx context.Context, contentID string) (*UpdateCheckResult, error)
     DownloadSubtitle(ctx context.Context, downloadURL string, req DownloadRequest) (*DownloadResult, error)
+    GetRecentSubtitles(ctx context.Context, sinceID int) ([]ShowSubtitles, error)
 }
-```
-
-**Example usage:**
-
-```go
-// Create client with configuration
-client := client.NewClient(config.GetConfig())
-
-// Fetch shows
-shows, err := client.GetShowList(ctx)
-
-// Get subtitles for a specific show
-subtitles, err := client.GetSubtitles(ctx, showID)
-
-// Download a specific episode from a season pack
-result, err := client.DownloadSubtitle(ctx, downloadURL, models.DownloadRequest{
-    SubtitleID: "1234567890",
-    Episode:    3,  // Optional: extract S0xE03 from ZIP
-})
 ```
 
 ## Dependencies
 
 | Package                                     | Purpose                          |
 | ------------------------------------------- | -------------------------------- |
+| `google.golang.org/grpc` v1.78.0            | gRPC framework                   |
+| `google.golang.org/protobuf` v1.36.11       | Protocol Buffers runtime         |
 | `github.com/PuerkitoBio/goquery` v1.11.0    | jQuery-like HTML parsing         |
 | `github.com/rs/zerolog` v1.34.0             | Structured console/JSON logging  |
 | `github.com/spf13/viper` v1.21.0            | Configuration management         |

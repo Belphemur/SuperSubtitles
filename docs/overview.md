@@ -12,17 +12,48 @@ SuperSubtitles is a Go proxy service that interfaces with [feliratok.eu](https:/
 6. **Checks for updates** since a given content ID via the recheck endpoint.
 7. **Downloads subtitles with episode extraction** — downloads subtitle files with support for extracting specific episodes from season pack ZIP files, using an LRU cache (1-hour TTL) to optimize repeated requests.
 
-The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates fetching and logging show data. It is designed to be extended into a full proxy server (the config already supports `server.port` and `server.address`).
+The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all client functionality through a clean gRPC API. The server listens on the configured address and port (`server.address` and `server.port` in config), supports graceful shutdown, and includes gRPC reflection for tools like grpcurl.
 
 ## High-Level Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │                        cmd/proxy/main.go                      │
-│                      (Application Entry Point)                │
+│                      (gRPC Server Entry Point)                │
+│                                                               │
+│  • Initializes gRPC server with reflection                    │
+│  • Registers SuperSubtitlesService                            │
+│  • Handles graceful shutdown on SIGTERM/SIGINT                │
 └──────────────────────────┬────────────────────────────────────┘
                            │
                            ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    internal/grpc/server                       │
+│                                                               │
+│  Implements SuperSubtitlesServiceServer:                      │
+│    • GetShowList                                              │
+│    • GetSubtitles                                             │
+│    • GetShowSubtitles                                         │
+│    • CheckForUpdates                                          │
+│    • DownloadSubtitle                                         │
+│    • GetRecentSubtitles                                       │
+│                                                               │
+│  Converts between proto messages and internal models          │
+└────────┬──────────────────────────────────────────────────────┘
+         │
+         ▼
+┌───────────────────────────────────────────────────────────────┐
+│                  api/proto/v1/supersubtitles.proto            │
+│                                                               │
+│  Proto definitions for:                                       │
+│    • Service: SuperSubtitlesService                           │
+│    • Messages: Show, Subtitle, SubtitleCollection, etc.       │
+│    • Enums: Quality (360p-2160p)                              │
+│                                                               │
+│  Generated via: go generate ./api/proto/v1                    │
+└───────────────────────────────────────────────────────────────┘
+         │
+         ▼
 ┌───────────────────────────────────────────────────────────────┐
 │                     internal/client                           │
 │                                                               │
