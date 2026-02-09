@@ -66,7 +66,7 @@ func (p *SubtitleParser) ParseHtmlWithPagination(body io.Reader) (*SubtitlePageR
 			return // Not a subtitle row
 		}
 
-		subtitle := p.extractSubtitleFromRow(row, tds)
+		subtitle := p.extractSubtitleFromRow(tds)
 		if subtitle != nil {
 			subtitles = append(subtitles, *subtitle)
 			logger.Debug().
@@ -97,31 +97,32 @@ func (p *SubtitleParser) ParseHtmlWithPagination(body io.Reader) (*SubtitlePageR
 }
 
 // extractSubtitleFromRow extracts subtitle information from a table row
-func (p *SubtitleParser) extractSubtitleFromRow(row *goquery.Selection, tds *goquery.Selection) *models.Subtitle {
+func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.Subtitle {
 	logger := config.GetLogger()
 
-	// Expected structure: | Language | Description | Uploader | Date | Download |
-	// Indices:              0          1             2          3      4
+	// Expected structure: | Category | Language | Description | Uploader | Date | Download |
+	// That's exactly 6 columns
 
-	if tds.Length() < 5 {
+	if tds.Length() < 6 {
 		return nil
 	}
 
-	// Extract language from first td
-	language := strings.TrimSpace(tds.Eq(0).Text())
+	// Extract language from column 1
+	language := strings.TrimSpace(tds.Eq(1).Text())
 	if language == "" {
 		return nil
 	}
 
-	// Extract description (show name, episode, release info) from second td
-	descriptionTd := tds.Eq(1)
+	// Extract description (show name, episode, release info) from column 2
+	descriptionTd := tds.Eq(2)
 	description := strings.TrimSpace(descriptionTd.Text())
 	if description == "" {
 		return nil
 	}
 
-	// Extract download link
-	downloadLink, exists := descriptionTd.Find("a").Attr("href")
+	// Extract download link from column 5 (the last column)
+	downloadTd := tds.Eq(5)
+	downloadLink, exists := downloadTd.Find("a").Attr("href")
 	if !exists {
 		logger.Debug().Str("description", description).Msg("No download link found")
 		return nil
@@ -140,11 +141,11 @@ func (p *SubtitleParser) extractSubtitleFromRow(row *goquery.Selection, tds *goq
 	// Extract qualities and release groups from release info
 	qualities, releaseGroups := p.parseReleaseInfo(releaseInfo)
 
-	// Extract uploader from third td
-	uploader := strings.TrimSpace(tds.Eq(2).Text())
+	// Extract uploader from column 3
+	uploader := strings.TrimSpace(tds.Eq(3).Text())
 
-	// Extract and parse date from fourth td
-	dateStr := strings.TrimSpace(tds.Eq(3).Text())
+	// Extract and parse date from column 4
+	dateStr := strings.TrimSpace(tds.Eq(4).Text())
 	uploadedAt := p.parseDate(dateStr)
 
 	// Generate ID from download link
@@ -190,12 +191,8 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 			showName = strings.TrimSpace(showName)
 		}
 
-		// Extract release info (everything in the last parentheses)
-		if idx := strings.LastIndex(description, "("); idx != -1 {
-			if endIdx := strings.Index(description[idx:], ")"); endIdx != -1 {
-				releaseInfo = description[idx+1 : idx+endIdx]
-			}
-		}
+		// Extract release info from last parentheses
+		releaseInfo = p.extractReleaseInfo(description)
 
 		logger.Debug().
 			Str("description", description).
@@ -229,12 +226,8 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 			}
 		}
 
-		// Extract release info (everything in last parentheses)
-		if idx := strings.LastIndex(description, "("); idx != -1 {
-			if endIdx := strings.Index(description[idx:], ")"); endIdx != -1 {
-				releaseInfo = description[idx+1 : idx+endIdx]
-			}
-		}
+		// Extract release info from last parentheses
+		releaseInfo = p.extractReleaseInfo(description)
 
 		logger.Debug().
 			Str("description", description).
@@ -251,6 +244,21 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 	season = -1
 	episode = -1
 	return
+}
+
+// extractReleaseInfo extracts the release info from the last parentheses in a description string
+func (p *SubtitleParser) extractReleaseInfo(description string) string {
+	idx := strings.LastIndex(description, "(")
+	if idx == -1 {
+		return ""
+	}
+
+	endIdx := strings.Index(description[idx:], ")")
+	if endIdx == -1 {
+		return ""
+	}
+
+	return description[idx+1 : idx+endIdx]
 }
 
 // parseReleaseInfo extracts qualities and multiple release groups from release info string
