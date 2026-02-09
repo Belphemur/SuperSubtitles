@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.0.0...v1.0.1) (2026-02-09)
+
+
+### Bug Fixes
+
+* proper namspace ([9af575c](https://github.com/Belphemur/SuperSubtitles/commit/9af575cec5e5fac1ea7d17afc24f3a303c98171a))
+
 # 1.0.0 (2026-02-09)
 
 
