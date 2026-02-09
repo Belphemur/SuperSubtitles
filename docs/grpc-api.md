@@ -35,6 +35,7 @@ go generate ./api/proto/v1
 ```
 
 **Required tools:**
+
 - `protoc` (Protocol Buffer compiler)
 - `protoc-gen-go` (Go plugin for protoc)
 - `protoc-gen-go-grpc` (gRPC plugin for protoc)
@@ -67,6 +68,7 @@ grpcServer.Serve(listener)
 ```
 
 **Features:**
+
 - Graceful shutdown on SIGTERM/SIGINT
 - gRPC reflection enabled (for grpcurl, Postman, etc.)
 - Configurable address and port via config
@@ -81,6 +83,7 @@ Retrieves all available TV shows.
 **Response:** List of shows (name, ID, year, image URL)
 
 **Example with grpcurl:**
+
 ```bash
 grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowList
 ```
@@ -90,11 +93,13 @@ grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetSho
 Retrieves all subtitles for a specific show (with automatic pagination).
 
 **Request:**
+
 - `show_id` (int32): Show ID
 
 **Response:** SubtitleCollection with show name, subtitles array, and total count
 
 **Example:**
+
 ```bash
 grpcurl -plaintext -d '{"show_id": 1234}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetSubtitles
@@ -105,11 +110,13 @@ grpcurl -plaintext -d '{"show_id": 1234}' \
 Retrieves shows with their subtitles and third-party IDs (batch operation).
 
 **Request:**
+
 - `shows` (repeated Show): List of shows to fetch
 
 **Response:** List of ShowSubtitles (show + third-party IDs + subtitle collection)
 
 **Example:**
+
 ```bash
 grpcurl -plaintext -d '{"shows": [{"id": 1234, "name": "Breaking Bad"}]}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowSubtitles
@@ -120,14 +127,17 @@ grpcurl -plaintext -d '{"shows": [{"id": 1234, "name": "Breaking Bad"}]}' \
 Checks if new subtitles are available since a given content ID.
 
 **Request:**
+
 - `content_id` (string): Content ID to check from
 
 **Response:**
+
 - `film_count` (int32): Number of new films
 - `series_count` (int32): Number of new series episodes
 - `has_updates` (bool): True if any updates available
 
 **Example:**
+
 ```bash
 grpcurl -plaintext -d '{"content_id": "12345"}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/CheckForUpdates
@@ -138,16 +148,19 @@ grpcurl -plaintext -d '{"content_id": "12345"}' \
 Downloads a subtitle file, optionally extracting a specific episode from a season pack.
 
 **Request:**
+
 - `download_url` (string): Subtitle download URL
 - `subtitle_id` (string): Subtitle identifier
 - `episode` (int32): Episode number to extract (0 = download entire file)
 
 **Response:**
+
 - `filename` (string): Subtitle filename
 - `content` (bytes): File content
 - `content_type` (string): MIME type
 
 **Example:**
+
 ```bash
 grpcurl -plaintext -d '{"download_url": "http://...", "subtitle_id": "101", "episode": 1}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/DownloadSubtitle
@@ -158,11 +171,13 @@ grpcurl -plaintext -d '{"download_url": "http://...", "subtitle_id": "101", "epi
 Retrieves recently uploaded subtitles since a given subtitle ID.
 
 **Request:**
+
 - `since_id` (int32): Subtitle ID to fetch from
 
 **Response:** List of ShowSubtitles (grouped by show)
 
 **Example:**
+
 ```bash
 grpcurl -plaintext -d '{"since_id": 1000}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetRecentSubtitles
@@ -171,6 +186,7 @@ grpcurl -plaintext -d '{"since_id": 1000}' \
 ## Data Models
 
 ### Show
+
 ```protobuf
 message Show {
   string name = 1;
@@ -181,6 +197,7 @@ message Show {
 ```
 
 ### Subtitle
+
 ```protobuf
 message Subtitle {
   int32 id = 1;
@@ -202,6 +219,7 @@ message Subtitle {
 ```
 
 ### Quality Enum
+
 ```protobuf
 enum Quality {
   QUALITY_UNSPECIFIED = 0;
@@ -214,6 +232,7 @@ enum Quality {
 ```
 
 ### ThirdPartyIds
+
 ```protobuf
 message ThirdPartyIds {
   string imdb_id = 1;
@@ -243,6 +262,7 @@ Comprehensive unit tests are in [`internal/grpc/server_test.go`](../internal/grp
 - No external dependencies (standard Go `testing` package)
 
 Run tests:
+
 ```bash
 go test ./internal/grpc/...
 go test -race ./internal/grpc/...  # with race detector
@@ -259,6 +279,7 @@ server:
 ```
 
 Override via environment variables:
+
 ```bash
 APP_SERVER_PORT=9090 APP_SERVER_ADDRESS=127.0.0.1 ./proxy
 ```
@@ -289,16 +310,19 @@ docker run -p 8080:8080 supersubtitles
 ### Testing with grpcurl
 
 List services:
+
 ```bash
 grpcurl -plaintext localhost:8080 list
 ```
 
 Describe service:
+
 ```bash
 grpcurl -plaintext localhost:8080 describe supersubtitles.v1.SuperSubtitlesService
 ```
 
 Call method:
+
 ```bash
 grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowList
 ```
@@ -326,6 +350,7 @@ The gRPC server includes explicit conversion functions between proto messages an
 - `convertThirdPartyIdsToProto`
 
 **Rationale:**
+
 - Decouples proto definitions from internal models
 - Allows independent evolution of API and internal structures
 - Makes conversions explicit and testable
@@ -338,6 +363,7 @@ The server enables gRPC reflection, allowing tools like grpcurl, Postman, and Bl
 ### Graceful Shutdown
 
 The server handles SIGTERM and SIGINT signals, calling `GracefulStop()` to:
+
 - Complete in-flight requests
 - Refuse new requests
 - Clean up resources properly

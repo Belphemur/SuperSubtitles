@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-SuperSubtitles is a Go proxy service that scrapes and normalizes subtitle data from the Hungarian subtitle website [feliratok.eu](https://feliratok.eu). It fetches TV show listings (via HTML scraping), retrieves subtitles (via JSON API), extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt), and converts everything into normalized data models. The module name is `SuperSubtitles` (PascalCase).
+SuperSubtitles is a Go gRPC service that scrapes and normalizes subtitle data from the Hungarian subtitle website [feliratok.eu](https://feliratok.eu). It exposes a gRPC API that fetches TV show listings (via HTML scraping), retrieves subtitles (via JSON API), extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt), and serves normalized data models via Protocol Buffers. The module name is `SuperSubtitles` (PascalCase).
 
-**Language:** Go 1.25 · **Dependencies:** goquery (HTML parsing), zerolog (logging), viper (configuration)
+**Language:** Go 1.25 · **Dependencies:** gRPC, protobuf, goquery (HTML parsing), zerolog (logging), viper (configuration)
 
 ## Build, Test & Validate
 
@@ -13,6 +13,7 @@ Always run commands from the repository root.
 | Step                         | Command                                                                                  | Notes                                                             |
 | ---------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | **Build**                    | `go build ./...`                                                                         | Compiles all packages. Fast (~2s).                                |
+| **Generate proto**           | `go generate ./api/proto/v1`                                                             | Regenerate gRPC code from proto definitions when modified.        |
 | **Unit tests**               | `go test ./...`                                                                          | Runs all tests (~3s). Integration tests auto-skip when `CI=true`. |
 | **Tests with race detector** | `go test -race ./...`                                                                    | Always run before submitting changes.                             |
 | **Vet**                      | `go vet ./...`                                                                           | Always run after changes.                                         |
@@ -57,7 +58,7 @@ Always run commands from the repository root.
 
 ```
 SuperSubtitles/
-├── cmd/proxy/main.go              # Application entry point
+├── cmd/proxy/main.go              # Application entry point (gRPC server)
 ├── config/config.yaml             # Default configuration (YAML)
 ├── go.mod / go.sum                # Go module (module name: github.com/Belphemur/SuperSubtitles)
 ├── .golangci.yml                  # golangci-lint configuration
@@ -71,11 +72,19 @@ SuperSubtitles/
 │       ├── ci.yml                 # CI: lint + test + build (on push/PR to main)
 │       ├── release.yml            # Release: semantic-release + GoReleaser (on push to main)
 │       └── copilot-setup-steps.yml # Copilot agent environment setup
+├── api/
+│   └── proto/
+│       └── v1/
+│           ├── supersubtitles.proto       # Protocol Buffer definitions
+│           ├── supersubtitles.pb.go       # Generated proto code (messages)
+│           ├── supersubtitles_grpc.pb.go  # Generated gRPC server/client code
+│           └── generate.go                # go:generate directive for proto code
 ├── build/
 │   └── Dockerfile                 # Docker image for GoReleaser multi-platform builds
 ├── docs/
 │   ├── architecture.md            # Architecture index (links to focused docs)
 │   ├── overview.md                # High-level architecture
+│   ├── grpc-api.md                # gRPC API documentation
 │   ├── data-flow.md               # Detailed operation flows
 │   ├── testing.md                 # Testing infrastructure
 │   ├── design-decisions.md        # Architectural decisions
@@ -88,6 +97,9 @@ SuperSubtitles/
 │   │   └── errors.go              # Custom error types (ErrNotFound)
 │   ├── config/
 │   │   └── config.go              # Viper-based config with singleton logger (zerolog)
+│   ├── grpc/
+│   │   ├── server.go              # gRPC server implementation
+│   │   └── server_test.go         # gRPC server tests with mock client
 │   ├── models/
 │   │   ├── show.go                # Show struct
 │   │   ├── subtitle.go            # Subtitle, SubtitleCollection, SuperSubtitleResponse
@@ -143,6 +155,8 @@ SuperSubtitles/
 - **Add a new parser:** Implement `Parser[T]` or `SingleResultParser[T]` from `internal/parser/interfaces.go`. Use goquery.
 - **Add a new service:** Define an interface and implementation in `internal/services/`.
 - **Add HTTP functionality:** Extend the `Client` interface in `internal/client/client.go` and add the implementation.
+- **Modify proto definitions:** Edit `api/proto/v1/supersubtitles.proto` and run `go generate ./api/proto/v1` to regenerate Go code.
+- **Add gRPC endpoint:** Add the RPC method to the proto service, regenerate code, and implement in `internal/grpc/server.go`.
 - **Test pattern:** Create `*_test.go` in the same package. Use inline HTML/JSON fixtures and `httptest` servers.
 
 ## Documentation Requirements
@@ -153,6 +167,7 @@ SuperSubtitles/
 - Architecture documentation is split into focused files in `docs/`:
   - Start with [docs/architecture.md](../docs/architecture.md) (index) to find the right document
   - [docs/overview.md](../docs/overview.md) - High-level architecture and component relationships
+  - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API documentation with examples
   - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features
   - [docs/testing.md](../docs/testing.md) - Testing infrastructure and patterns
   - [docs/design-decisions.md](../docs/design-decisions.md) - Architectural decisions with rationale

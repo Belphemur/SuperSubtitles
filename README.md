@@ -79,6 +79,20 @@ For detailed information about the architecture, module organization, design dec
 
 ## Development
 
+### Generate Proto Code
+
+If you modify the proto definitions, regenerate the Go code using `go generate`:
+
+```bash
+# Generate from proto definitions
+go generate ./api/proto/v1
+
+# Or from within the proto directory
+cd api/proto/v1 && go generate
+```
+
+**Note:** Required tools (`protoc-gen-go`, `protoc-gen-go-grpc`) are automatically installed if not present.
+
 ### Run Tests
 
 ```bash
