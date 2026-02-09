@@ -308,8 +308,9 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 			htmlResponse := `
 			<html><body>
 			<table><tbody>
-			<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+			<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
 			<tr>
+				<td>cat</td>
 				<td>Angol</td>
 				<td><a href="/subtitle.php?feliratid=1435431909">Test Show - 1x1 (1080p-RelGroup)</a></td>
 				<td>TestUser</td>
@@ -656,6 +657,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 			subtitleID := pageNum*100 + i
 			subtitleRows += `
 		<tr>
+			<td>cat</td>
 			<td>Magyar</td>
 			<td><a href="/subtitle.php?feliratid=123">Stranger Things S01E0` + string(rune(48+i)) + ` - 1080p-RelGroup</a></td>
 			<td>Uploader` + string(rune(48+pageNum)) + `</td>
@@ -672,7 +674,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 		return `
 	<html><body>
 	<table><tbody>
-	<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+	<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
 	` + subtitleRows + `
 	</tbody></table>
 	<div class="pagination">` + paginationHTML + `</div>
@@ -758,8 +760,9 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 	singlePageHTML := `
 	<html><body>
 	<table><tbody>
-	<tr><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
+	<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
 	<tr>
+		<td>cat</td>
 		<td>Magyar</td>
 		<td><a href="/subtitle.php?feliratid=1">Game of Thrones S01E01 - 1080p-Group</a></td>
 		<td>UploaderA</td>

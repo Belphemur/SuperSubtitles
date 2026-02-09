@@ -317,7 +317,7 @@ func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.Subtitle
 }
 
 // buildSubtitleCollection constructs a SubtitleCollection from subtitles
-func buildSubtitleCollection(subtitles []models.Subtitle, showID int) *models.SubtitleCollection {
+func buildSubtitleCollection(subtitles []models.Subtitle, _ int) *models.SubtitleCollection {
 	showName := ""
 	if len(subtitles) > 0 {
 		showName = subtitles[0].ShowName

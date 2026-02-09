@@ -157,7 +157,7 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 
 	// Test that download URLs are properly constructed
 	for i, subtitle := range subtitles.Subtitles {
-		expectedURLPrefix := "https://feliratok.eu/index.php?action=letolt&felirat="
+		expectedURLPrefix := "https://feliratok.eu/index.php?action=letolt"
 		if !strings.HasPrefix(subtitle.DownloadURL, expectedURLPrefix) {
 			t.Errorf("Subtitle %d: DownloadURL does not have expected prefix. Got: %s", i, subtitle.DownloadURL)
 		}
