@@ -70,113 +70,146 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 	logger.Info().Int("uniqueShows", len(subtitlesByShow)).Msg("Grouped subtitles by show")
 
-	// Fetch show details for each unique show
+	// Fetch show details for each unique show with concurrency limit (batch size 20)
 	type showResult struct {
 		showSubtitles models.ShowSubtitles
 		err           error
 	}
 
-	results := make([]showResult, 0, len(subtitlesByShow))
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-
-	for showID, subs := range subtitlesByShow {
-		wg.Add(1)
-		go func(sid int, subtitles []models.Subtitle) {
-			defer wg.Done()
-
-			// Fetch show details using the first subtitle to get episode ID
-			var episodeID int
-			if len(subtitles) > 0 {
-				episodeID = subtitles[0].ID
-			} else {
-				logger.Warn().Int("showID", sid).Msg("No subtitles for show, skipping")
-				return
-			}
-
-			// Construct detail page URL to get third-party IDs
-			detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
-
-			req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
-			if err != nil {
-				logger.Warn().Err(err).Int("showID", sid).Msg("Failed to create detail request")
-				mu.Lock()
-				results = append(results, showResult{err: err})
-				mu.Unlock()
-				return
-			}
-			req.Header.Set("User-Agent", config.GetUserAgent())
-
-			resp, err := c.httpClient.Do(req)
-			if err != nil {
-				logger.Warn().Err(err).Int("showID", sid).Msg("Failed to fetch detail page")
-				mu.Lock()
-				results = append(results, showResult{err: err})
-				mu.Unlock()
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				err := fmt.Errorf("detail page returned status %d", resp.StatusCode)
-				logger.Warn().Err(err).Int("showID", sid).Msg("Detail page error")
-				mu.Lock()
-				results = append(results, showResult{err: err})
-				mu.Unlock()
-				return
-			}
-
-			// Parse third-party IDs from HTML
-			thirdPartyIds, err := c.thirdPartyParser.ParseHtml(resp.Body)
-			if err != nil {
-				logger.Warn().Err(err).Int("showID", sid).Msg("Failed to parse third-party IDs, continuing with empty IDs")
-				thirdPartyIds = models.ThirdPartyIds{}
-			}
-
-			// Build Show object from subtitle data
-			showName := ""
-			if len(subtitles) > 0 {
-				showName = subtitles[0].ShowName
-			}
-
-			show := models.Show{
-				ID:       sid,
-				Name:     showName,
-				ImageURL: "", // Not available from main page
-				Year:     0,  // Not available from main page
-			}
-
-			// Create SubtitleCollection
-			subtitleCollection := models.SubtitleCollection{
-				ShowName:  showName,
-				Subtitles: subtitles,
-				Total:     len(subtitles),
-			}
-
-			// Create ShowSubtitles object
-			showSubtitles := models.ShowSubtitles{
-				Show:               show,
-				ThirdPartyIds:      thirdPartyIds,
-				SubtitleCollection: subtitleCollection,
-			}
-
-			logger.Debug().Int("showID", sid).Str("showName", showName).Int("subtitleCount", len(subtitles)).Msg("Successfully processed show")
-
-			mu.Lock()
-			results = append(results, showResult{showSubtitles: showSubtitles})
-			mu.Unlock()
-		}(showID, subs)
+	// Convert map to slice for batched processing
+	type showBatch struct {
+		showID    int
+		subtitles []models.Subtitle
+	}
+	var showBatches []showBatch
+	for sid, subs := range subtitlesByShow {
+		showBatches = append(showBatches, showBatch{showID: sid, subtitles: subs})
 	}
 
-	wg.Wait()
+	const batchSize = 20
+	var allResults []showResult
+	var mu sync.Mutex
+
+	// Process shows in batches to limit concurrency
+	for i := 0; i < len(showBatches); i += batchSize {
+		end := i + batchSize
+		if end > len(showBatches) {
+			end = len(showBatches)
+		}
+
+		batch := showBatches[i:end]
+		logger.Debug().Int("batchStart", i).Int("batchEnd", end-1).Int("batchSize", len(batch)).Msg("Processing batch of shows")
+
+		var wg sync.WaitGroup
+		batchResults := make([]showResult, len(batch))
+
+		for idx, item := range batch {
+			wg.Add(1)
+			idx, item := idx, item // Capture loop variables
+			go func() {
+				defer wg.Done()
+
+				sid := item.showID
+				subtitles := item.subtitles
+
+				// Fetch show details using the first valid subtitle ID to get episode ID
+				var episodeID int
+				if len(subtitles) == 0 {
+					logger.Warn().Int("showID", sid).Msg("No subtitles for show, skipping")
+					return
+				}
+				for _, subtitle := range subtitles {
+					if subtitle.ID > 0 {
+						episodeID = subtitle.ID
+						break
+					}
+				}
+				if episodeID == 0 {
+					logger.Warn().Int("showID", sid).Msg("No valid subtitle IDs for show, skipping")
+					return
+				}
+
+				// Construct detail page URL to get third-party IDs
+				detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
+
+				req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
+				if err != nil {
+					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Failed to create detail request")
+					batchResults[idx] = showResult{err: fmt.Errorf("failed to create detail request for show %d (%s): %w", sid, detailURL, err)}
+					return
+				}
+				req.Header.Set("User-Agent", config.GetUserAgent())
+
+				resp, err := c.httpClient.Do(req)
+				if err != nil {
+					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
+					batchResults[idx] = showResult{err: fmt.Errorf("failed to fetch detail page for show %d (%s): %w", sid, detailURL, err)}
+					return
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					err := fmt.Errorf("detail page for show %d (%s) returned status %d", sid, detailURL, resp.StatusCode)
+					logger.Warn().Err(err).Int("showID", sid).Str("detailURL", detailURL).Msg("Detail page error")
+					batchResults[idx] = showResult{err: err}
+					return
+				}
+
+				// Parse third-party IDs from HTML
+				thirdPartyIds, err := c.thirdPartyParser.ParseHtml(resp.Body)
+				if err != nil {
+					logger.Warn().Err(err).Int("showID", sid).Msg("Failed to parse third-party IDs, continuing with empty IDs")
+					thirdPartyIds = models.ThirdPartyIds{}
+				}
+
+				// Build Show object from subtitle data
+				showName := ""
+				if len(subtitles) > 0 {
+					showName = subtitles[0].ShowName
+				}
+
+				show := models.Show{
+					ID:       sid,
+					Name:     showName,
+					ImageURL: "", // Not available from main page
+					Year:     0,  // Not available from main page
+				}
+
+				// Create SubtitleCollection
+				subtitleCollection := models.SubtitleCollection{
+					ShowName:  showName,
+					Subtitles: subtitles,
+					Total:     len(subtitles),
+				}
+
+				// Create ShowSubtitles object
+				showSubtitles := models.ShowSubtitles{
+					Show:               show,
+					ThirdPartyIds:      thirdPartyIds,
+					SubtitleCollection: subtitleCollection,
+				}
+
+				logger.Debug().Int("showID", sid).Str("showName", showName).Int("subtitleCount", len(subtitles)).Msg("Successfully processed show")
+
+				batchResults[idx] = showResult{showSubtitles: showSubtitles}
+			}()
+		}
+
+		wg.Wait()
+
+		// Collect results from this batch
+		mu.Lock()
+		allResults = append(allResults, batchResults...)
+		mu.Unlock()
+	}
 
 	// Collect successful results
 	var showSubtitlesList []models.ShowSubtitles
 	var errs []error
-	for _, result := range results {
+	for _, result := range allResults {
 		if result.err != nil {
 			errs = append(errs, result.err)
-		} else {
+		} else if result.showSubtitles.Show.ID != 0 { // Skip empty results from skipped shows
 			showSubtitlesList = append(showSubtitlesList, result.showSubtitles)
 		}
 	}
