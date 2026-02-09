@@ -105,7 +105,6 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 
 		for idx, item := range batch {
 			wg.Add(1)
-			idx, item := idx, item // Capture loop variables
 			go func() {
 				defer wg.Done()
 
@@ -203,13 +202,14 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 		mu.Unlock()
 	}
 
-	// Collect successful results
+	// Collect successful results (skip empty results from shows that were skipped)
 	var showSubtitlesList []models.ShowSubtitles
 	var errs []error
 	for _, result := range allResults {
 		if result.err != nil {
 			errs = append(errs, result.err)
-		} else if result.showSubtitles.Show.ID != 0 { // Skip empty results from skipped shows
+		} else if len(result.showSubtitles.SubtitleCollection.Subtitles) > 0 {
+			// Only include results with actual subtitles (skip shows that returned early)
 			showSubtitlesList = append(showSubtitlesList, result.showSubtitles)
 		}
 	}
