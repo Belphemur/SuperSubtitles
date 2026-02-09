@@ -374,25 +374,3 @@ func TestGetRecentSubtitles_Success(t *testing.T) {
 		t.Errorf("Expected show name 'Breaking Bad', got '%s'", ss.Show.Name)
 	}
 }
-
-// TestQualityConversion tests quality enum conversion
-func TestQualityConversion(t *testing.T) {
-	testCases := []struct {
-		modelQuality models.Quality
-		protoQuality pb.Quality
-	}{
-		{models.Quality360p, pb.Quality_QUALITY_360P},
-		{models.Quality480p, pb.Quality_QUALITY_480P},
-		{models.Quality720p, pb.Quality_QUALITY_720P},
-		{models.Quality1080p, pb.Quality_QUALITY_1080P},
-		{models.Quality2160p, pb.Quality_QUALITY_2160P},
-		{models.QualityUnknown, pb.Quality_QUALITY_UNSPECIFIED},
-	}
-
-	for _, tc := range testCases {
-		result := convertQualityToProto(tc.modelQuality)
-		if result != tc.protoQuality {
-			t.Errorf("Quality conversion failed: expected %v, got %v", tc.protoQuality, result)
-		}
-	}
-}

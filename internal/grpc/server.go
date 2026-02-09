@@ -3,15 +3,13 @@ package grpc
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/client"
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // server implements the SuperSubtitlesServiceServer interface
@@ -50,15 +48,15 @@ func (s *server) GetShowList(ctx context.Context, req *pb.GetShowListRequest) (*
 
 // GetSubtitles implements SuperSubtitlesServiceServer.GetSubtitles
 func (s *server) GetSubtitles(ctx context.Context, req *pb.GetSubtitlesRequest) (*pb.GetSubtitlesResponse, error) {
-	s.logger.Debug().Int32("show_id", req.ShowId).Msg("GetSubtitles called")
+	s.logger.Debug().Int64("show_id", req.ShowId).Msg("GetSubtitles called")
 
 	collection, err := s.client.GetSubtitles(ctx, int(req.ShowId))
 	if err != nil {
-		s.logger.Error().Err(err).Int32("show_id", req.ShowId).Msg("Failed to get subtitles")
+		s.logger.Error().Err(err).Int64("show_id", req.ShowId).Msg("Failed to get subtitles")
 		return nil, status.Errorf(codes.Internal, "failed to get subtitles: %v", err)
 	}
 
-	s.logger.Debug().Int32("show_id", req.ShowId).Int("count", len(collection.Subtitles)).Msg("GetSubtitles completed")
+	s.logger.Debug().Int64("show_id", req.ShowId).Int("count", len(collection.Subtitles)).Msg("GetSubtitles completed")
 	return &pb.GetSubtitlesResponse{
 		SubtitleCollection: convertSubtitleCollectionToProto(*collection),
 	}, nil
@@ -146,11 +144,11 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 
 // GetRecentSubtitles implements SuperSubtitlesServiceServer.GetRecentSubtitles
 func (s *server) GetRecentSubtitles(ctx context.Context, req *pb.GetRecentSubtitlesRequest) (*pb.GetRecentSubtitlesResponse, error) {
-	s.logger.Debug().Int32("since_id", req.SinceId).Msg("GetRecentSubtitles called")
+	s.logger.Debug().Int64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
 	showSubtitles, err := s.client.GetRecentSubtitles(ctx, int(req.SinceId))
 	if err != nil {
-		s.logger.Error().Err(err).Int32("since_id", req.SinceId).Msg("Failed to get recent subtitles")
+		s.logger.Error().Err(err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
 		return nil, status.Errorf(codes.Internal, "failed to get recent subtitles: %v", err)
 	}
 
@@ -159,98 +157,6 @@ func (s *server) GetRecentSubtitles(ctx context.Context, req *pb.GetRecentSubtit
 		pbShowSubtitles[i] = convertShowSubtitlesToProto(ss)
 	}
 
-	s.logger.Debug().Int32("since_id", req.SinceId).Int("count", len(pbShowSubtitles)).Msg("GetRecentSubtitles completed")
+	s.logger.Debug().Int64("since_id", req.SinceId).Int("count", len(pbShowSubtitles)).Msg("GetRecentSubtitles completed")
 	return &pb.GetRecentSubtitlesResponse{ShowSubtitles: pbShowSubtitles}, nil
-}
-
-// Conversion functions
-
-func convertShowToProto(show models.Show) *pb.Show {
-	return &pb.Show{
-		Name:     show.Name,
-		Id:       int32(show.ID),
-		Year:     int32(show.Year),
-		ImageUrl: show.ImageURL,
-	}
-}
-
-func convertShowFromProto(pbShow *pb.Show) models.Show {
-	return models.Show{
-		Name:     pbShow.Name,
-		ID:       int(pbShow.Id),
-		Year:     int(pbShow.Year),
-		ImageURL: pbShow.ImageUrl,
-	}
-}
-
-func convertThirdPartyIdsToProto(ids models.ThirdPartyIds) *pb.ThirdPartyIds {
-	return &pb.ThirdPartyIds{
-		ImdbId:   ids.IMDBID,
-		TvdbId:   int32(ids.TVDBID),
-		TvMazeId: int32(ids.TVMazeID),
-		TraktId:  int32(ids.TraktID),
-	}
-}
-
-func convertQualityToProto(quality models.Quality) pb.Quality {
-	switch quality {
-	case models.Quality360p:
-		return pb.Quality_QUALITY_360P
-	case models.Quality480p:
-		return pb.Quality_QUALITY_480P
-	case models.Quality720p:
-		return pb.Quality_QUALITY_720P
-	case models.Quality1080p:
-		return pb.Quality_QUALITY_1080P
-	case models.Quality2160p:
-		return pb.Quality_QUALITY_2160P
-	default:
-		return pb.Quality_QUALITY_UNSPECIFIED
-	}
-}
-
-func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
-	qualities := make([]pb.Quality, len(subtitle.Qualities))
-	for i, q := range subtitle.Qualities {
-		qualities[i] = convertQualityToProto(q)
-	}
-
-	return &pb.Subtitle{
-		Id:            int32(subtitle.ID),
-		ShowId:        int32(subtitle.ShowID),
-		ShowName:      subtitle.ShowName,
-		Name:          subtitle.Name,
-		Language:      subtitle.Language,
-		Season:        int32(subtitle.Season),
-		Episode:       int32(subtitle.Episode),
-		Filename:      subtitle.Filename,
-		DownloadUrl:   subtitle.DownloadURL,
-		Uploader:      subtitle.Uploader,
-		UploadedAt:    timestamppb.New(subtitle.UploadedAt),
-		Qualities:     qualities,
-		ReleaseGroups: subtitle.ReleaseGroups,
-		Release:       subtitle.Release,
-		IsSeasonPack:  subtitle.IsSeasonPack,
-	}
-}
-
-func convertSubtitleCollectionToProto(collection models.SubtitleCollection) *pb.SubtitleCollection {
-	subtitles := make([]*pb.Subtitle, len(collection.Subtitles))
-	for i, subtitle := range collection.Subtitles {
-		subtitles[i] = convertSubtitleToProto(subtitle)
-	}
-
-	return &pb.SubtitleCollection{
-		ShowName:  collection.ShowName,
-		Subtitles: subtitles,
-		Total:     int32(collection.Total),
-	}
-}
-
-func convertShowSubtitlesToProto(ss models.ShowSubtitles) *pb.ShowSubtitles {
-	return &pb.ShowSubtitles{
-		Show:               convertShowToProto(ss.Show),
-		ThirdPartyIds:      convertThirdPartyIdsToProto(ss.ThirdPartyIds),
-		SubtitleCollection: convertSubtitleCollectionToProto(ss.SubtitleCollection),
-	}
 }

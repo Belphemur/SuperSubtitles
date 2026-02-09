@@ -85,7 +85,7 @@ func (Quality) EnumDescriptor() ([]byte, []int) {
 type Show struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Id            int32                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
 	Year          int32                  `protobuf:"varint,3,opt,name=year,proto3" json:"year,omitempty"`
 	ImageUrl      string                 `protobuf:"bytes,4,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -129,7 +129,7 @@ func (x *Show) GetName() string {
 	return ""
 }
 
-func (x *Show) GetId() int32 {
+func (x *Show) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
@@ -154,9 +154,9 @@ func (x *Show) GetImageUrl() string {
 type ThirdPartyIds struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ImdbId        string                 `protobuf:"bytes,1,opt,name=imdb_id,json=imdbId,proto3" json:"imdb_id,omitempty"`          // IMDB identifier
-	TvdbId        int32                  `protobuf:"varint,2,opt,name=tvdb_id,json=tvdbId,proto3" json:"tvdb_id,omitempty"`         // TVDB identifier
-	TvMazeId      int32                  `protobuf:"varint,3,opt,name=tv_maze_id,json=tvMazeId,proto3" json:"tv_maze_id,omitempty"` // TVMaze identifier
-	TraktId       int32                  `protobuf:"varint,4,opt,name=trakt_id,json=traktId,proto3" json:"trakt_id,omitempty"`      // Trakt identifier
+	TvdbId        int64                  `protobuf:"varint,2,opt,name=tvdb_id,json=tvdbId,proto3" json:"tvdb_id,omitempty"`         // TVDB identifier
+	TvMazeId      int64                  `protobuf:"varint,3,opt,name=tv_maze_id,json=tvMazeId,proto3" json:"tv_maze_id,omitempty"` // TVMaze identifier
+	TraktId       int64                  `protobuf:"varint,4,opt,name=trakt_id,json=traktId,proto3" json:"trakt_id,omitempty"`      // Trakt identifier
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -198,21 +198,21 @@ func (x *ThirdPartyIds) GetImdbId() string {
 	return ""
 }
 
-func (x *ThirdPartyIds) GetTvdbId() int32 {
+func (x *ThirdPartyIds) GetTvdbId() int64 {
 	if x != nil {
 		return x.TvdbId
 	}
 	return 0
 }
 
-func (x *ThirdPartyIds) GetTvMazeId() int32 {
+func (x *ThirdPartyIds) GetTvMazeId() int64 {
 	if x != nil {
 		return x.TvMazeId
 	}
 	return 0
 }
 
-func (x *ThirdPartyIds) GetTraktId() int32 {
+func (x *ThirdPartyIds) GetTraktId() int64 {
 	if x != nil {
 		return x.TraktId
 	}
@@ -222,8 +222,8 @@ func (x *ThirdPartyIds) GetTraktId() int32 {
 // Subtitle represents a normalized subtitle
 type Subtitle struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	ShowId        int32                  `protobuf:"varint,2,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ShowId        int64                  `protobuf:"varint,2,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
 	ShowName      string                 `protobuf:"bytes,3,opt,name=show_name,json=showName,proto3" json:"show_name,omitempty"`
 	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	Language      string                 `protobuf:"bytes,5,opt,name=language,proto3" json:"language,omitempty"`
@@ -271,14 +271,14 @@ func (*Subtitle) Descriptor() ([]byte, []int) {
 	return file_supersubtitles_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Subtitle) GetId() int32 {
+func (x *Subtitle) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
 	return 0
 }
 
-func (x *Subtitle) GetShowId() int32 {
+func (x *Subtitle) GetShowId() int64 {
 	if x != nil {
 		return x.ShowId
 	}
@@ -381,7 +381,7 @@ type SubtitleCollection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ShowName      string                 `protobuf:"bytes,1,opt,name=show_name,json=showName,proto3" json:"show_name,omitempty"`
 	Subtitles     []*Subtitle            `protobuf:"bytes,2,rep,name=subtitles,proto3" json:"subtitles,omitempty"`
-	Total         int32                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	Total         int64                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -430,7 +430,7 @@ func (x *SubtitleCollection) GetSubtitles() []*Subtitle {
 	return nil
 }
 
-func (x *SubtitleCollection) GetTotal() int32 {
+func (x *SubtitleCollection) GetTotal() int64 {
 	if x != nil {
 		return x.Total
 	}
@@ -583,7 +583,7 @@ func (x *GetShowListResponse) GetShows() []*Show {
 // GetSubtitlesRequest requests subtitles for a specific show
 type GetSubtitlesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ShowId        int32                  `protobuf:"varint,1,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
+	ShowId        int64                  `protobuf:"varint,1,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -618,7 +618,7 @@ func (*GetSubtitlesRequest) Descriptor() ([]byte, []int) {
 	return file_supersubtitles_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GetSubtitlesRequest) GetShowId() int32 {
+func (x *GetSubtitlesRequest) GetShowId() int64 {
 	if x != nil {
 		return x.ShowId
 	}
@@ -991,7 +991,7 @@ func (x *DownloadSubtitleResponse) GetContentType() string {
 // GetRecentSubtitlesRequest requests recently uploaded subtitles
 type GetRecentSubtitlesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SinceId       int32                  `protobuf:"varint,1,opt,name=since_id,json=sinceId,proto3" json:"since_id,omitempty"`
+	SinceId       int64                  `protobuf:"varint,1,opt,name=since_id,json=sinceId,proto3" json:"since_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1026,7 +1026,7 @@ func (*GetRecentSubtitlesRequest) Descriptor() ([]byte, []int) {
 	return file_supersubtitles_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *GetRecentSubtitlesRequest) GetSinceId() int32 {
+func (x *GetRecentSubtitlesRequest) GetSinceId() int64 {
 	if x != nil {
 		return x.SinceId
 	}
@@ -1085,18 +1085,18 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\x14supersubtitles.proto\x12\x11supersubtitles.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"[\n" +
 	"\x04Show\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\x05R\x02id\x12\x12\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04year\x18\x03 \x01(\x05R\x04year\x12\x1b\n" +
 	"\timage_url\x18\x04 \x01(\tR\bimageUrl\"z\n" +
 	"\rThirdPartyIds\x12\x17\n" +
 	"\aimdb_id\x18\x01 \x01(\tR\x06imdbId\x12\x17\n" +
-	"\atvdb_id\x18\x02 \x01(\x05R\x06tvdbId\x12\x1c\n" +
+	"\atvdb_id\x18\x02 \x01(\x03R\x06tvdbId\x12\x1c\n" +
 	"\n" +
-	"tv_maze_id\x18\x03 \x01(\x05R\btvMazeId\x12\x19\n" +
-	"\btrakt_id\x18\x04 \x01(\x05R\atraktId\"\xeb\x03\n" +
+	"tv_maze_id\x18\x03 \x01(\x03R\btvMazeId\x12\x19\n" +
+	"\btrakt_id\x18\x04 \x01(\x03R\atraktId\"\xeb\x03\n" +
 	"\bSubtitle\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x17\n" +
-	"\ashow_id\x18\x02 \x01(\x05R\x06showId\x12\x1b\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\ashow_id\x18\x02 \x01(\x03R\x06showId\x12\x1b\n" +
 	"\tshow_name\x18\x03 \x01(\tR\bshowName\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x12\x1a\n" +
 	"\blanguage\x18\x05 \x01(\tR\blanguage\x12\x16\n" +
@@ -1115,7 +1115,7 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\x12SubtitleCollection\x12\x1b\n" +
 	"\tshow_name\x18\x01 \x01(\tR\bshowName\x129\n" +
 	"\tsubtitles\x18\x02 \x03(\v2\x1b.supersubtitles.v1.SubtitleR\tsubtitles\x12\x14\n" +
-	"\x05total\x18\x03 \x01(\x05R\x05total\"\xde\x01\n" +
+	"\x05total\x18\x03 \x01(\x03R\x05total\"\xde\x01\n" +
 	"\rShowSubtitles\x12+\n" +
 	"\x04show\x18\x01 \x01(\v2\x17.supersubtitles.v1.ShowR\x04show\x12H\n" +
 	"\x0fthird_party_ids\x18\x02 \x01(\v2 .supersubtitles.v1.ThirdPartyIdsR\rthirdPartyIds\x12V\n" +
@@ -1124,7 +1124,7 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\x13GetShowListResponse\x12-\n" +
 	"\x05shows\x18\x01 \x03(\v2\x17.supersubtitles.v1.ShowR\x05shows\".\n" +
 	"\x13GetSubtitlesRequest\x12\x17\n" +
-	"\ashow_id\x18\x01 \x01(\x05R\x06showId\"n\n" +
+	"\ashow_id\x18\x01 \x01(\x03R\x06showId\"n\n" +
 	"\x14GetSubtitlesResponse\x12V\n" +
 	"\x13subtitle_collection\x18\x01 \x01(\v2%.supersubtitles.v1.SubtitleCollectionR\x12subtitleCollection\"H\n" +
 	"\x17GetShowSubtitlesRequest\x12-\n" +
@@ -1150,7 +1150,7 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"6\n" +
 	"\x19GetRecentSubtitlesRequest\x12\x19\n" +
-	"\bsince_id\x18\x01 \x01(\x05R\asinceId\"e\n" +
+	"\bsince_id\x18\x01 \x01(\x03R\asinceId\"e\n" +
 	"\x1aGetRecentSubtitlesResponse\x12G\n" +
 	"\x0eshow_subtitles\x18\x01 \x03(\v2 .supersubtitles.v1.ShowSubtitlesR\rshowSubtitles*~\n" +
 	"\aQuality\x12\x17\n" +
