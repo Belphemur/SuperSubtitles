@@ -13,9 +13,9 @@ import (
 
 // GetRecentSubtitles fetches recent subtitles from the main show page, filtered by subtitle ID
 // Returns only subtitles with ID greater than sinceID, grouped by show with full show details
-func (c *client) GetRecentSubtitles(ctx context.Context, sinceID string) ([]models.ShowSubtitles, error) {
+func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
 	logger := config.GetLogger()
-	logger.Info().Str("sinceID", sinceID).Msg("Fetching recent subtitles from main page")
+	logger.Info().Int("sinceID", sinceID).Msg("Fetching recent subtitles from main page")
 
 	// Fetch the main show page
 	endpoint := fmt.Sprintf("%s/index.php?tab=sorozat", c.baseURL)
@@ -47,7 +47,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID string) ([]mode
 	// Filter subtitles by ID (only those with ID > sinceID)
 	filteredSubtitles := make([]models.Subtitle, 0)
 	for _, subtitle := range subtitles {
-		if sinceID == "" || subtitle.ID > sinceID {
+		if sinceID == 0 || subtitle.ID > sinceID {
 			filteredSubtitles = append(filteredSubtitles, subtitle)
 		}
 	}
@@ -62,7 +62,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID string) ([]mode
 	subtitlesByShow := make(map[int][]models.Subtitle)
 	for _, subtitle := range filteredSubtitles {
 		if subtitle.ShowID == 0 {
-			logger.Debug().Str("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
+				logger.Debug().Int("subtitleID", subtitle.ID).Msg("Skipping subtitle with no show ID")
 			continue
 		}
 		subtitlesByShow[subtitle.ShowID] = append(subtitlesByShow[subtitle.ShowID], subtitle)
@@ -86,7 +86,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID string) ([]mode
 			defer wg.Done()
 
 			// Fetch show details using the first subtitle to get episode ID
-			var episodeID string
+			var episodeID int
 			if len(subtitles) > 0 {
 				episodeID = subtitles[0].ID
 			} else {
@@ -95,7 +95,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID string) ([]mode
 			}
 
 			// Construct detail page URL to get third-party IDs
-			detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%s", c.baseURL, episodeID)
+			detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
 
 			req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
 			if err != nil {

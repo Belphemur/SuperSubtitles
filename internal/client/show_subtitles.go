@@ -79,7 +79,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 			}
 
 			// Find an episode ID from the subtitles (use first subtitle's ID)
-			var episodeID string
+			var episodeID int
 			if len(subtitles.Subtitles) > 0 {
 				episodeID = subtitles.Subtitles[0].ID
 			} else {
@@ -96,7 +96,7 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 			}
 
 			// Construct detail page URL
-			detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%s", c.baseURL, episodeID)
+			detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
 
 			// Fetch detail page HTML
 			req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)

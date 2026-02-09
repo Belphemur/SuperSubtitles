@@ -24,7 +24,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 			UploadDate:       "2025-01-21",
 			DownloadAction:   "letolt",
 			DownloadFilename: "outlander.s07e16.srt",
-			SubtitleID:       "1737439811",
+			SubtitleID:       1737439811,
 		},
 	})
 
@@ -62,8 +62,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.DownloadURL != expectedURL {
 		t.Errorf("Expected download URL %q, got %q", expectedURL, subtitle.DownloadURL)
 	}
-	if subtitle.ID != "1737439811" {
-		t.Errorf("Expected ID %q, got %q", "1737439811", subtitle.ID)
+	if subtitle.ID != 1737439811 {
+		t.Errorf("Expected ID %d, got %d", 1737439811, subtitle.ID)
 	}
 	if subtitle.Filename != "outlander.s07e16.srt" {
 		t.Errorf("Expected filename %q, got %q", "outlander.s07e16.srt", subtitle.Filename)
@@ -109,7 +109,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 			UploadDate:       "2024-09-14",
 			DownloadAction:   "letolt",
 			DownloadFilename: "billy.s02.zip",
-			SubtitleID:       "1726325505",
+			SubtitleID:       1726325505,
 		},
 	})
 
@@ -193,7 +193,7 @@ func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
 			UploadDate:       "2025-01-17",
 			DownloadAction:   "letolt",
 			DownloadFilename: "outlander.s07e15.srt",
-			SubtitleID:       "1737139076",
+			SubtitleID:       1737139076,
 		},
 	})
 
@@ -337,7 +337,7 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 			UploadDate:       "2026-02-09",
 			DownloadAction:   "letolt",
 			DownloadFilename: "The.Copenhagen.Test.S01E04.srt",
-			SubtitleID:       "1770617276",
+			SubtitleID:       1770617276,
 		},
 		{
 			ShowID:           11930,
@@ -350,7 +350,7 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 			UploadDate:       "2026-02-08",
 			DownloadAction:   "letolt",
 			DownloadFilename: "90.Day.Fiance.The.Other.Way.S07E18.srt",
-			SubtitleID:       "1770577432",
+			SubtitleID:       1770577432,
 		},
 	})
 
@@ -369,8 +369,8 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 	if subtitle1.ShowID != 13051 {
 		t.Errorf("Expected ShowID %d, got %d", 13051, subtitle1.ShowID)
 	}
-	if subtitle1.ID != "1770617276" {
-		t.Errorf("Expected ID %q, got %q", "1770617276", subtitle1.ID)
+	if subtitle1.ID != 1770617276 {
+		t.Errorf("Expected ID %d, got %d", 1770617276, subtitle1.ID)
 	}
 
 	// Test second subtitle
@@ -378,7 +378,7 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 	if subtitle2.ShowID != 11930 {
 		t.Errorf("Expected ShowID %d, got %d", 11930, subtitle2.ShowID)
 	}
-	if subtitle2.ID != "1770577432" {
-		t.Errorf("Expected ID %q, got %q", "1770577432", subtitle2.ID)
+	if subtitle2.ID != 1770577432 {
+		t.Errorf("Expected ID %d, got %d", 1770577432, subtitle2.ID)
 	}
 }

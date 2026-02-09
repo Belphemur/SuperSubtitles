@@ -6,7 +6,7 @@ import (
 
 // Subtitle represents a normalized subtitle in our application
 type Subtitle struct {
-	ID            string    `json:"id"`
+	ID            int       `json:"id"`
 	ShowID        int       `json:"showId"`   // Show ID from feliratok.eu (extracted from category link)
 	ShowName      string    `json:"showName"` // Show name (may be empty in HTML parsing)
 	Name          string    `json:"name"`     // Subtitle name/title from HTML

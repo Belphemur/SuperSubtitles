@@ -509,7 +509,7 @@ func (p *SubtitleParser) constructDownloadURL(link string) string {
 }
 
 // extractIDFromDownloadLink extracts a unique ID from the download link
-func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
+func (p *SubtitleParser) extractIDFromDownloadLink(link string) int {
 	// Parse the URL to extract query parameters
 	parsedURL, err := url.Parse(link)
 	if err == nil && parsedURL.RawQuery != "" {
@@ -517,17 +517,23 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 
 		// Check for felirat parameter (most common in download links)
 		if felirat := queryParams.Get("felirat"); felirat != "" {
-			return felirat
+			if id, err := strconv.Atoi(felirat); err == nil {
+				return id
+			}
 		}
 
 		// Check for feliratid parameter (sometimes used)
 		if feliratid := queryParams.Get("feliratid"); feliratid != "" {
-			return feliratid
+			if id, err := strconv.Atoi(feliratid); err == nil {
+				return id
+			}
 		}
 
 		// Check for generic id parameter
 		if id := queryParams.Get("id"); id != "" {
-			return id
+			if idNum, err := strconv.Atoi(id); err == nil {
+				return idNum
+			}
 		}
 	}
 
@@ -540,12 +546,14 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 	for _, pattern := range patterns {
 		re := regexp.MustCompile(pattern)
 		if matches := re.FindStringSubmatch(link); len(matches) > 1 {
-			return matches[1]
+			if id, err := strconv.Atoi(matches[1]); err == nil {
+				return id
+			}
 		}
 	}
 
-	// Last resort: use the entire link as ID
-	return link
+	// Last resort: return 0 for invalid ID
+	return 0
 }
 
 // extractFilenameFromDownloadLink extracts the filename from the fnev parameter in the download link

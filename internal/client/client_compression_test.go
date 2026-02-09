@@ -203,7 +203,7 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 			UploadDate:       "2026-01-31",
 			DownloadAction:   "letolt",
 			DownloadFilename: "billy.the.kid.s03e07.srt",
-			SubtitleID:       "12345",
+				SubtitleID:       12345,
 		},
 	})
 
@@ -266,7 +266,7 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 			UploadDate:       "2026-01-21",
 			DownloadAction:   "letolt",
 			DownloadFilename: "billy.the.kid.s03e06.srt",
-			SubtitleID:       "23456",
+				SubtitleID:       23456,
 		},
 	})
 
@@ -329,7 +329,7 @@ func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
 			UploadDate:       "2026-01-14",
 			DownloadAction:   "letolt",
 			DownloadFilename: "billy.the.kid.s03e05.srt",
-			SubtitleID:       "34567",
+				SubtitleID:       34567,
 		},
 	})
 

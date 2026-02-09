@@ -46,7 +46,7 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 
 		html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 			{
-				SubtitleID:       "1770600001",
+				SubtitleID:       1770600001,
 				MagyarTitle:      "Test Subtitle",
 				EredetiTitle:     "Test Show - 1x01",
 				DownloadFilename: "test.srt",

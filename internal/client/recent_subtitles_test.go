@@ -21,21 +21,21 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 			// Main page with recent subtitles
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 				{
-					SubtitleID:       "1770600001",
+					SubtitleID:       1770600001,
 					MagyarTitle:      "Recent Subtitle 1",
 					EredetiTitle:     "Test Show 1 - 1x01",
 					DownloadFilename: "recent1.srt",
 					ShowID:           123,
 				},
 				{
-					SubtitleID:       "1770600002",
+					SubtitleID:       1770600002,
 					MagyarTitle:      "Recent Subtitle 2",
 					EredetiTitle:     "Test Show 1 - 1x02",
 					DownloadFilename: "recent2.srt",
 					ShowID:           123,
 				},
 				{
-					SubtitleID:       "1770600003",
+					SubtitleID:       1770600003,
 					MagyarTitle:      "Recent Subtitle 3",
 					EredetiTitle:     "Test Show 2 - 1x01",
 					DownloadFilename: "recent3.srt",
@@ -67,7 +67,7 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 	ctx := context.Background()
 
 	// Test without filter (all subtitles)
-	showSubtitles, err := client.GetRecentSubtitles(ctx, "")
+	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -99,14 +99,14 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 				{
-					SubtitleID:       "1770500000",
+					SubtitleID:       1770500000,
 					MagyarTitle:      "Old Subtitle",
 					EredetiTitle:     "Test Show - 1x01",
 					DownloadFilename: "old.srt",
 					ShowID:           123,
 				},
 				{
-					SubtitleID:       "1770617276",
+					SubtitleID:       1770617276,
 					MagyarTitle:      "New Subtitle",
 					EredetiTitle:     "Test Show - 1x02",
 					DownloadFilename: "new.srt",
@@ -131,7 +131,7 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with filter (only subtitles with ID > 1770600000)
-	showSubtitles, err := client.GetRecentSubtitles(ctx, "1770600000")
+	showSubtitles, err := client.GetRecentSubtitles(ctx, 1770600000)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -143,8 +143,8 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 	if len(showSubtitles[0].SubtitleCollection.Subtitles) != 1 {
 		t.Errorf("Expected 1 subtitle, got %d", len(showSubtitles[0].SubtitleCollection.Subtitles))
 	}
-	if showSubtitles[0].SubtitleCollection.Subtitles[0].ID != "1770617276" {
-		t.Errorf("Expected subtitle ID 1770617276, got %s", showSubtitles[0].SubtitleCollection.Subtitles[0].ID)
+	if showSubtitles[0].SubtitleCollection.Subtitles[0].ID != 1770617276 {
+		t.Errorf("Expected subtitle ID 1770617276, got %d", showSubtitles[0].SubtitleCollection.Subtitles[0].ID)
 	}
 }
 
@@ -166,7 +166,7 @@ func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	showSubtitles, err := client.GetRecentSubtitles(ctx, "")
+	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	_, err := client.GetRecentSubtitles(ctx, "")
+	_, err := client.GetRecentSubtitles(ctx, 0)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
