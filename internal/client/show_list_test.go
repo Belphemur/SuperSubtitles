@@ -31,13 +31,13 @@ func TestClient_GetShowList(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 		} else if r.URL.Query().Get("sorf") == "alatt-subrip" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(underHTML))
+			_, _ = w.Write([]byte(underHTML))
 		} else if r.URL.Query().Get("sorf") == "nem-all-forditas-alatt" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("<html><body><table></table></body></html>"))
+			_, _ = w.Write([]byte("<html><body><table></table></body></html>"))
 		}
 	}))
 	defer server.Close()
@@ -128,7 +128,7 @@ func TestClient_GetShowList_PartialFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(waitingHTML))
+			_, _ = w.Write([]byte(waitingHTML))
 		} else {
 			// Other endpoints fail
 			w.WriteHeader(http.StatusInternalServerError)
@@ -157,7 +157,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done() // Delay longer than timeout
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte("<html></html>"))
 	}))
 	defer server.Close()
 
@@ -188,7 +188,7 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 	// Create a test server that returns invalid HTML
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("not html"))
+		_, _ = w.Write([]byte("not html"))
 	}))
 	defer server.Close()
 
@@ -236,7 +236,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 	// Create a test server that returns the sample HTML
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
+		_, _ = w.Write([]byte(htmlContent))
 	}))
 	defer server.Close()
 

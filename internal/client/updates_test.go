@@ -20,7 +20,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonResponse))
+		_, _ = w.Write([]byte(jsonResponse))
 	}))
 	defer server.Close()
 
@@ -45,6 +45,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -67,7 +68,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonResponse))
+		_, _ = w.Write([]byte(jsonResponse))
 	}))
 	defer server.Close()
 
@@ -92,6 +93,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -114,7 +116,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonResponse))
+		_, _ = w.Write([]byte(jsonResponse))
 	}))
 	defer server.Close()
 
@@ -139,6 +141,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -187,7 +190,7 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 	// Create a test server that returns invalid JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 

@@ -17,7 +17,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(subtitleContent))
+		_, _ = w.Write([]byte(subtitleContent))
 	}))
 	defer server.Close()
 
@@ -40,6 +40,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 	if string(result.Content) != subtitleContent {
 		t.Errorf("Expected content %q, got %q", subtitleContent, string(result.Content))

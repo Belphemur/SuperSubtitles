@@ -36,7 +36,7 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 		// Check if it's a detail page request
 		if r.URL.Query().Get("tipus") == "adatlap" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(detailPageHTML))
+			_, _ = w.Write([]byte(detailPageHTML))
 			return
 		}
 
@@ -56,7 +56,7 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 
 		_ = showID // Use the variable
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(html))
+		_, _ = w.Write([]byte(html))
 	}))
 	defer server.Close()
 

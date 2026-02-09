@@ -43,7 +43,7 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 				},
 			})
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(html))
+			_, _ = w.Write([]byte(html))
 		} else if r.URL.Query().Get("tipus") == "adatlap" {
 			// Detail page with third-party IDs
 			azon := r.URL.Query().Get("azon")
@@ -54,7 +54,7 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 				<a href="http://thetvdb.com/?tab=series&id=987654" target="_blank" alt="TheTVDB"></a>
 				</div></div></div></body></html>`
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(html))
+			_, _ = w.Write([]byte(html))
 		}
 	}))
 	defer server.Close()
@@ -84,10 +84,10 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 
 	// Verify subtitles are grouped correctly
 	for _, ss := range showSubtitles {
-		if ss.Show.ID == 123 && len(ss.SubtitleCollection.Subtitles) != 2 {
+		if ss.ID == 123 && len(ss.SubtitleCollection.Subtitles) != 2 {
 			t.Errorf("Expected 2 subtitles for show 123, got %d", len(ss.SubtitleCollection.Subtitles))
 		}
-		if ss.Show.ID == 456 && len(ss.SubtitleCollection.Subtitles) != 1 {
+		if ss.ID == 456 && len(ss.SubtitleCollection.Subtitles) != 1 {
 			t.Errorf("Expected 1 subtitle for show 456, got %d", len(ss.SubtitleCollection.Subtitles))
 		}
 	}
@@ -114,11 +114,11 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 				},
 			})
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(html))
+			_, _ = w.Write([]byte(html))
 		} else if r.URL.Query().Get("tipus") == "adatlap" {
 			html := `<html><body><div class="adatlapTabla"></div></body></html>`
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(html))
+			_, _ = w.Write([]byte(html))
 		}
 	}))
 	defer server.Close()
@@ -154,7 +154,7 @@ func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := "<html><body><table></table></body></html>"
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(html))
+			_, _ = w.Write([]byte(html))
 		}
 	}))
 	defer server.Close()
