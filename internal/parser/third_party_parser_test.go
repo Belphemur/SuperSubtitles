@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
 	// Generate proper HTML content using the helper
-	htmlContent := GenerateThirdPartyIDHTML("tt14261112", 366532, 60743, 366532)
+	htmlContent := testutil.GenerateThirdPartyIDHTML("tt14261112", 366532, 60743, 366532)
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -59,7 +60,7 @@ func TestThirdPartyIdParser_ParseHtml_EmptyHTML(t *testing.T) {
 
 func TestThirdPartyIdParser_ParseHtml_PartialLinks(t *testing.T) {
 	// Generate HTML with only IMDB and TVDB IDs
-	htmlContent := GenerateThirdPartyIDHTML("tt12345678", 123456, 0, 0)
+	htmlContent := testutil.GenerateThirdPartyIDHTML("tt12345678", 123456, 0, 0)
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))
