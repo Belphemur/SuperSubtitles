@@ -77,12 +77,14 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 ## Data Flow
 
 ### Show List Fetching
+
 1. `GetShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
 2. Each response is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
 3. Results are merged and deduplicated by show ID, preserving first-occurrence order
 4. Partial failures are tolerated — if at least one endpoint succeeds, results are returned
 
 ### Subtitle Fetching
+
 1. `GetSubtitles` calls the JSON API endpoint (`?action=xbmc&sid=<id>`)
 2. Response is a map of `SuperSubtitle` objects (Hungarian field names)
 3. `SubtitleConverter.ConvertResponse` normalizes each entry:
@@ -93,16 +95,18 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
    - Upload timestamp conversion
 
 ### Third-Party ID Extraction
+
 1. `GetShowSubtitles` processes shows in batches of 20
 2. For each show, it fetches subtitles, then loads the detail page HTML
 3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
 
 ### Subtitle Download with Episode Extraction
+
 1. `DownloadSubtitle` method in the Client interface accepts a download URL and a `DownloadRequest`
 2. **`SubtitleDownloader` service is the primary download handler for all subtitle files**:
    - **Regular subtitle files** (SRT, ASS, VTT, SUB): Downloaded and returned with correct content-type and extension
    - **ZIP files without episode number**: Entire ZIP returned (for manual extraction)
-   - **ZIP files with episode number**: 
+   - **ZIP files with episode number**:
      - ZIP file is downloaded (or retrieved from cache)
      - Episode pattern matching using regex with word boundaries: `S03E01`, `s03e01`, `3x01`, `E01` (with guards against false positives like E01 matching E010)
      - Specific episode subtitle extracted from the ZIP archive
@@ -125,6 +129,7 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
    - Various naming patterns (uppercase, lowercase, different separators)
 
 **Implementation Files:**
+
 - `internal/services/subtitle_downloader.go` - Interface definition
 - `internal/services/subtitle_downloader_impl.go` - Implementation with caching, ZIP extraction, and format detection
 - `internal/services/subtitle_downloader_test.go` - Comprehensive unit tests and benchmarks covering ZIP detection/extraction, caching, and edge cases
@@ -142,41 +147,47 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 
 Loaded from `config/config.yaml`:
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `proxy_connection_string` | HTTP proxy URL (optional) | `""` |
-| `super_subtitle_domain` | Base URL for feliratok.eu | `https://feliratok.eu` |
-| `client_timeout` | HTTP client timeout (Go duration) | `30s` |
-| `server.port` | Server listening port | `8080` |
-| `server.address` | Server listening address | `localhost` |
-| `log_level` | Zerolog level (debug/info/warn/error) | `info` |
+| Field                     | Description                           | Default                                                                            |
+| ------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- |
+| `proxy_connection_string` | HTTP proxy URL (optional)             | `""`                                                                               |
+| `super_subtitle_domain`   | Base URL for feliratok.eu             | `https://feliratok.eu`                                                             |
+| `client_timeout`          | HTTP client timeout (Go duration)     | `30s`                                                                              |
+| `user_agent`              | User-Agent header for HTTP requests   | `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0` |
+| `server.port`             | Server listening port                 | `8080`                                                                             |
+| `server.address`          | Server listening address              | `localhost`                                                                        |
+| `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             |
 
 Environment variables are also supported with `APP_` prefix (e.g., `APP_CLIENT_TIMEOUT`). `LOG_LEVEL` is bound directly.
 
 ## CI/CD Pipeline
 
 ### CI (`.github/workflows/ci.yml`)
+
 Runs on every push and PR to `main`:
+
 - **Lint job:** `go mod verify` → `go vet` → `gofmt` → `golangci-lint`
 - **Test job:** `gotestsum` with race detector + coverage → Codecov upload
 - **Build job:** `CGO_ENABLED=0 go build` → artifact upload
 
 ### Release (`.github/workflows/release.yml`)
+
 Runs on push to `main`:
+
 1. `semantic-release` analyzes conventional commits to determine the next version
 2. `GoReleaser` builds cross-platform binaries (linux/amd64, linux/arm64)
 3. Builds and pushes multi-platform Docker images to `ghcr.io/belphemur/supersubtitles`
 4. Publishes a GitHub release with changelog, SBOMs, and build attestation
 
 ### Copilot Setup (`.github/workflows/copilot-setup-steps.yml`)
+
 Prepares the Copilot agent environment: Go, gopls, golangci-lint, dependencies.
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `github.com/PuerkitoBio/goquery` | jQuery-like HTML parsing |
-| `github.com/rs/zerolog` | Structured JSON/console logging |
-| `github.com/spf13/viper` | Configuration management |
+| Package                              | Purpose                                 |
+| ------------------------------------ | --------------------------------------- |
+| `github.com/PuerkitoBio/goquery`     | jQuery-like HTML parsing                |
+| `github.com/rs/zerolog`              | Structured JSON/console logging         |
+| `github.com/spf13/viper`             | Configuration management                |
 | `github.com/hashicorp/golang-lru/v2` | LRU cache for ZIP file caching (1h TTL) |
-| `archive/zip` (stdlib) | ZIP file extraction for season packs |
+| `archive/zip` (stdlib)               | ZIP file extraction for season packs    |

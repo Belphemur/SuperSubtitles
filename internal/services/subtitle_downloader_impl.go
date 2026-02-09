@@ -269,7 +269,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 		return nil, "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", config.UserAgent)
+	req.Header.Set("User-Agent", config.GetUserAgent())
 
 	resp, err := d.httpClient.Do(req)
 	if err != nil {

@@ -56,6 +56,7 @@ Create or edit `config/config.yaml`:
 proxy_connection_string: "" # Optional HTTP proxy URL
 super_subtitle_domain: "https://feliratok.eu"
 client_timeout: "30s"
+user_agent: "Sub-Zero/2"
 server:
   address: "localhost"
   port: 8080

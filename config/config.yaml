@@ -1,6 +1,7 @@
 proxy_connection_string: ""
 super_subtitle_domain: "https://feliratok.eu"
 client_timeout: "30s"
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 server:
   port: 8080
   address: "localhost"

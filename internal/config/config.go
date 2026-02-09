@@ -7,13 +7,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// UserAgent is the User-Agent string sent with all HTTP requests
-const UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+// DefaultUserAgent is the default User-Agent string sent with all HTTP requests.
+const DefaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 
 type Config struct {
 	ProxyConnectionString string `mapstructure:"proxy_connection_string"`
 	SuperSubtitleDomain   string `mapstructure:"super_subtitle_domain"`
 	ClientTimeout         string `mapstructure:"client_timeout"` // Go duration string like "30s", "1h", etc.
+	UserAgent             string `mapstructure:"user_agent"`
 	Server                struct {
 		Port    int    `mapstructure:"port"`
 		Address string `mapstructure:"address"`
@@ -83,12 +84,23 @@ func LoadConfig() (*Config, error) {
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, err
 	}
+	if config.UserAgent == "" {
+		config.UserAgent = DefaultUserAgent
+	}
 
 	return &config, nil
 }
 
 func GetConfig() *Config {
 	return globalConfig
+}
+
+func GetUserAgent() string {
+	if globalConfig != nil && globalConfig.UserAgent != "" {
+		return globalConfig.UserAgent
+	}
+
+	return DefaultUserAgent
 }
 
 func GetLogger() zerolog.Logger {
