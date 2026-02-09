@@ -988,7 +988,6 @@ func TestClient_fetchFirstPageSubtitles_EmptyPage(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
-		return
 	}
 
 	if result.Total != 0 {
