@@ -172,6 +172,41 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 	return merged, nil
 }
 
+// fetchFirstPageSubtitles fetches only the first page of subtitles for a given show ID
+// This is used when we only need a subtitle ID (e.g., for fetching third-party IDs)
+func (c *client) fetchFirstPageSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error) {
+	logger := config.GetLogger()
+	logger.Debug().Int("showID", showID).Msg("Fetching first page of subtitles for show")
+
+	endpoint := fmt.Sprintf("%s/index.php?sid=%d", c.baseURL, showID)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for show %d (%s): %w", showID, endpoint, err)
+	}
+	req.Header.Set("User-Agent", config.GetUserAgent())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch first page for show %d (%s): %w", showID, endpoint, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("first page request for show %d (%s) returned status %d", showID, endpoint, resp.StatusCode)
+	}
+
+	// Parse only the first page (ignore pagination)
+	subtitles, err := c.subtitleParser.ParseHtml(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse first page for show %d (%s): %w", showID, endpoint, err)
+	}
+
+	logger.Debug().Int("showID", showID).Int("subtitles", len(subtitles)).Msg("Fetched first page successfully")
+
+	return buildSubtitleCollection(subtitles), nil
+}
+
 // GetSubtitles fetches subtitles for a given show ID from HTML pages with pagination support
 // Fetches multiple pages in parallel (2 at a time) and aggregates results
 func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error) {
@@ -387,8 +422,8 @@ func (c *client) processShowBatch(ctx context.Context, shows []models.Show) ([]m
 		go func() {
 			defer wg.Done()
 
-			// Get subtitles for this show
-			subtitles, err := c.GetSubtitles(ctx, show.ID)
+			// Get first page of subtitles for this show (optimization: we only need one subtitle ID)
+			subtitles, err := c.fetchFirstPageSubtitles(ctx, show.ID)
 			if err != nil {
 				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to fetch subtitles for show")
 				results[i] = showResult{err: fmt.Errorf("failed to get subtitles for show %d: %w", show.ID, err)}
