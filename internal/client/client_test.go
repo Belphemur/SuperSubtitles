@@ -838,3 +838,170 @@ func TestClient_GetSubtitles_NetworkError(t *testing.T) {
 		t.Fatalf("Expected nil result for error case, got: %v", result)
 	}
 }
+
+func TestClient_getFirstPageSubtitles(t *testing.T) {
+	// Test that getFirstPageSubtitles only fetches the first page and ignores pagination
+	pageHTML := testutil.GenerateSubtitleTableHTMLWithPagination(
+		[]testutil.SubtitleRowOptions{
+			{
+				ShowID:           8888,
+				Language:         "Magyar",
+				FlagImage:        "hungary.gif",
+				MagyarTitle:      "First Page Subtitle 1",
+				EredetiTitle:     "First Page Subtitle 1 - 1080p",
+				Uploader:         "TestUploader",
+				UploaderBold:     false,
+				UploadDate:       "2025-02-09",
+				DownloadAction:   "letolt",
+				DownloadFilename: "test1.srt",
+				SubtitleID:       "111",
+			},
+			{
+				ShowID:           8888,
+				Language:         "Magyar",
+				FlagImage:        "hungary.gif",
+				MagyarTitle:      "First Page Subtitle 2",
+				EredetiTitle:     "First Page Subtitle 2 - 720p",
+				Uploader:         "TestUploader",
+				UploaderBold:     false,
+				UploadDate:       "2025-02-09",
+				DownloadAction:   "letolt",
+				DownloadFilename: "test2.srt",
+				SubtitleID:       "222",
+			},
+		},
+		1, // Current page
+		5, // Total pages (pagination exists but should be ignored)
+		true,
+	)
+
+	requestCount := 0
+	var mu sync.Mutex
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=8888" {
+			requestCount++
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(pageHTML))
+			return
+		}
+		// If any other page is requested, it's an error
+		t.Errorf("Unexpected request for page: %s", r.URL.RawQuery)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	clientImpl := NewClient(testConfig).(*client)
+	ctx := context.Background()
+
+	result, err := clientImpl.getFirstPageSubtitles(ctx, 8888)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+		return
+	}
+
+	// Should have exactly 2 subtitles (only from first page)
+	if result.Total != 2 {
+		t.Errorf("Expected 2 subtitles, got %d", result.Total)
+	}
+
+	if len(result.Subtitles) != 2 {
+		t.Errorf("Expected 2 subtitles in array, got %d", len(result.Subtitles))
+	}
+
+	// Should have made exactly 1 request (only first page)
+	if requestCount != 1 {
+		t.Errorf("Expected 1 request (first page only), got %d", requestCount)
+	}
+
+	// Verify subtitle data
+	if result.Subtitles[0].ID != "111" {
+		t.Errorf("Expected first subtitle ID '111', got '%s'", result.Subtitles[0].ID)
+	}
+	if result.Subtitles[1].ID != "222" {
+		t.Errorf("Expected second subtitle ID '222', got '%s'", result.Subtitles[1].ID)
+	}
+}
+
+func TestClient_getFirstPageSubtitles_Error(t *testing.T) {
+	// Test error handling for network failure
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	clientImpl := NewClient(testConfig).(*client)
+	ctx := context.Background()
+
+	result, err := clientImpl.getFirstPageSubtitles(ctx, 9999)
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	if result != nil {
+		t.Fatalf("Expected nil result for error case, got: %v", result)
+	}
+}
+
+func TestClient_getFirstPageSubtitles_EmptyPage(t *testing.T) {
+	// Test with an empty page (no subtitles)
+	emptyPageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=7777" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(emptyPageHTML))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	clientImpl := NewClient(testConfig).(*client)
+	ctx := context.Background()
+
+	result, err := clientImpl.getFirstPageSubtitles(ctx, 7777)
+
+	if err != nil {
+		t.Fatalf("Expected no error for empty page, got: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+		return
+	}
+
+	if result.Total != 0 {
+		t.Errorf("Expected 0 subtitles for empty page, got %d", result.Total)
+	}
+
+	if len(result.Subtitles) != 0 {
+		t.Errorf("Expected 0 subtitles in array for empty page, got %d", len(result.Subtitles))
+	}
+}
