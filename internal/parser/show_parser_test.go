@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestShowParser_ParseHtml(t *testing.T) {
 	// Generate proper HTML content based on the real feliratok.eu website structure
-	htmlContent := GenerateShowTableHTML([]ShowRowOptions{
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
 		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
 		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
@@ -199,7 +200,7 @@ func TestShowParser_ParseHtml_MissingName(t *testing.T) {
 
 func TestShowParser_ParseHtml_Simple(t *testing.T) {
 	// Generate simple proper HTML content
-	htmlContent := GenerateShowTableHTML([]ShowRowOptions{
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
 	})
 

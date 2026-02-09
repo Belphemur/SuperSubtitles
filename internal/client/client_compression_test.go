@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/parser"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/zstd"
@@ -191,13 +191,13 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithGzipCompression tests that GetSubtitles works with gzip compression
 func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
-	htmlResponse := parser.GenerateSubtitleTableHTML([]parser.SubtitleRowOptions{
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Billy the Kid - 3x07",
-			ErdetiTitle:      "Billy the Kid - 3x07 - The Last Buffalo (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			EredetiTitle:     "Billy the Kid - 3x07 - The Last Buffalo (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
 			Uploader:         "gricsi",
 			UploaderBold:     false,
 			UploadDate:       "2026-01-31",
@@ -254,13 +254,13 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithBrotliCompression tests that GetSubtitles works with brotli compression
 func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
-	htmlResponse := parser.GenerateSubtitleTableHTML([]parser.SubtitleRowOptions{
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Billy the Kid - 3x06",
-			ErdetiTitle:      "Billy the Kid - 3x06 - The Chain Gang (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			EredetiTitle:     "Billy the Kid - 3x06 - The Chain Gang (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
 			Uploader:         "gricsi",
 			UploaderBold:     false,
 			UploadDate:       "2026-01-21",
@@ -317,13 +317,13 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithZstdCompression tests that GetSubtitles works with zstd compression
 func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
-	htmlResponse := parser.GenerateSubtitleTableHTML([]parser.SubtitleRowOptions{
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Billy the Kid - 3x05",
-			ErdetiTitle:      "Billy the Kid - 3x05 - The Shepherds Hut (WEB.720p-JFF, AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			EredetiTitle:     "Billy the Kid - 3x05 - The Shepherds Hut (WEB.720p-JFF, AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
 			Uploader:         "gricsi",
 			UploaderBold:     false,
 			UploadDate:       "2026-01-14",

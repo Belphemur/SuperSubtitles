@@ -7,17 +7,18 @@ import (
 	"time"
 
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	// Generate proper HTML content based on the real feliratok.eu website structure
-	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Outlander - Az idegen - 7x16",
-			ErdetiTitle:      "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			EredetiTitle:     "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
 			Uploader:         "kissoreg",
 			UploaderBold:     false,
 			UploadDate:       "2025-01-21",
@@ -97,12 +98,12 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 
 func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 	// Generate proper HTML for a season pack
-	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Billy the Kid (11. évad)",
-			ErdetiTitle:      "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			EredetiTitle:     "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
 			Uploader:         "gricsi",
 			UploaderBold:     false,
 			UploadDate:       "2024-09-14",
@@ -164,7 +165,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 			<tbody>
 			</tbody>
 		</table>
-		` + GeneratePaginationHTML(1, 3, true) + `
+		` + testutil.GeneratePaginationHTML(1, 3, true) + `
 	</body>
 	</html>`
 
@@ -181,12 +182,12 @@ func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 
 func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
 	// Generate proper HTML content
-	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			Language:         "Angol",
 			FlagImage:        "uk.gif",
 			MagyarTitle:      "Outlander - Az idegen - 7x15",
-			ErdetiTitle:      "Outlander - 7x15 - Written in My Own Heart's Blood (AMZN.WEB-DL.720p-NTb)",
+			EredetiTitle:     "Outlander - 7x15 - Written in My Own Heart's Blood (AMZN.WEB-DL.720p-NTb)",
 			Uploader:         "J1GG4",
 			UploaderBold:     false,
 			UploadDate:       "2025-01-17",

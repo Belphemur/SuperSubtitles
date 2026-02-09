@@ -11,7 +11,7 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/parser"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestClient_GetShowList(t *testing.T) {
@@ -307,13 +307,13 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
 			// Subtitles request - HTML format
-			htmlResponse := parser.GenerateSubtitleTableHTML([]parser.SubtitleRowOptions{
+			htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 				{
 					ShowID:           2967,
 					Language:         "Angol",
 					FlagImage:        "uk.gif",
 					MagyarTitle:      "Test Show - 1x1",
-					ErdetiTitle:      "Test Show - 1x1 - Episode Title (1080p-RelGroup)",
+					EredetiTitle:     "Test Show - 1x1 - Episode Title (1080p-RelGroup)",
 					Uploader:         "TestUser",
 					UploaderBold:     false,
 					UploadDate:       "2025-02-08",
@@ -659,15 +659,15 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 	// Create test HTML for 3 pages with pagination links
 	pageHTML := func(pageNum int, totalPages int) string {
-		var rows []parser.SubtitleRowOptions
+		var rows []testutil.SubtitleRowOptions
 		for i := 1; i <= 3; i++ {
 			subtitleID := strconv.Itoa(pageNum*100 + i)
-			rows = append(rows, parser.SubtitleRowOptions{
+			rows = append(rows, testutil.SubtitleRowOptions{
 				ShowID:           3217,
 				Language:         "Magyar",
 				FlagImage:        "hungary.gif",
 				MagyarTitle:      "Stranger Things S01E0" + strconv.Itoa(i),
-				ErdetiTitle:      "Stranger Things S01E0" + strconv.Itoa(i) + " - Episode Title (1080p-RelGroup)",
+				EredetiTitle:     "Stranger Things S01E0" + strconv.Itoa(i) + " - Episode Title (1080p-RelGroup)",
 				Uploader:         "Uploader" + strconv.Itoa(pageNum),
 				UploaderBold:     false,
 				UploadDate:       "2025-02-08",
@@ -677,11 +677,8 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 			})
 		}
 
-		htmlContent := parser.GenerateSubtitleTableHTML(rows)
-		// Add pagination links
-		paginationHTML := parser.GeneratePaginationHTML(pageNum, totalPages, true)
-		// Insert pagination before closing body tag
-		return htmlContent[:len(htmlContent)-len("</body>\n</html>")] + paginationHTML + "\n</body>\n</html>"
+		// Use the dedicated function that generates HTML with pagination
+		return testutil.GenerateSubtitleTableHTMLWithPagination(rows, pageNum, totalPages, true)
 	}
 
 	requestCount := 0
@@ -761,13 +758,13 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 
 func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 	// Test with single page (no pagination)
-	singlePageHTML := parser.GenerateSubtitleTableHTML([]parser.SubtitleRowOptions{
+	singlePageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           1234,
 			Language:         "Magyar",
 			FlagImage:        "hungary.gif",
 			MagyarTitle:      "Game of Thrones - 1x1",
-			ErdetiTitle:      "Game of Thrones S01E01 - 1080p-Group",
+			EredetiTitle:     "Game of Thrones S01E01 - 1080p-Group",
 			Uploader:         "UploaderA",
 			UploaderBold:     false,
 			UploadDate:       "2025-02-08",
