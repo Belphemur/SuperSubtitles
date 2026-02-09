@@ -1,3 +1,21 @@
+# [1.3.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.2.1...v1.3.0) (2026-02-09)
+
+
+### Bug Fixes
+
+* **client:** correct test struct field names to match actual API ([cbc3030](https://github.com/Belphemur/SuperSubtitles/commit/cbc3030b19fba4085ca8fa16d98643d178c7bc64))
+
+
+### Features
+
+* **client:** add GetRecentSubtitles API with ID filtering ([1097c5f](https://github.com/Belphemur/SuperSubtitles/commit/1097c5f57d5acf875fc7a8452ee8b182b202b99e))
+* **parser:** remove parenthetical content from subtitle names ([65acdef](https://github.com/Belphemur/SuperSubtitles/commit/65acdefa8db0bd56adfc7de3c41caae2996fb831))
+
+
+### Performance Improvements
+
+* improve performance of recent subtitles ([fb4bb57](https://github.com/Belphemur/SuperSubtitles/commit/fb4bb57e4b5ee17ef6b4f73834cc1303066f7e09))
+
 ## [1.2.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.2.0...v1.2.1) (2026-02-09)
 
 
