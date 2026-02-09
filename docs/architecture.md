@@ -5,7 +5,7 @@
 SuperSubtitles is a Go proxy service that interfaces with [feliratok.eu](https://feliratok.eu), a Hungarian subtitle repository. It:
 
 1. **Scrapes TV show listings** from multiple HTML endpoints (pending, in-progress, and not-fully-translated shows) in parallel, deduplicating results by show ID.
-2. **Fetches subtitle data** for individual shows via a JSON API (`?action=xbmc&sid=<id>`), returning language, quality, season/episode info, uploader, and download URLs.
+2. **Fetches subtitle data** for individual shows by scraping HTML pages with automatic pagination support (2 pages fetched in parallel), returning language, quality, season/episode info, uploader, and download URLs.
 3. **Extracts third-party IDs** (IMDB, TVDB, TVMaze, Trakt) by scraping show detail pages.
 4. **Normalizes all data** — converting Hungarian language names to ISO codes, parsing quality strings (360p–2160p), building download URLs, and converting timestamps.
 5. **Checks for updates** since a given content ID via the recheck endpoint.
@@ -27,13 +27,14 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 │                                                               │
 │  Client interface:                                            │
 │    • GetShowList(ctx) → []Show                                │
-│    • GetSubtitles(ctx, showID) → *SubtitleCollection          │
+│    • GetSubtitles(ctx, showID) → *SubtitleCollection [*]      │
 │    • GetShowSubtitles(ctx, shows) → []ShowSubtitles           │
 │    • CheckForUpdates(ctx, contentID) → *UpdateCheckResult     │
 │    • DownloadSubtitle(ctx, url, req) → *DownloadResult        │
 │                                                               │
 │  Handles HTTP requests, proxy config, parallel fetching,      │
 │  error aggregation, and partial-failure resilience.            │
+│  [*] HTML-based with parallel pagination (2 pages at a time)
 └────────┬──────────────────────────┬───────────────────────────┘
          │                          │
          ▼                          ▼
@@ -49,8 +50,13 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 │  ThirdPartyIdParser │  │                              │
 │   (HTML → IDs)      │  │  SubtitleDownloader          │
 │                     │  │   • ZIP download & caching   │
-│                     │  │   • Episode extraction       │
-│                     │  │   • LRU cache (1h TTL)       │
+│  SubtitleParser [*] │  │   • Episode extraction       │
+│   (HTML → []Sub)    │  │   • LRU cache (1h TTL)       │
+│                     │  │                              │
+│  [*] New: Parses    │  │                              │
+│      HTML subtitle  │  │                              │
+│      tables with     │  │                              │
+│      pagination      │  │                              │
 └─────────────────────┘  └──────────────────────────────┘
          │                          │
          └──────────┬───────────────┘
@@ -83,7 +89,7 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 3. Results are merged and deduplicated by show ID, preserving first-occurrence order
 4. Partial failures are tolerated — if at least one endpoint succeeds, results are returned
 
-### Subtitle Fetching
+### Subtitle Fetching via API (JSON)
 
 1. `GetSubtitles` calls the JSON API endpoint (`?action=xbmc&sid=<id>`)
 2. Response is a map of `SuperSubtitle` objects (Hungarian field names)
@@ -93,6 +99,42 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
    - Season/episode number parsing (with -1 for season packs)
    - Download URL construction
    - Upload timestamp conversion
+
+### Subtitle Fetching
+
+`GetSubtitles` fetches subtitles from HTML pages with automatic parallel pagination support.
+
+**Process:**
+
+1. Fetch first page: `GET /index.php?sid=<showID>`
+2. Parse HTML using `SubtitleParser.ParseHtmlWithPagination`:
+   - Extracts subtitles from 5-column table (Language | Description | Uploader | Date | Download)
+   - Parses description for season/episode/release info
+   - Detects quality from release string
+   - Splits comma-separated release groups
+   - Detects season packs by looking for special naming patterns
+   - Extracts pagination info from `oldal=<page>` parameters
+3. If totalPages > 1, fetch remaining pages in parallel **2 pages at a time**:
+   - Pages 2–3 fetched in parallel
+   - Pages 4–5 fetched in parallel
+   - And so on...
+4. Aggregate all subtitles from all pages
+
+**Example:**
+
+For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
+
+- Request 1: Page 1 (3 subtitles)
+- Request 2–3: Pages 2–3 in parallel (3 subtitles each)
+- Request 4–5: Pages 4–5 in parallel (3 subtitles each)
+- **Total:** 5 requests instead of 5 sequential requests, **~3x faster**
+
+**Implementation Files:**
+
+- `internal/parser/subtitle_parser.go` - HTML table parser with pagination support
+- `internal/parser/subtitle_parser_test.go` - 23 comprehensive tests covering quality detection, release groups, season packs, pagination
+- `internal/client/client.go` - `GetSubtitles` method with parallel page fetching and pagination
+- `internal/client/client_test.go` - Unit tests for pagination (3 tests)
 
 ### Third-Party ID Extraction
 
