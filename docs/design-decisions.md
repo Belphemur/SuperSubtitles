@@ -48,8 +48,18 @@ This document explains key architectural and design decisions made in the SuperS
 - Tests express intent through configuration structs
 - Consistency across all tests
 - Easy to add edge cases
+- Prevents brittle hardcoded HTML in tests
 
-**Implementation**: `internal/testutil/html_fixtures.go` provides generators for all HTML table types.
+**Implementation**: `internal/testutil/html_fixtures.go` provides generators for all HTML table types:
+
+- `GenerateSubtitleTableHTML` - Basic subtitle listings
+- `GenerateSubtitleTableHTMLWithPagination` - Subtitles with pagination
+- `GenerateShowTableHTML` - Single-column show listings
+- `GenerateShowTableHTMLMultiColumn` - Multi-column grid layouts (e.g., 2 shows per row)
+- `GenerateThirdPartyIDHTML` - Third-party ID detail pages
+- `GeneratePaginationHTML` - Pagination elements
+
+**Evolution**: Added `GenerateShowTableHTMLMultiColumn` to support the actual website's grid layout for special show listing pages, ensuring tests match production HTML structure.
 
 ## Parser Reusability
 
@@ -139,3 +149,24 @@ This document explains key architectural and design decisions made in the SuperS
 - `ErrNotFound` custom error in `internal/client/errors.go`
 - All errors wrapped with context
 - Parallel operations collect errors but return successful results
+
+## Show Name Extraction via DOM Traversal
+
+**Decision**: Use direct DOM sibling traversal (`.Next()`) to find show names instead of iterating through all table cells with string matching.
+
+**Problem**: The original implementation used a complex flag-based iteration pattern, searching for the link's href in all cells, then looking for subsequent `td.sangol` elements. This was fragile and prone to incorrect matches in multi-column layouts.
+
+**Solution**: Simplified to:
+1. Get the parent `<td>` of the show link (the image cell)
+2. Use `.Next()` to get the immediately following sibling `<td>`
+3. Verify it has class "sangol" (the name cell)
+4. Extract the show name from the first `<div>` in that cell
+
+**Rationale**:
+- Mirrors the actual HTML structure where name cells always follow image cells
+- Eliminates string matching and iteration complexity
+- Works correctly with multi-column layouts (2+ shows per row)
+- More maintainable and easier to understand
+- Preserves show names with parenthetical alternate titles (e.g., "Cash Queens (Les Lionnes)")
+
+**Implementation**: `internal/parser/show_parser.go` - `extractShowNameFromGoquery` method uses goquery's `Closest()` and `Next()` for reliable sibling navigation.

@@ -171,56 +171,36 @@ func (p *ShowParser) extractImageURL(src string) string {
 func (p *ShowParser) extractShowNameFromGoquery(link *goquery.Selection) string {
 	logger := config.GetLogger()
 
-	// The show name is usually in the next td.sangol element in the same row
-	parentTR := link.Closest("tr")
-	if parentTR.Length() == 0 {
-		logger.Debug().Msg("No parent table row found for show link")
+	// Get the parent td of the link (this is the image cell)
+	parentTD := link.Closest("td")
+	if parentTD.Length() == 0 {
+		logger.Debug().Msg("No parent td found for show link")
 		return ""
 	}
 
-	logger.Debug().Msg("Searching for show name in table row")
+	logger.Debug().Msg("Found parent td, searching for name in next sibling")
 
-	// Get the href of our link for matching
-	linkHref, _ := link.Attr("href")
-
-	// Find all td elements in the row
-	var showName string
-	foundLink := false
-
-	parentTR.Find("td").Each(func(i int, td *goquery.Selection) {
-		// Check if this td contains our link
-		if td.Find(`a[href="`+linkHref+`"]`).Length() > 0 {
-			logger.Debug().Int("tdIndex", i).Msg("Found td containing show link")
-			foundLink = true
-			// Don't return here - continue to find the corresponding name cell
-		}
-
-		// If we found our link in a previous td, the next td.sangol should contain the name
-		if foundLink && td.HasClass("sangol") {
-			logger.Debug().Int("tdIndex", i).Msg("Found td.sangol element after link")
-			div := td.Find("div").First()
-			if div.Length() > 0 {
-				name := strings.TrimSpace(div.Text())
-				logger.Debug().Int("tdIndex", i).Str("rawName", name).Msg("Found div with text")
-				if name != "" && name != "(Tuiskoms)" {
-					showName = strings.Trim(name, "()")
-					logger.Debug().Int("tdIndex", i).Str("finalName", showName).Msg("Extracted show name")
-					return
-				} else {
-					logger.Debug().Int("tdIndex", i).Str("name", name).Msg("Skipping invalid show name")
-				}
-			} else {
-				logger.Debug().Int("tdIndex", i).Msg("td.sangol has no div element")
-			}
-			// Don't return here either - there might be multiple td.sangol elements
-		}
-	})
-
-	if showName == "" {
-		logger.Debug().Msg("No valid show name found in row")
-	} else {
-		logger.Debug().Str("showName", showName).Msg("Successfully extracted show name")
+	// Find the next td with class "sangol" (this is the name cell)
+	// The name cell is always immediately after the image cell in the HTML structure
+	nameTD := parentTD.Next()
+	if nameTD.Length() == 0 || !nameTD.HasClass("sangol") {
+		logger.Debug().Msg("No td.sangol found after image td")
+		return ""
 	}
 
-	return showName
+	// Extract the name from the div
+	div := nameTD.Find("div").First()
+	if div.Length() == 0 {
+		logger.Debug().Msg("No div found in td.sangol")
+		return ""
+	}
+
+	name := strings.TrimSpace(div.Text())
+	if name == "" || name == "(Tuiskoms)" {
+		logger.Debug().Str("name", name).Msg("Skipping invalid show name")
+		return ""
+	}
+
+	logger.Debug().Str("name", name).Msg("Successfully extracted show name")
+	return name
 }
