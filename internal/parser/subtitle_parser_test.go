@@ -74,6 +74,9 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.ID != "16" {
 		t.Errorf("Expected ID %q, got %q", "16", subtitle.ID)
 	}
+	if subtitle.Filename != "outlander.s07e16.srt" {
+		t.Errorf("Expected filename %q, got %q", "outlander.s07e16.srt", subtitle.Filename)
+	}
 	if subtitle.Uploader != "kissoreg" {
 		t.Errorf("Expected uploader %q, got %q", "kissoreg", subtitle.Uploader)
 	}
@@ -150,6 +153,10 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 	if !reflect.DeepEqual(subtitle.ReleaseGroups, expectedGroups) {
 		t.Errorf("Expected release groups %v, got %v", expectedGroups, subtitle.ReleaseGroups)
 	}
+
+	if subtitle.Filename != "billy.s02.zip" {
+		t.Errorf("Expected filename %q, got %q", "billy.s02.zip", subtitle.Filename)
+	}
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
@@ -202,5 +209,45 @@ func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
 
 	if len(subtitles) != 1 {
 		t.Fatalf("Expected 1 subtitle, got %d", len(subtitles))
+	}
+}
+
+func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T) {
+	parser := NewSubtitleParser("https://feliratok.eu")
+
+	tests := []struct {
+		name     string
+		link     string
+		expected string
+	}{
+		{
+			name:     "URL encoded filename with spaces and special chars",
+			link:     "/index.php?action=letolt&fnev=Billy%20The%20Kid%20-%2003x04%20-%20The%20Shepherds%20Hut.EDITH.English.C.orig.Addic7ed.com.srt&felirat=1760949698",
+			expected: "Billy The Kid - 03x04 - The Shepherds Hut.EDITH.English.C.orig.Addic7ed.com.srt",
+		},
+		{
+			name:     "URL encoded with parentheses",
+			link:     "/index.php?action=letolt&fnev=Show%20Name%20%282024%29.srt&felirat=123456",
+			expected: "Show Name (2024).srt",
+		},
+		{
+			name:     "Simple filename without encoding",
+			link:     "/index.php?action=letolt&fnev=outlander.s07e16.srt&felirat=1737439811",
+			expected: "outlander.s07e16.srt",
+		},
+		{
+			name:     "No fnev parameter",
+			link:     "/index.php?action=letolt&felirat=123456",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parser.extractFilenameFromDownloadLink(tt.link)
+			if result != tt.expected {
+				t.Errorf("Expected filename %q, got %q", tt.expected, result)
+			}
+		})
 	}
 }

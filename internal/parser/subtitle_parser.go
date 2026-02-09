@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -151,6 +152,9 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	// Generate ID from download link
 	subtitleID := p.extractIDFromDownloadLink(downloadLink)
 
+	// Extract filename from download link
+	filename := p.extractFilenameFromDownloadLink(downloadLink)
+
 	return &models.Subtitle{
 		ID:            subtitleID,
 		Name:          description,
@@ -158,6 +162,7 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		Language:      language,
 		Season:        season,
 		Episode:       episode,
+		Filename:      filename,
 		DownloadURL:   downloadURL,
 		Uploader:      uploader,
 		UploadedAt:    uploadedAt,
@@ -378,6 +383,26 @@ func (p *SubtitleParser) extractIDFromDownloadLink(link string) string {
 
 	// Fallback: use the entire link as ID
 	return link
+}
+
+// extractFilenameFromDownloadLink extracts the filename from the fnev parameter in the download link
+func (p *SubtitleParser) extractFilenameFromDownloadLink(link string) string {
+	logger := config.GetLogger()
+
+	// Look for fnev parameter in the URL
+	re := regexp.MustCompile(`fnev=([^&]+)`)
+	matches := re.FindStringSubmatch(link)
+	if len(matches) > 1 {
+		// URL decode the filename
+		filename, err := url.QueryUnescape(matches[1])
+		if err != nil {
+			logger.Debug().Str("rawFilename", matches[1]).Err(err).Msg("Failed to unescape filename")
+			return matches[1] // Return raw value if decoding fails
+		}
+		return filename
+	}
+
+	return ""
 }
 
 // extractPaginationInfo extracts current page and total pages from the document

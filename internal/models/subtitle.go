@@ -30,6 +30,7 @@ type Subtitle struct {
 	Language      string    `json:"language"`
 	Season        int       `json:"season"`
 	Episode       int       `json:"episode"`
+	Filename      string    `json:"filename"` // Subtitle filename from download URL
 	DownloadURL   string    `json:"downloadUrl"`
 	Uploader      string    `json:"uploader"`
 	UploadedAt    time.Time `json:"uploadedAt"`
