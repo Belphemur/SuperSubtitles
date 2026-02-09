@@ -11,7 +11,7 @@ import (
 
 func TestClient_CheckForUpdates(t *testing.T) {
 	// Sample JSON response for update check
-	jsonResponse := `{"film":"2","sorozat":"5"}`
+	jsonResponse := `{"film":2,"sorozat":5}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +61,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 
 func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	// Sample JSON response for update check
-	jsonResponse := `{"film":"0","sorozat":"1"}`
+	jsonResponse := `{"film":0,"sorozat":1}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +108,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 
 func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 	// Sample JSON response for no updates
-	jsonResponse := `{"film":"0","sorozat":"0"}`
+	jsonResponse := `{"film":0,"sorozat":0}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
@@ -51,19 +50,15 @@ func (c *client) CheckForUpdates(ctx context.Context, contentID string) (*models
 		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
 	}
 
-	// Convert string counts to integers
-	filmCount, _ := strconv.Atoi(updateResponse.Film)
-	seriesCount, _ := strconv.Atoi(updateResponse.Sorozat)
-
 	result := &models.UpdateCheckResult{
-		FilmCount:   filmCount,
-		SeriesCount: seriesCount,
-		HasUpdates:  filmCount > 0 || seriesCount > 0,
+		FilmCount:   updateResponse.Film,
+		SeriesCount: updateResponse.Sorozat,
+		HasUpdates:  updateResponse.Film > 0 || updateResponse.Sorozat > 0,
 	}
 
 	logger.Info().
-		Int("filmCount", filmCount).
-		Int("seriesCount", seriesCount).
+		Int("filmCount", result.FilmCount).
+		Int("seriesCount", result.SeriesCount).
 		Bool("hasUpdates", result.HasUpdates).
 		Msg("Successfully checked for updates")
 
