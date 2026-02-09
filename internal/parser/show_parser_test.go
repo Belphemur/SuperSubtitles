@@ -237,6 +237,58 @@ func TestShowParser_ParseHtml_Simple(t *testing.T) {
 	}
 }
 
+func TestShowParser_ParseHtml_MultipleShowsPerRow(t *testing.T) {
+	// Test HTML structure with multiple shows per row, as seen in the actual website
+	// This includes shows with parenthetical alternate titles
+	htmlContent := testutil.GenerateShowTableHTMLMultiColumn([]testutil.ShowRowOptions{
+		{ShowID: 13076, ShowName: "Cash Queens  (Les Lionnes)", Year: 2026},
+		{ShowID: 13043, ShowName: "Finding Her Edge", Year: 2026},
+		{ShowID: 13007, ShowName: "Love from 9 to 5  (Amor de oficina)", Year: 2026},
+		{ShowID: 13032, ShowName: "Love Through a Prism  (Purizumu Rondo)", Year: 2026},
+	}, 2)
+
+	parser := NewShowParser("https://feliratok.eu")
+	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
+
+	if err != nil {
+		t.Fatalf("ParseHtml failed: %v", err)
+	}
+
+	expectedCount := 4
+	if len(shows) != expectedCount {
+		t.Fatalf("Expected %d shows, got %d", expectedCount, len(shows))
+	}
+
+	// Verify each show is extracted correctly, including parenthetical alternate titles
+	expectedShows := []struct {
+		name     string
+		id       int
+		year     int
+		imageURL string
+	}{
+		{"Cash Queens  (Les Lionnes)", 13076, 2026, "https://feliratok.eu/sorozat_cat.php?kep=13076"},
+		{"Finding Her Edge", 13043, 2026, "https://feliratok.eu/sorozat_cat.php?kep=13043"},
+		{"Love from 9 to 5  (Amor de oficina)", 13007, 2026, "https://feliratok.eu/sorozat_cat.php?kep=13007"},
+		{"Love Through a Prism  (Purizumu Rondo)", 13032, 2026, "https://feliratok.eu/sorozat_cat.php?kep=13032"},
+	}
+
+	for i, expected := range expectedShows {
+		actual := shows[i]
+		if actual.Name != expected.name {
+			t.Errorf("Show %d: expected name %q, got %q", i, expected.name, actual.Name)
+		}
+		if actual.ID != expected.id {
+			t.Errorf("Show %d: expected ID %d, got %d", i, expected.id, actual.ID)
+		}
+		if actual.Year != expected.year {
+			t.Errorf("Show %d: expected year %d, got %d", i, expected.year, actual.Year)
+		}
+		if actual.ImageURL != expected.imageURL {
+			t.Errorf("Show %d: expected imageURL %q, got %q", i, expected.imageURL, actual.ImageURL)
+		}
+	}
+}
+
 func TestShowParser_extractIDFromHref(t *testing.T) {
 	parser := NewShowParser("https://feliratok.eu")
 

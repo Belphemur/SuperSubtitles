@@ -18,6 +18,7 @@ The project uses a **programmatic HTML generation system** for tests instead of 
 | `GenerateSubtitleTableHTML`               | Basic subtitle listing table                    | `[]SubtitleRowOptions` with language, titles, uploader |
 | `GenerateSubtitleTableHTMLWithPagination` | Subtitle table with page navigation             | Rows + `currentPage`, `totalPages`, `useOldalParam`    |
 | `GenerateShowTableHTML`                   | TV show listing with year headers               | `[]ShowRowOptions` with show ID, name, year            |
+| `GenerateShowTableHTMLMultiColumn`        | TV show listing with multiple shows per row     | `[]ShowRowOptions` + `columnsPerRow` (default 2)       |
 | `GenerateThirdPartyIDHTML`                | Episode detail page with IMDB/TVDB/TVMaze/Trakt | Individual ID parameters                               |
 | `GeneratePaginationHTML`                  | Standalone pagination elements                  | `currentPage`, `totalPages`, `useOldalParam`           |
 

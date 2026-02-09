@@ -338,6 +338,76 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 	return sb.String()
 }
 
+// GenerateShowTableHTMLMultiColumn generates HTML with multiple shows per row
+// This matches the actual website structure for special show listing pages
+// where shows are displayed in a grid layout (typically 2 columns)
+func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int) string {
+	if columnsPerRow < 1 {
+		columnsPerRow = 2 // Default to 2 columns
+	}
+
+	var sb strings.Builder
+
+	sb.WriteString(`<html>
+<body>
+<table cellpadding="0" cellspacing="0" border="0" align="center" style="width: 100%;">
+	<tbody>
+`)
+
+	currentYear := 0
+	rowIndex := 0
+
+	for i := 0; i < len(shows); i += columnsPerRow {
+		// Check if we need a year header
+		if shows[i].Year != currentYear {
+			currentYear = shows[i].Year
+			sb.WriteString(fmt.Sprintf(`
+		<tr>
+			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
+				%d
+			</td>
+		</tr>`, currentYear))
+		}
+
+		// Determine row background color
+		bgColor := shows[i].BackgroundColor
+		if bgColor == "" {
+			if rowIndex%2 == 0 {
+				bgColor = "#ECF6FC"
+			} else {
+				bgColor = "#FFFFFF"
+			}
+		}
+
+		sb.WriteString(fmt.Sprintf(`
+		<tr style="background-color: %s">`, bgColor))
+
+		// Add shows for this row (up to columnsPerRow)
+		for j := 0; j < columnsPerRow && i+j < len(shows); j++ {
+			show := shows[i+j]
+			sb.WriteString(fmt.Sprintf(`
+			<td style="padding: 5px;">
+				<a href="index.php?sid=%d"><img class="kategk" src="sorozat_cat.php?kep=%d"/></a>
+			</td>
+			<td class="sangol">
+				<div>%s</div>
+				<div class="sev"></div>
+			</td>`, show.ShowID, show.ShowID, show.ShowName))
+		}
+
+		sb.WriteString(`
+		</tr>`)
+		rowIndex++
+	}
+
+	sb.WriteString(`	</tbody>
+</table>
+</body>
+</html>`)
+
+	return sb.String()
+}
+
 // GenerateThirdPartyIDHTML generates a proper HTML structure for third-party ID details page
 // based on the real feliratok.eu episode detail page structure
 func GenerateThirdPartyIDHTML(imdbID string, tvdbID, tvmazeID, traktID int) string {
