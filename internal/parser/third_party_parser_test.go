@@ -8,39 +8,8 @@ import (
 )
 
 func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
-	// Sample HTML content based on the episode detail page structure
-	htmlContent := `
-		<html>
-		<body>
-			<div class="adatlapTabla">
-				<div class="adatlapKep">
-					<img src="img/sorozat_posterx/10665.jpg" width="124" height="182">
-				</div>
-				<div class="adatlapAdat">
-					<div class="adatlapRow">
-						<span>Fájlnév:</span>
-						<span>Twisted.Metal.S02E08.Sddndth.720p.AMZN.WEB-DL.DDP5.1.H.264-NTb.eng.srt</span>
-					</div>
-					<div class="adatlapRow">
-						<span>Feltöltő:</span>
-						<span>J1GG4</span>
-					</div>
-					<div class="adatlapRow paddingb5">
-						<span>Megjegyzés:</span>
-						<span class="megjegyzes"></span>
-					</div>
-					<div class="adatlapRow">
-						<a href="http://www.imdb.com/title/tt14261112/" target="_blank" alt="iMDB" ><img src="img/adatlap/imdb.png" alt="iMDB" /></a><input type="hidden" id="imdb_adatlap" value="tt14261112" />
-						<a href="http://thetvdb.com/?tab=series&id=366532" target="_blank" alt="TheTVDB"><img src="img/adatlap/tvdb.png" alt="TheTVDB"/></a>
-						<a href="http://www.tvmaze.com/shows/60743" target="_blank" alt="TVMaze"><img src="img/adatlap/tvmaze.png" alt="TVMaze"/></a>
-						<a href="http://trakt.tv/search/tvdb?utf8=%E2%9C%93&query=366532" target="_blank" alt="trakt" ><img src="img/adatlap/trakt.png?v=20250411" alt="trakt" /></a>
-						<a href="https://www.sorozatjunkie.hu/tag/twisted-metal/" target="_blank" alt="Sorozatjunkie" ><img src="img/adatlap/sorozatjunkie.png" alt="Sorozatjunkie" /></a>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
-	`
+	// Generate proper HTML content using the helper
+	htmlContent := GenerateThirdPartyIDHTML("tt14261112", 366532, 60743, 366532)
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -89,14 +58,8 @@ func TestThirdPartyIdParser_ParseHtml_EmptyHTML(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_PartialLinks(t *testing.T) {
-	htmlContent := `
-		<html><body>
-			<div class="adatlapRow">
-				<a href="http://www.imdb.com/title/tt12345678/" target="_blank" alt="iMDB"></a>
-				<a href="http://thetvdb.com/?tab=series&id=123456" target="_blank" alt="TheTVDB"></a>
-			</div>
-		</body></html>
-	`
+	// Generate HTML with only IMDB and TVDB IDs
+	htmlContent := GenerateThirdPartyIDHTML("tt12345678", 123456, 0, 0)
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))

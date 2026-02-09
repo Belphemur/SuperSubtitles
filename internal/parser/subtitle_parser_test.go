@@ -10,35 +10,22 @@ import (
 )
 
 func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
-	htmlContent := `
-		<html>
-		<body>
-			<table class="result">
-				<tr>
-					<th>Kategoria</th><th>Nyelv</th><th>Leiras</th><th>Feltolto</th><th>Ido</th><th>Letoltes</th>
-				</tr>
-				<tr>
-					<td>cat</td>
-					<td>Magyar</td>
-					<td>
-						<div class="magyar">Outlander - Az idegen - 7x16</div>
-						<div class="eredeti">Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)</div>
-					</td>
-					<td>kissoreg</td>
-					<td>2025-01-21</td>
-					<td><a href="/index.php?action=letolt&fnev=outlander.s07e16.srt&felirat=1737439811">dl</a></td>
-				</tr>
-				<tr>
-					<td colspan="7" id="adatlap">ignored</td>
-				</tr>
-			</table>
-			<div class="pagination">
-				<span class="current">1</span>
-				<a href="/index.php?page=2">2</a>
-			</div>
-		</body>
-		</html>
-	`
+	// Generate proper HTML content based on the real feliratok.eu website structure
+	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+		{
+			ShowID:           2967,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Outlander - Az idegen - 7x16",
+			ErdetiTitle:      "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			Uploader:         "kissoreg",
+			UploaderBold:     false,
+			UploadDate:       "2025-01-21",
+			DownloadAction:   "letolt",
+			DownloadFilename: "outlander.s07e16.srt",
+			SubtitleID:       "1737439811",
+		},
+	})
 
 	parser := NewSubtitleParser("https://feliratok.eu")
 	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
@@ -54,11 +41,14 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.Language != "Magyar" {
 		t.Errorf("Expected language %q, got %q", "Magyar", subtitle.Language)
 	}
-	if !strings.Contains(subtitle.Name, "Outlander - Az idegen - 7x16") {
-		t.Errorf("Expected name to contain episode title, got %q", subtitle.Name)
+	// The name is the full eredeti text
+	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)"
+	if subtitle.Name != expectedName {
+		t.Errorf("Expected name %q, got %q", expectedName, subtitle.Name)
 	}
-	if subtitle.ShowName != "Outlander - Az idegen" {
-		t.Errorf("Expected show name %q, got %q", "Outlander - Az idegen", subtitle.ShowName)
+	// Show name is extracted from eredeti, not magyar
+	if subtitle.ShowName != "Outlander" {
+		t.Errorf("Expected show name %q, got %q", "Outlander", subtitle.ShowName)
 	}
 	if subtitle.Season != 7 || subtitle.Episode != 16 {
 		t.Errorf("Expected season 7 episode 16, got %d %d", subtitle.Season, subtitle.Episode)
@@ -106,22 +96,21 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
-	htmlContent := `
-		<html>
-		<body>
-			<table class="result">
-				<tr>
-					<td>cat</td>
-					<td>Magyar</td>
-					<td>- Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)</td>
-					<td>gricsi</td>
-					<td>2024-09-14</td>
-					<td><a href="/index.php?action=letolt&fnev=billy.s02.zip&felirat=1726325505">dl</a></td>
-				</tr>
-			</table>
-		</body>
-		</html>
-	`
+	// Generate proper HTML for a season pack
+	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+		{
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Billy the Kid (11. évad)",
+			ErdetiTitle:      "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			Uploader:         "gricsi",
+			UploaderBold:     false,
+			UploadDate:       "2024-09-14",
+			DownloadAction:   "letolt",
+			DownloadFilename: "billy.s02.zip",
+			SubtitleID:       "1726325505",
+		},
+	})
 
 	parser := NewSubtitleParser("https://feliratok.eu")
 	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
@@ -160,17 +149,21 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
-	htmlContent := `
-		<html>
-		<body>
-			<div class="pagination">
-				<span class="current">1</span>
-				<a href="/index.php?oldal=2">2</a>
-				<a href="/index.php?oldal=3">3</a>
-			</div>
-		</body>
-		</html>
-	`
+	// Generate proper HTML with oldal-based pagination
+	htmlContent := `<html>
+	<body>
+		<table width="100%" align="center" border="0" cellspacing="0" cellpadding="5" class="result">
+			<thead>
+				<tr height="30">
+					<th>Kategória</th><th>Nyelv</th><th>Címek</th><th>Feltöltő</th><th>Idő</th><th>Letöltés</th>
+				</tr>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+		` + GeneratePaginationHTML(1, 3, true) + `
+	</body>
+	</html>`
 
 	parser := NewSubtitleParser("https://feliratok.eu")
 	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
@@ -184,22 +177,21 @@ func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
-	htmlContent := `
-		<html>
-		<body>
-			<table class="result">
-				<tr>
-					<td>cat</td>
-					<td>Angol</td>
-					<td>Outlander - 7x15 - Written in My Own Heart's Blood (AMZN.WEB-DL.720p-NTb)</td>
-					<td>J1GG4</td>
-					<td>2025-01-17</td>
-					<td><a href="/index.php?action=letolt&fnev=outlander.s07e15.srt&felirat=1737139076">dl</a></td>
-				</tr>
-			</table>
-		</body>
-		</html>
-	`
+	// Generate proper HTML content
+	htmlContent := GenerateSubtitleTableHTML([]SubtitleRowOptions{
+		{
+			Language:         "Angol",
+			FlagImage:        "uk.gif",
+			MagyarTitle:      "Outlander - Az idegen - 7x15",
+			ErdetiTitle:      "Outlander - 7x15 - Written in My Own Heart's Blood (AMZN.WEB-DL.720p-NTb)",
+			Uploader:         "J1GG4",
+			UploaderBold:     false,
+			UploadDate:       "2025-01-17",
+			DownloadAction:   "letolt",
+			DownloadFilename: "outlander.s07e15.srt",
+			SubtitleID:       "1737139076",
+		},
+	})
 
 	parser := NewSubtitleParser("https://feliratok.eu")
 	subtitles, err := parser.ParseHtml(strings.NewReader(htmlContent))
