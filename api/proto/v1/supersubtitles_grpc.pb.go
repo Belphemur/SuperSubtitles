@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v6.33.1
-// source: api/proto/v1/supersubtitles.proto
+// source: supersubtitles.proto
 
 package v1
 
@@ -323,5 +323,5 @@ var SuperSubtitlesService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/v1/supersubtitles.proto",
+	Metadata: "supersubtitles.proto",
 }

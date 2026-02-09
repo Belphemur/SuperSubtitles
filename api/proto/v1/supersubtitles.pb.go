@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.1
-// source: api/proto/v1/supersubtitles.proto
+// source: supersubtitles.proto
 
 package v1
 
@@ -65,11 +65,11 @@ func (x Quality) String() string {
 }
 
 func (Quality) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_v1_supersubtitles_proto_enumTypes[0].Descriptor()
+	return file_supersubtitles_proto_enumTypes[0].Descriptor()
 }
 
 func (Quality) Type() protoreflect.EnumType {
-	return &file_api_proto_v1_supersubtitles_proto_enumTypes[0]
+	return &file_supersubtitles_proto_enumTypes[0]
 }
 
 func (x Quality) Number() protoreflect.EnumNumber {
@@ -78,7 +78,7 @@ func (x Quality) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Quality.Descriptor instead.
 func (Quality) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{0}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{0}
 }
 
 // Show represents a TV show with basic information
@@ -94,7 +94,7 @@ type Show struct {
 
 func (x *Show) Reset() {
 	*x = Show{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[0]
+	mi := &file_supersubtitles_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -106,7 +106,7 @@ func (x *Show) String() string {
 func (*Show) ProtoMessage() {}
 
 func (x *Show) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[0]
+	mi := &file_supersubtitles_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -119,7 +119,7 @@ func (x *Show) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Show.ProtoReflect.Descriptor instead.
 func (*Show) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{0}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Show) GetName() string {
@@ -163,7 +163,7 @@ type ThirdPartyIds struct {
 
 func (x *ThirdPartyIds) Reset() {
 	*x = ThirdPartyIds{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[1]
+	mi := &file_supersubtitles_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *ThirdPartyIds) String() string {
 func (*ThirdPartyIds) ProtoMessage() {}
 
 func (x *ThirdPartyIds) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[1]
+	mi := &file_supersubtitles_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *ThirdPartyIds) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThirdPartyIds.ProtoReflect.Descriptor instead.
 func (*ThirdPartyIds) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{1}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ThirdPartyIds) GetImdbId() string {
@@ -243,7 +243,7 @@ type Subtitle struct {
 
 func (x *Subtitle) Reset() {
 	*x = Subtitle{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[2]
+	mi := &file_supersubtitles_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +255,7 @@ func (x *Subtitle) String() string {
 func (*Subtitle) ProtoMessage() {}
 
 func (x *Subtitle) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[2]
+	mi := &file_supersubtitles_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +268,7 @@ func (x *Subtitle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subtitle.ProtoReflect.Descriptor instead.
 func (*Subtitle) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{2}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Subtitle) GetId() int32 {
@@ -388,7 +388,7 @@ type SubtitleCollection struct {
 
 func (x *SubtitleCollection) Reset() {
 	*x = SubtitleCollection{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[3]
+	mi := &file_supersubtitles_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -400,7 +400,7 @@ func (x *SubtitleCollection) String() string {
 func (*SubtitleCollection) ProtoMessage() {}
 
 func (x *SubtitleCollection) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[3]
+	mi := &file_supersubtitles_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -413,7 +413,7 @@ func (x *SubtitleCollection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubtitleCollection.ProtoReflect.Descriptor instead.
 func (*SubtitleCollection) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{3}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SubtitleCollection) GetShowName() string {
@@ -449,7 +449,7 @@ type ShowSubtitles struct {
 
 func (x *ShowSubtitles) Reset() {
 	*x = ShowSubtitles{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[4]
+	mi := &file_supersubtitles_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +461,7 @@ func (x *ShowSubtitles) String() string {
 func (*ShowSubtitles) ProtoMessage() {}
 
 func (x *ShowSubtitles) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[4]
+	mi := &file_supersubtitles_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +474,7 @@ func (x *ShowSubtitles) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShowSubtitles.ProtoReflect.Descriptor instead.
 func (*ShowSubtitles) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{4}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ShowSubtitles) GetShow() *Show {
@@ -507,7 +507,7 @@ type GetShowListRequest struct {
 
 func (x *GetShowListRequest) Reset() {
 	*x = GetShowListRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[5]
+	mi := &file_supersubtitles_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +519,7 @@ func (x *GetShowListRequest) String() string {
 func (*GetShowListRequest) ProtoMessage() {}
 
 func (x *GetShowListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[5]
+	mi := &file_supersubtitles_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +532,7 @@ func (x *GetShowListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShowListRequest.ProtoReflect.Descriptor instead.
 func (*GetShowListRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{5}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{5}
 }
 
 // GetShowListResponse contains the list of shows
@@ -545,7 +545,7 @@ type GetShowListResponse struct {
 
 func (x *GetShowListResponse) Reset() {
 	*x = GetShowListResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[6]
+	mi := &file_supersubtitles_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -557,7 +557,7 @@ func (x *GetShowListResponse) String() string {
 func (*GetShowListResponse) ProtoMessage() {}
 
 func (x *GetShowListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[6]
+	mi := &file_supersubtitles_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -570,7 +570,7 @@ func (x *GetShowListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShowListResponse.ProtoReflect.Descriptor instead.
 func (*GetShowListResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{6}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetShowListResponse) GetShows() []*Show {
@@ -590,7 +590,7 @@ type GetSubtitlesRequest struct {
 
 func (x *GetSubtitlesRequest) Reset() {
 	*x = GetSubtitlesRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[7]
+	mi := &file_supersubtitles_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -602,7 +602,7 @@ func (x *GetSubtitlesRequest) String() string {
 func (*GetSubtitlesRequest) ProtoMessage() {}
 
 func (x *GetSubtitlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[7]
+	mi := &file_supersubtitles_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -615,7 +615,7 @@ func (x *GetSubtitlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubtitlesRequest.ProtoReflect.Descriptor instead.
 func (*GetSubtitlesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{7}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetSubtitlesRequest) GetShowId() int32 {
@@ -635,7 +635,7 @@ type GetSubtitlesResponse struct {
 
 func (x *GetSubtitlesResponse) Reset() {
 	*x = GetSubtitlesResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[8]
+	mi := &file_supersubtitles_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -647,7 +647,7 @@ func (x *GetSubtitlesResponse) String() string {
 func (*GetSubtitlesResponse) ProtoMessage() {}
 
 func (x *GetSubtitlesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[8]
+	mi := &file_supersubtitles_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -660,7 +660,7 @@ func (x *GetSubtitlesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSubtitlesResponse.ProtoReflect.Descriptor instead.
 func (*GetSubtitlesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{8}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetSubtitlesResponse) GetSubtitleCollection() *SubtitleCollection {
@@ -680,7 +680,7 @@ type GetShowSubtitlesRequest struct {
 
 func (x *GetShowSubtitlesRequest) Reset() {
 	*x = GetShowSubtitlesRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[9]
+	mi := &file_supersubtitles_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -692,7 +692,7 @@ func (x *GetShowSubtitlesRequest) String() string {
 func (*GetShowSubtitlesRequest) ProtoMessage() {}
 
 func (x *GetShowSubtitlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[9]
+	mi := &file_supersubtitles_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -705,7 +705,7 @@ func (x *GetShowSubtitlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShowSubtitlesRequest.ProtoReflect.Descriptor instead.
 func (*GetShowSubtitlesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{9}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetShowSubtitlesRequest) GetShows() []*Show {
@@ -725,7 +725,7 @@ type GetShowSubtitlesResponse struct {
 
 func (x *GetShowSubtitlesResponse) Reset() {
 	*x = GetShowSubtitlesResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[10]
+	mi := &file_supersubtitles_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -737,7 +737,7 @@ func (x *GetShowSubtitlesResponse) String() string {
 func (*GetShowSubtitlesResponse) ProtoMessage() {}
 
 func (x *GetShowSubtitlesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[10]
+	mi := &file_supersubtitles_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -750,7 +750,7 @@ func (x *GetShowSubtitlesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShowSubtitlesResponse.ProtoReflect.Descriptor instead.
 func (*GetShowSubtitlesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{10}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetShowSubtitlesResponse) GetShowSubtitles() []*ShowSubtitles {
@@ -770,7 +770,7 @@ type CheckForUpdatesRequest struct {
 
 func (x *CheckForUpdatesRequest) Reset() {
 	*x = CheckForUpdatesRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[11]
+	mi := &file_supersubtitles_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +782,7 @@ func (x *CheckForUpdatesRequest) String() string {
 func (*CheckForUpdatesRequest) ProtoMessage() {}
 
 func (x *CheckForUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[11]
+	mi := &file_supersubtitles_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +795,7 @@ func (x *CheckForUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckForUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*CheckForUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{11}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CheckForUpdatesRequest) GetContentId() string {
@@ -817,7 +817,7 @@ type CheckForUpdatesResponse struct {
 
 func (x *CheckForUpdatesResponse) Reset() {
 	*x = CheckForUpdatesResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[12]
+	mi := &file_supersubtitles_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -829,7 +829,7 @@ func (x *CheckForUpdatesResponse) String() string {
 func (*CheckForUpdatesResponse) ProtoMessage() {}
 
 func (x *CheckForUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[12]
+	mi := &file_supersubtitles_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -842,7 +842,7 @@ func (x *CheckForUpdatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckForUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*CheckForUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{12}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CheckForUpdatesResponse) GetFilmCount() int32 {
@@ -878,7 +878,7 @@ type DownloadSubtitleRequest struct {
 
 func (x *DownloadSubtitleRequest) Reset() {
 	*x = DownloadSubtitleRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[13]
+	mi := &file_supersubtitles_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +890,7 @@ func (x *DownloadSubtitleRequest) String() string {
 func (*DownloadSubtitleRequest) ProtoMessage() {}
 
 func (x *DownloadSubtitleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[13]
+	mi := &file_supersubtitles_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +903,7 @@ func (x *DownloadSubtitleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadSubtitleRequest.ProtoReflect.Descriptor instead.
 func (*DownloadSubtitleRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{13}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DownloadSubtitleRequest) GetDownloadUrl() string {
@@ -939,7 +939,7 @@ type DownloadSubtitleResponse struct {
 
 func (x *DownloadSubtitleResponse) Reset() {
 	*x = DownloadSubtitleResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[14]
+	mi := &file_supersubtitles_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -951,7 +951,7 @@ func (x *DownloadSubtitleResponse) String() string {
 func (*DownloadSubtitleResponse) ProtoMessage() {}
 
 func (x *DownloadSubtitleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[14]
+	mi := &file_supersubtitles_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -964,7 +964,7 @@ func (x *DownloadSubtitleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownloadSubtitleResponse.ProtoReflect.Descriptor instead.
 func (*DownloadSubtitleResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{14}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DownloadSubtitleResponse) GetFilename() string {
@@ -998,7 +998,7 @@ type GetRecentSubtitlesRequest struct {
 
 func (x *GetRecentSubtitlesRequest) Reset() {
 	*x = GetRecentSubtitlesRequest{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[15]
+	mi := &file_supersubtitles_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1010,7 +1010,7 @@ func (x *GetRecentSubtitlesRequest) String() string {
 func (*GetRecentSubtitlesRequest) ProtoMessage() {}
 
 func (x *GetRecentSubtitlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[15]
+	mi := &file_supersubtitles_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1023,7 +1023,7 @@ func (x *GetRecentSubtitlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecentSubtitlesRequest.ProtoReflect.Descriptor instead.
 func (*GetRecentSubtitlesRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{15}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetRecentSubtitlesRequest) GetSinceId() int32 {
@@ -1043,7 +1043,7 @@ type GetRecentSubtitlesResponse struct {
 
 func (x *GetRecentSubtitlesResponse) Reset() {
 	*x = GetRecentSubtitlesResponse{}
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[16]
+	mi := &file_supersubtitles_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1055,7 +1055,7 @@ func (x *GetRecentSubtitlesResponse) String() string {
 func (*GetRecentSubtitlesResponse) ProtoMessage() {}
 
 func (x *GetRecentSubtitlesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_v1_supersubtitles_proto_msgTypes[16]
+	mi := &file_supersubtitles_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1068,7 +1068,7 @@ func (x *GetRecentSubtitlesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRecentSubtitlesResponse.ProtoReflect.Descriptor instead.
 func (*GetRecentSubtitlesResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_v1_supersubtitles_proto_rawDescGZIP(), []int{16}
+	return file_supersubtitles_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetRecentSubtitlesResponse) GetShowSubtitles() []*ShowSubtitles {
@@ -1078,11 +1078,11 @@ func (x *GetRecentSubtitlesResponse) GetShowSubtitles() []*ShowSubtitles {
 	return nil
 }
 
-var File_api_proto_v1_supersubtitles_proto protoreflect.FileDescriptor
+var File_supersubtitles_proto protoreflect.FileDescriptor
 
-const file_api_proto_v1_supersubtitles_proto_rawDesc = "" +
+const file_supersubtitles_proto_rawDesc = "" +
 	"\n" +
-	"!api/proto/v1/supersubtitles.proto\x12\x11supersubtitles.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"[\n" +
+	"\x14supersubtitles.proto\x12\x11supersubtitles.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"[\n" +
 	"\x04Show\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\x05R\x02id\x12\x12\n" +
@@ -1169,20 +1169,20 @@ const file_api_proto_v1_supersubtitles_proto_rawDesc = "" +
 	"\x12GetRecentSubtitles\x12,.supersubtitles.v1.GetRecentSubtitlesRequest\x1a-.supersubtitles.v1.GetRecentSubtitlesResponseB5Z3github.com/Belphemur/SuperSubtitles/api/proto/v1;v1b\x06proto3"
 
 var (
-	file_api_proto_v1_supersubtitles_proto_rawDescOnce sync.Once
-	file_api_proto_v1_supersubtitles_proto_rawDescData []byte
+	file_supersubtitles_proto_rawDescOnce sync.Once
+	file_supersubtitles_proto_rawDescData []byte
 )
 
-func file_api_proto_v1_supersubtitles_proto_rawDescGZIP() []byte {
-	file_api_proto_v1_supersubtitles_proto_rawDescOnce.Do(func() {
-		file_api_proto_v1_supersubtitles_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_v1_supersubtitles_proto_rawDesc), len(file_api_proto_v1_supersubtitles_proto_rawDesc)))
+func file_supersubtitles_proto_rawDescGZIP() []byte {
+	file_supersubtitles_proto_rawDescOnce.Do(func() {
+		file_supersubtitles_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_supersubtitles_proto_rawDesc), len(file_supersubtitles_proto_rawDesc)))
 	})
-	return file_api_proto_v1_supersubtitles_proto_rawDescData
+	return file_supersubtitles_proto_rawDescData
 }
 
-var file_api_proto_v1_supersubtitles_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_proto_v1_supersubtitles_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
-var file_api_proto_v1_supersubtitles_proto_goTypes = []any{
+var file_supersubtitles_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_supersubtitles_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_supersubtitles_proto_goTypes = []any{
 	(Quality)(0),                       // 0: supersubtitles.v1.Quality
 	(*Show)(nil),                       // 1: supersubtitles.v1.Show
 	(*ThirdPartyIds)(nil),              // 2: supersubtitles.v1.ThirdPartyIds
@@ -1203,7 +1203,7 @@ var file_api_proto_v1_supersubtitles_proto_goTypes = []any{
 	(*GetRecentSubtitlesResponse)(nil), // 17: supersubtitles.v1.GetRecentSubtitlesResponse
 	(*timestamppb.Timestamp)(nil),      // 18: google.protobuf.Timestamp
 }
-var file_api_proto_v1_supersubtitles_proto_depIdxs = []int32{
+var file_supersubtitles_proto_depIdxs = []int32{
 	18, // 0: supersubtitles.v1.Subtitle.uploaded_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: supersubtitles.v1.Subtitle.qualities:type_name -> supersubtitles.v1.Quality
 	3,  // 2: supersubtitles.v1.SubtitleCollection.subtitles:type_name -> supersubtitles.v1.Subtitle
@@ -1234,27 +1234,27 @@ var file_api_proto_v1_supersubtitles_proto_depIdxs = []int32{
 	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_v1_supersubtitles_proto_init() }
-func file_api_proto_v1_supersubtitles_proto_init() {
-	if File_api_proto_v1_supersubtitles_proto != nil {
+func init() { file_supersubtitles_proto_init() }
+func file_supersubtitles_proto_init() {
+	if File_supersubtitles_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_v1_supersubtitles_proto_rawDesc), len(file_api_proto_v1_supersubtitles_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_supersubtitles_proto_rawDesc), len(file_supersubtitles_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_v1_supersubtitles_proto_goTypes,
-		DependencyIndexes: file_api_proto_v1_supersubtitles_proto_depIdxs,
-		EnumInfos:         file_api_proto_v1_supersubtitles_proto_enumTypes,
-		MessageInfos:      file_api_proto_v1_supersubtitles_proto_msgTypes,
+		GoTypes:           file_supersubtitles_proto_goTypes,
+		DependencyIndexes: file_supersubtitles_proto_depIdxs,
+		EnumInfos:         file_supersubtitles_proto_enumTypes,
+		MessageInfos:      file_supersubtitles_proto_msgTypes,
 	}.Build()
-	File_api_proto_v1_supersubtitles_proto = out.File
-	file_api_proto_v1_supersubtitles_proto_goTypes = nil
-	file_api_proto_v1_supersubtitles_proto_depIdxs = nil
+	File_supersubtitles_proto = out.File
+	file_supersubtitles_proto_goTypes = nil
+	file_supersubtitles_proto_depIdxs = nil
 }
