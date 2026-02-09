@@ -1,11 +1,19 @@
 package main
 
 import (
-	"context"
-	"time"
+	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
+	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/client"
 	"github.com/Belphemur/SuperSubtitles/internal/config"
+	grpcserver "github.com/Belphemur/SuperSubtitles/internal/grpc"
 )
 
 func main() {
@@ -22,29 +30,38 @@ func main() {
 	// Create a client instance
 	httpClient := client.NewClient(cfg)
 
-	// Create a context with timeout for the request
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
+	// Create a gRPC server
+	grpcServer := grpc.NewServer()
 
-	// Fetch the list of shows
-	shows, err := httpClient.GetShowList(ctx)
+	// Register the SuperSubtitles service
+	pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClient))
+
+	// Register reflection service for tools like grpcurl
+	reflection.Register(grpcServer)
+
+	// Create a listener
+	address := fmt.Sprintf("%s:%d", cfg.Server.Address, cfg.Server.Port)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to fetch shows")
-		return
+		logger.Fatal().Err(err).Str("address", address).Msg("Failed to create listener")
 	}
 
-	logger.Info().Int("total_shows", len(shows)).Msg("Successfully fetched shows")
+	logger.Info().Str("address", address).Msg("Starting gRPC server")
 
-	// Log first few shows as examples
-	for i, show := range shows {
-		if i >= 5 { // Limit to first 5 shows
-			break
-		}
-		logger.Info().
-			Int("id", show.ID).
-			Str("name", show.Name).
-			Int("year", show.Year).
-			Str("image_url", show.ImageURL).
-			Msg("Show information")
+	// Handle graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigChan
+		logger.Info().Str("signal", sig.String()).Msg("Received shutdown signal")
+		grpcServer.GracefulStop()
+	}()
+
+	// Start serving
+	if err := grpcServer.Serve(listener); err != nil {
+		logger.Fatal().Err(err).Msg("Failed to serve gRPC")
 	}
+
+	logger.Info().Msg("Server stopped gracefully")
 }
