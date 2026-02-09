@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.0.2...v1.1.0) (2026-02-09)
+
+
+### Features
+
+* **client:** fetch subtitles via HTML pagination ([#11](https://github.com/Belphemur/SuperSubtitles/issues/11)) ([d7b8c78](https://github.com/Belphemur/SuperSubtitles/commit/d7b8c78d27573f405d5326a2f5ee3096a242e905))
+* configurable user agent ([aa8c800](https://github.com/Belphemur/SuperSubtitles/commit/aa8c800d7ddb1a200bc1b2d398ed33c038880f15))
+
 ## [1.0.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.0.1...v1.0.2) (2026-02-09)
 
 
