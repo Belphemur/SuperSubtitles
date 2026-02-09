@@ -94,7 +94,7 @@ func (p *ThirdPartyIdParser) extractIMDBIDFromURL(href string) (string, error) {
 	logger := config.GetLogger()
 
 	// IMDB URLs are like: http://www.imdb.com/title/tt14261112/
-	re := regexp.MustCompile(`imdb\.com/title/(tt\d+)/?`)
+	re := regexp.MustCompile(`^(?:https?://)?(?:www\.)?imdb\.com/title/(tt\d+)/?`)
 	matches := re.FindStringSubmatch(href)
 	if len(matches) < 2 {
 		logger.Debug().Str("href", href).Msg("No IMDB ID found in URL")
