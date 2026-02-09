@@ -30,14 +30,12 @@ type Subtitle struct {
 	Language      string    `json:"language"`
 	Season        int       `json:"season"`
 	Episode       int       `json:"episode"`
-	Filename      string    `json:"filename"`
 	DownloadURL   string    `json:"downloadUrl"`
 	Uploader      string    `json:"uploader"`
 	UploadedAt    time.Time `json:"uploadedAt"`
-	Quality       Quality   `json:"quality"`       // Video quality enum
+	Qualities     []Quality `json:"qualities"`     // All matching qualities
 	ReleaseGroups []string  `json:"releaseGroups"` // Multiple release groups (comma-separated in HTML)
 	Release       string    `json:"release"`       // Release info (formats, quality) from HTML
-	Source        string    `json:"source"`        // Original name from API
 	IsSeasonPack  bool      `json:"isSeasonPack"`
 }
 

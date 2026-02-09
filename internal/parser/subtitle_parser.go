@@ -137,8 +137,8 @@ func (p *SubtitleParser) extractSubtitleFromRow(row *goquery.Selection, tds *goq
 	// Parse description to extract show name, season, episode, and release info
 	showName, season, episode, releaseInfo, isSeasonPack := p.parseDescription(description)
 
-	// Extract quality and release groups from release info
-	quality, releaseGroups := p.parseReleaseInfo(releaseInfo)
+	// Extract qualities and release groups from release info
+	qualities, releaseGroups := p.parseReleaseInfo(releaseInfo)
 
 	// Extract uploader from third td
 	uploader := strings.TrimSpace(tds.Eq(2).Text())
@@ -160,7 +160,7 @@ func (p *SubtitleParser) extractSubtitleFromRow(row *goquery.Selection, tds *goq
 		DownloadURL:   downloadURL,
 		Uploader:      uploader,
 		UploadedAt:    uploadedAt,
-		Quality:       quality,
+		Qualities:     qualities,
 		ReleaseGroups: releaseGroups,
 		Release:       releaseInfo,
 		IsSeasonPack:  isSeasonPack,
@@ -253,20 +253,21 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 	return
 }
 
-// parseReleaseInfo extracts quality and multiple release groups from release info string
+// parseReleaseInfo extracts qualities and multiple release groups from release info string
 // Example: "AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab"
-func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (quality models.Quality, releaseGroups []string) {
+func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []models.Quality, releaseGroups []string) {
 	if releaseInfo == "" {
-		return models.QualityUnknown, nil
+		return nil, nil
 	}
 
 	releaseGroups = make([]string, 0)
-	quality = models.QualityUnknown
+	qualities = make([]models.Quality, 0)
+	seenQualities := make(map[models.Quality]struct{})
 
 	// Split by comma to get individual releases
 	releases := strings.Split(releaseInfo, ",")
 
-	for i, release := range releases {
+	for _, release := range releases {
 		release = strings.TrimSpace(release)
 		if release == "" {
 			continue
@@ -280,13 +281,18 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (quality models.Qu
 			}
 		}
 
-		// Detect quality from the first release only
-		if i == 0 {
-			quality = p.detectQuality(release)
+		// Detect quality from each release, keep unique qualities
+		detectedQuality := p.detectQuality(release)
+		if detectedQuality != models.QualityUnknown {
+			if _, exists := seenQualities[detectedQuality]; !exists {
+				qualities = append(qualities, detectedQuality)
+				seenQualities[detectedQuality] = struct{}{}
+			}
 		}
+
 	}
 
-	return quality, releaseGroups
+	return qualities, releaseGroups
 }
 
 // detectQuality detects video quality from a release string

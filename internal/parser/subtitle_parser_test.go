@@ -49,6 +49,12 @@ func TestSubtitleParser_ParseHtml_SingleSubtitle(t *testing.T) {
 	if !subtitle.UploadedAt.Equal(time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC)) {
 		t.Errorf("expected UploadedAt to be 2024-01-15, got %v", subtitle.UploadedAt)
 	}
+	if len(subtitle.Qualities) != 2 {
+		t.Fatalf("expected 2 qualities, got %d", len(subtitle.Qualities))
+	}
+	if subtitle.Qualities[0] != models.Quality720p || subtitle.Qualities[1] != models.Quality1080p {
+		t.Errorf("unexpected qualities: %v", subtitle.Qualities)
+	}
 }
 
 func TestSubtitleParser_ParseHtml_MultipleReleaseGroups(t *testing.T) {
@@ -94,8 +100,11 @@ func TestSubtitleParser_ParseHtml_MultipleReleaseGroups(t *testing.T) {
 		}
 	}
 
-	if subtitle.Quality != models.Quality720p {
-		t.Errorf("expected Quality to be Quality720p, got %v", subtitle.Quality)
+	if len(subtitle.Qualities) != 2 {
+		t.Fatalf("expected 2 qualities, got %d", len(subtitle.Qualities))
+	}
+	if subtitle.Qualities[0] != models.Quality720p || subtitle.Qualities[1] != models.Quality1080p {
+		t.Errorf("unexpected qualities: %v", subtitle.Qualities)
 	}
 }
 
@@ -140,20 +149,23 @@ func TestSubtitleParser_ParseHtml_SeasonPack(t *testing.T) {
 	if len(subtitle.ReleaseGroups) != 2 {
 		t.Fatalf("expected 2 release groups, got %d", len(subtitle.ReleaseGroups))
 	}
+	if len(subtitle.Qualities) != 2 {
+		t.Fatalf("expected 2 qualities, got %d", len(subtitle.Qualities))
+	}
 }
 
 func TestSubtitleParser_ParseHtml_QualityDetection(t *testing.T) {
 	tests := []struct {
-		releaseInfo string
-		expected    models.Quality
+		releaseInfo       string
+		expectedQualities []models.Quality
 	}{
-		{"2160p-GROUP", models.Quality2160p},
-		{"4K-HDR-GROUP", models.Quality2160p},
-		{"1080p-GROUP", models.Quality1080p},
-		{"720p-GROUP", models.Quality720p},
-		{"480p-GROUP", models.Quality480p},
-		{"360p-GROUP", models.Quality360p},
-		{"UNKNOWN-GROUP", models.QualityUnknown},
+		{"2160p-GROUP", []models.Quality{models.Quality2160p}},
+		{"4K-HDR-GROUP", []models.Quality{models.Quality2160p}},
+		{"1080p-GROUP", []models.Quality{models.Quality1080p}},
+		{"720p-GROUP", []models.Quality{models.Quality720p}},
+		{"480p-GROUP", []models.Quality{models.Quality480p}},
+		{"360p-GROUP", []models.Quality{models.Quality360p}},
+		{"UNKNOWN-GROUP", nil},
 	}
 
 	for _, tt := range tests {
@@ -184,8 +196,14 @@ func TestSubtitleParser_ParseHtml_QualityDetection(t *testing.T) {
 			t.Fatalf("no subtitles parsed for %q", tt.releaseInfo)
 		}
 
-		if subtitles[0].Quality != tt.expected {
-			t.Errorf("for %q: expected Quality %v, got %v", tt.releaseInfo, tt.expected, subtitles[0].Quality)
+		if len(subtitles[0].Qualities) != len(tt.expectedQualities) {
+			t.Errorf("for %q: expected %d qualities, got %d", tt.releaseInfo, len(tt.expectedQualities), len(subtitles[0].Qualities))
+			continue
+		}
+		for i, expectedQuality := range tt.expectedQualities {
+			if subtitles[0].Qualities[i] != expectedQuality {
+				t.Errorf("for %q: expected qualities[%d] %v, got %v", tt.releaseInfo, i, expectedQuality, subtitles[0].Qualities[i])
+			}
 		}
 	}
 }
@@ -371,33 +389,33 @@ func TestSubtitleParser_ParseReleaseInfo_MultipleGroups(t *testing.T) {
 	parser := NewSubtitleParser("https://example.com")
 
 	tests := []struct {
-		releaseInfo     string
-		expectedCount   int
-		expectedFirst   string
-		expectedQuality models.Quality
+		releaseInfo       string
+		expectedCount     int
+		expectedFirst     string
+		expectedQualities []models.Quality
 	}{
 		{
 			"AMZN.WEB-DL.720p-FLUX",
 			1,
 			"FLUX",
-			models.Quality720p,
+			[]models.Quality{models.Quality720p},
 		},
 		{
 			"WEB.720p-SuccessfulCrab, AMZN.WEB-DL.1080p-PREMIUM",
 			2,
 			"SuccessfulCrab",
-			models.Quality720p,
+			[]models.Quality{models.Quality720p, models.Quality1080p},
 		},
 		{
 			"NF.1080p-EDITH, AMZN.WebDL.720p-FLUX, WEB.720p-CROWN",
 			3,
 			"EDITH",
-			models.Quality1080p,
+			[]models.Quality{models.Quality1080p, models.Quality720p},
 		},
 	}
 
 	for _, tt := range tests {
-		quality, groups := parser.parseReleaseInfo(tt.releaseInfo)
+		qualities, groups := parser.parseReleaseInfo(tt.releaseInfo)
 
 		if len(groups) != tt.expectedCount {
 			t.Errorf("release info %q: expected %d groups, got %d", tt.releaseInfo, tt.expectedCount, len(groups))
@@ -407,8 +425,14 @@ func TestSubtitleParser_ParseReleaseInfo_MultipleGroups(t *testing.T) {
 			t.Errorf("release info %q: expected first group %q, got %q", tt.releaseInfo, tt.expectedFirst, groups[0])
 		}
 
-		if quality != tt.expectedQuality {
-			t.Errorf("release info %q: expected quality %v, got %v", tt.releaseInfo, tt.expectedQuality, quality)
+		if len(qualities) != len(tt.expectedQualities) {
+			t.Errorf("release info %q: expected %d qualities, got %d", tt.releaseInfo, len(tt.expectedQualities), len(qualities))
+			continue
+		}
+		for i, expectedQuality := range tt.expectedQualities {
+			if qualities[i] != expectedQuality {
+				t.Errorf("release info %q: expected qualities[%d] %v, got %v", tt.releaseInfo, i, expectedQuality, qualities[i])
+			}
 		}
 	}
 }

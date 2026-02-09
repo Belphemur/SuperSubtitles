@@ -135,9 +135,6 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 		if subtitle.Language == "" {
 			t.Errorf("Subtitle %d: Language is empty", i)
 		}
-		if subtitle.Filename == "" {
-			t.Errorf("Subtitle %d: Filename is empty", i)
-		}
 		if subtitle.DownloadURL == "" {
 			t.Errorf("Subtitle %d: DownloadURL is empty", i)
 		}
@@ -147,8 +144,8 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 
 		// Log first few subtitles for debugging
 		if i < 3 {
-			t.Logf("Subtitle %d: ID=%s, Language=%s, Quality=%s, Season=%d, Episode=%d, IsSeasonPack=%t",
-				i, subtitle.ID, subtitle.Language, subtitle.Quality.String(),
+			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d, IsSeasonPack=%t",
+				i, subtitle.ID, subtitle.Language, subtitle.Qualities,
 				subtitle.Season, subtitle.Episode, subtitle.IsSeasonPack)
 		}
 	}
@@ -275,8 +272,8 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 
 		// Log first few subtitles for debugging
 		if i < 3 {
-			t.Logf("Subtitle %d: ID=%s, Language=%s, Quality=%s, Season=%d, Episode=%d",
-				i, subtitle.ID, subtitle.Language, subtitle.Quality.String(),
+			t.Logf("Subtitle %d: ID=%s, Language=%s, Qualities=%v, Season=%d, Episode=%d",
+				i, subtitle.ID, subtitle.Language, subtitle.Qualities,
 				subtitle.Season, subtitle.Episode)
 		}
 

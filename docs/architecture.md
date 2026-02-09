@@ -5,7 +5,7 @@
 SuperSubtitles is a Go proxy service that interfaces with [feliratok.eu](https://feliratok.eu), a Hungarian subtitle repository. It:
 
 1. **Scrapes TV show listings** from multiple HTML endpoints (pending, in-progress, and not-fully-translated shows) in parallel, deduplicating results by show ID.
-2. **Fetches subtitle data** for individual shows by scraping HTML pages with automatic pagination support (2 pages fetched in parallel), returning language, quality, season/episode info, uploader, and download URLs.
+2. **Fetches subtitle data** for individual shows by scraping HTML pages with automatic pagination support (2 pages fetched in parallel), returning language, qualities, season/episode info, uploader, and download URLs.
 3. **Extracts third-party IDs** (IMDB, TVDB, TVMaze, Trakt) by scraping show detail pages.
 4. **Normalizes all data** — converting Hungarian language names to ISO codes, parsing quality strings (360p–2160p), building download URLs, and converting timestamps.
 5. **Checks for updates** since a given content ID via the recheck endpoint.
@@ -99,7 +99,7 @@ The application is currently a CLI tool (`cmd/proxy/main.go`) that demonstrates 
 2. Parse HTML using `SubtitleParser.ParseHtmlWithPagination`:
    - Extracts subtitles from 5-column table (Language | Description | Uploader | Date | Download)
    - Parses description for season/episode/release info
-   - Detects quality from release string
+   - Detects all qualities from release string
    - Splits comma-separated release groups
    - Detects season packs by looking for special naming patterns
    - Extracts pagination info from `oldal=<page>` parameters
