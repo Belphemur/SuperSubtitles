@@ -434,7 +434,6 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
-		return
 	}
 
 	// Test the counts
@@ -486,7 +485,6 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
-		return
 	}
 
 	// Test the counts
@@ -645,7 +643,6 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
-		return
 	}
 
 	if string(result.Content) != subtitleContent {
@@ -736,7 +733,6 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
-		return
 	}
 
 	// Should have 9 total subtitles (3 per page × 3 pages)
@@ -801,7 +797,6 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
-		return
 	}
 
 	if result.Total != 1 {
@@ -839,8 +834,8 @@ func TestClient_GetSubtitles_NetworkError(t *testing.T) {
 	}
 }
 
-func TestClient_getFirstPageSubtitles(t *testing.T) {
-	// Test that getFirstPageSubtitles only fetches the first page and ignores pagination
+func TestClient_fetchFirstPageSubtitles(t *testing.T) {
+	// Test that fetchFirstPageSubtitles only fetches the first page and ignores pagination
 	pageHTML := testutil.GenerateSubtitleTableHTMLWithPagination(
 		[]testutil.SubtitleRowOptions{
 			{
@@ -903,7 +898,7 @@ func TestClient_getFirstPageSubtitles(t *testing.T) {
 	clientImpl := NewClient(testConfig).(*client)
 	ctx := context.Background()
 
-	result, err := clientImpl.getFirstPageSubtitles(ctx, 8888)
+	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 8888)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -911,16 +906,15 @@ func TestClient_getFirstPageSubtitles(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
-		return
 	}
 
 	// Should have exactly 2 subtitles (only from first page)
 	if result.Total != 2 {
-		t.Errorf("Expected 2 subtitles, got %d", result.Total)
+		t.Fatalf("Expected 2 subtitles, got %d", result.Total)
 	}
 
 	if len(result.Subtitles) != 2 {
-		t.Errorf("Expected 2 subtitles in array, got %d", len(result.Subtitles))
+		t.Fatalf("Expected 2 subtitles in array, got %d", len(result.Subtitles))
 	}
 
 	// Should have made exactly 1 request (only first page)
@@ -937,7 +931,7 @@ func TestClient_getFirstPageSubtitles(t *testing.T) {
 	}
 }
 
-func TestClient_getFirstPageSubtitles_Error(t *testing.T) {
+func TestClient_fetchFirstPageSubtitles_Error(t *testing.T) {
 	// Test error handling for network failure
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -952,7 +946,7 @@ func TestClient_getFirstPageSubtitles_Error(t *testing.T) {
 	clientImpl := NewClient(testConfig).(*client)
 	ctx := context.Background()
 
-	result, err := clientImpl.getFirstPageSubtitles(ctx, 9999)
+	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 9999)
 
 	if err == nil {
 		t.Fatal("Expected error, got nil")
@@ -963,7 +957,7 @@ func TestClient_getFirstPageSubtitles_Error(t *testing.T) {
 	}
 }
 
-func TestClient_getFirstPageSubtitles_EmptyPage(t *testing.T) {
+func TestClient_fetchFirstPageSubtitles_EmptyPage(t *testing.T) {
 	// Test with an empty page (no subtitles)
 	emptyPageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{})
 
@@ -986,7 +980,7 @@ func TestClient_getFirstPageSubtitles_EmptyPage(t *testing.T) {
 	clientImpl := NewClient(testConfig).(*client)
 	ctx := context.Background()
 
-	result, err := clientImpl.getFirstPageSubtitles(ctx, 7777)
+	result, err := clientImpl.fetchFirstPageSubtitles(ctx, 7777)
 
 	if err != nil {
 		t.Fatalf("Expected no error for empty page, got: %v", err)
