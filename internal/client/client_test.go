@@ -11,6 +11,7 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestClient_GetShowList(t *testing.T) {
@@ -306,20 +307,21 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
 			// Subtitles request - HTML format
-			htmlResponse := `
-			<html><body>
-			<table><tbody>
-			<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
-			<tr>
-				<td>cat</td>
-				<td>Angol</td>
-				<td><a href="/subtitle.php?feliratid=1435431909">Test Show - 1x1 (1080p-RelGroup)</a></td>
-				<td>TestUser</td>
-				<td>2025-02-08</td>
-				<td><a href="/download?id=1435431909">Download</a></td>
-			</tr>
-			</tbody></table>
-			</body></html>`
+			htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+				{
+					ShowID:           2967,
+					Language:         "Angol",
+					FlagImage:        "uk.gif",
+					MagyarTitle:      "Test Show - 1x1",
+					EredetiTitle:     "Test Show - 1x1 - Episode Title (1080p-RelGroup)",
+					Uploader:         "TestUser",
+					UploaderBold:     false,
+					UploadDate:       "2025-02-08",
+					DownloadAction:   "letolt",
+					DownloadFilename: "test.show.s01e01.srt",
+					SubtitleID:       "1435431909",
+				},
+			})
 			w.Header().Set("Content-Type", "text/html")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(htmlResponse))
@@ -432,6 +434,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -483,6 +486,7 @@ func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -534,6 +538,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 	// Test that we got the expected result
 	if result == nil {
 		t.Fatal("Expected update check result, got nil")
+		return
 	}
 
 	// Test the counts
@@ -640,6 +645,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if string(result.Content) != subtitleContent {
@@ -653,33 +659,26 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 	// Create test HTML for 3 pages with pagination links
 	pageHTML := func(pageNum int, totalPages int) string {
-		subtitleRows := ""
+		var rows []testutil.SubtitleRowOptions
 		for i := 1; i <= 3; i++ {
-			subtitleID := pageNum*100 + i
-			subtitleRows += `
-		<tr>
-			<td>cat</td>
-			<td>Magyar</td>
-			<td><a href="/subtitle.php?feliratid=123">Stranger Things S01E0` + strconv.Itoa(i) + ` - 1080p-RelGroup</a></td>
-			<td>Uploader` + strconv.Itoa(pageNum) + `</td>
-			<td>2025-02-08</td>
-			<td><a href="/download?id=` + strconv.Itoa(subtitleID) + `">Download</a></td>
-		</tr>`
+			subtitleID := strconv.Itoa(pageNum*100 + i)
+			rows = append(rows, testutil.SubtitleRowOptions{
+				ShowID:           3217,
+				Language:         "Magyar",
+				FlagImage:        "hungary.gif",
+				MagyarTitle:      "Stranger Things S01E0" + strconv.Itoa(i),
+				EredetiTitle:     "Stranger Things S01E0" + strconv.Itoa(i) + " - Episode Title (1080p-RelGroup)",
+				Uploader:         "Uploader" + strconv.Itoa(pageNum),
+				UploaderBold:     false,
+				UploadDate:       "2025-02-08",
+				DownloadAction:   "letolt",
+				DownloadFilename: "stranger.things.s01e0" + strconv.Itoa(i) + ".srt",
+				SubtitleID:       subtitleID,
+			})
 		}
 
-		paginationHTML := ""
-		for p := 1; p <= totalPages; p++ {
-			paginationHTML += `<a href="index.php?sid=3217&oldal=` + strconv.Itoa(p) + `">` + strconv.Itoa(p) + `</a> `
-		}
-
-		return `
-	<html><body>
-	<table><tbody>
-	<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
-	` + subtitleRows + `
-	</tbody></table>
-	<div class="pagination">` + paginationHTML + `</div>
-	</body></html>`
+		// Use the dedicated function that generates HTML with pagination
+		return testutil.GenerateSubtitleTableHTMLWithPagination(rows, pageNum, totalPages, true)
 	}
 
 	requestCount := 0
@@ -737,6 +736,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	// Should have 9 total subtitles (3 per page × 3 pages)
@@ -758,20 +758,21 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 
 func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 	// Test with single page (no pagination)
-	singlePageHTML := `
-	<html><body>
-	<table><tbody>
-	<tr><td>Kategoria</td><td>Language</td><td>Description</td><td>Uploader</td><td>Date</td><td>Download</td></tr>
-	<tr>
-		<td>cat</td>
-		<td>Magyar</td>
-		<td><a href="/subtitle.php?feliratid=1">Game of Thrones S01E01 - 1080p-Group</a></td>
-		<td>UploaderA</td>
-		<td>2025-02-08</td>
-		<td><a href="/download?id=1">Download</a></td>
-	</tr>
-	</tbody></table>
-	</body></html>`
+	singlePageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           1234,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Game of Thrones - 1x1",
+			EredetiTitle:     "Game of Thrones S01E01 - 1080p-Group",
+			Uploader:         "UploaderA",
+			UploaderBold:     false,
+			UploadDate:       "2025-02-08",
+			DownloadAction:   "letolt",
+			DownloadFilename: "got.s01e01.srt",
+			SubtitleID:       "1",
+		},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=1234" {
@@ -800,6 +801,7 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 
 	if result == nil {
 		t.Fatal("Expected result, got nil")
+		return
 	}
 
 	if result.Total != 1 {

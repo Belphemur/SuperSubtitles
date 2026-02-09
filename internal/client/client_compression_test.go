@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/zstd"
@@ -190,23 +191,21 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithGzipCompression tests that GetSubtitles works with gzip compression
 func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
-	htmlResponse := `<html><body>
-<table><tbody>
-<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
-<tr>
-	<td>cat</td>
-	<td>Magyar</td>
-	<td>
-		<a href="/subtitle.php?feliratid=12345">
-		Billy the Kid - 3x07 - The Last Buffalo (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
-		</a>
-	</td>
-	<td>gricsi</td>
-	<td>2026-01-31</td>
-	<td><a href="/download?file=12345">Letöltés</a></td>
-</tr>
-</tbody></table>
-</body></html>`
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           2967,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Billy the Kid - 3x07",
+			EredetiTitle:     "Billy the Kid - 3x07 - The Last Buffalo (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			Uploader:         "gricsi",
+			UploaderBold:     false,
+			UploadDate:       "2026-01-31",
+			DownloadAction:   "letolt",
+			DownloadFilename: "billy.the.kid.s03e07.srt",
+			SubtitleID:       "12345",
+		},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
@@ -255,23 +254,21 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithBrotliCompression tests that GetSubtitles works with brotli compression
 func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
-	htmlResponse := `<html><body>
-<table><tbody>
-<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
-<tr>
-	<td>cat</td>
-	<td>Magyar</td>
-	<td>
-		<a href="/subtitle.php?feliratid=23456">
-		Billy the Kid - 3x06 - The Chain Gang (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
-		</a>
-	</td>
-	<td>gricsi</td>
-	<td>2026-01-21</td>
-	<td><a href="/download?file=23456">Letöltés</a></td>
-</tr>
-</tbody></table>
-</body></html>`
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           2967,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Billy the Kid - 3x06",
+			EredetiTitle:     "Billy the Kid - 3x06 - The Chain Gang (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			Uploader:         "gricsi",
+			UploaderBold:     false,
+			UploadDate:       "2026-01-21",
+			DownloadAction:   "letolt",
+			DownloadFilename: "billy.the.kid.s03e06.srt",
+			SubtitleID:       "23456",
+		},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {
@@ -320,23 +317,21 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithZstdCompression tests that GetSubtitles works with zstd compression
 func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
-	htmlResponse := `<html><body>
-<table><tbody>
-<tr><td>Kategoria</td><td>Nyelv</td><td>Felirat</td><td>Feltöltő</td><td>Dátum</td><td>Letöltés</td></tr>
-<tr>
-	<td>cat</td>
-	<td>Magyar</td>
-	<td>
-		<a href="/subtitle.php?feliratid=34567">
-		Billy the Kid - 3x05 - Breaking the Shackles (AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)
-		</a>
-	</td>
-	<td>gricsi</td>
-	<td>2026-01-12</td>
-	<td><a href="/download?file=34567">Letöltés</a></td>
-</tr>
-</tbody></table>
-</body></html>`
+	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           2967,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Billy the Kid - 3x05",
+			EredetiTitle:     "Billy the Kid - 3x05 - The Shepherds Hut (WEB.720p-JFF, AMZN.WEB-DL.720p-RAWR, WEB.1080p-EDITH, AMZN.WEB-DL.1080p-RAWR)",
+			Uploader:         "gricsi",
+			UploaderBold:     false,
+			UploadDate:       "2026-01-14",
+			DownloadAction:   "letolt",
+			DownloadFilename: "billy.the.kid.s03e05.srt",
+			SubtitleID:       "34567",
+		},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/index.php" && r.URL.RawQuery == "sid=12345" {

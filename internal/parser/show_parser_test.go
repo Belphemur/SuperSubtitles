@@ -5,85 +5,18 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestShowParser_ParseHtml(t *testing.T) {
-	// Sample HTML content based on the SuperSubtitles website structure
-	htmlContent := `
-		<html>
-		<body>
-			<table>
-				<tbody>
-					<tr>
-						<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-							2025
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12190"><img class="kategk" src="sorozat_cat.php?kep=12190"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								7 Bears
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #fff">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12347"><img class="kategk" src="sorozat_cat.php?kep=12347"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								#1 Happy Family USA
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12549"><img class="kategk" src="sorozat_cat.php?kep=12549"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								A Thousand Blows
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr style="background-color: #fff">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12076"><img class="kategk" src="sorozat_cat.php?kep=12076"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								Adults
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-					<tr>
-						<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-							2024
-						</td>
-					</tr>
-					<tr style="background-color: #ecf6fc">
-						<td style="padding: 5px;">
-							<a href="index.php?sid=12007"><img class="kategk" src="sorozat_cat.php?kep=12007"/></a>
-						</td>
-						<td class="sangol">
-							<div>
-								Asura
-							</div>
-							<div class="sev"></div>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</body>
-		</html>
-	`
+	// Generate proper HTML content based on the real feliratok.eu website structure
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
+		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
+		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
+		{ShowID: 12076, ShowName: "Adults", Year: 2025},
+		{ShowID: 12007, ShowName: "Asura", Year: 2024},
+	})
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -162,19 +95,25 @@ func TestShowParser_ParseHtml_InvalidHTML(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
-	htmlContent := `
-		<html><body>
-			<table>
+	// Generate HTML with a malformed year by manually creating it
+	htmlContent := `<html><body>
+		<table>
+			<tbody>
 				<tr>
-					<td colspan="10">Invalid Year</td>
+					<td colspan="10" style="text-align: center; background-color: #DDDDDD;">Invalid Year</td>
 				</tr>
-				<tr>
-					<td><a href="index.php?sid=12345"><img src="sorozat_cat.php?kep=12345"/></a></td>
-					<td class="sangol"><div>Test Show</div></td>
+				<tr style="background-color: #ffffff">
+					<td style="padding: 5px;">
+						<a href="index.php?sid=12345"><img class="kategk" src="sorozat_cat.php?kep=12345"/></a>
+					</td>
+					<td class="sangol">
+						<div>Test Show</div>
+						<div class="sev"></div>
+					</td>
 				</tr>
-			</table>
-		</body></html>
-	`
+			</tbody>
+		</table>
+	</body></html>`
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -194,16 +133,22 @@ func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
-	htmlContent := `
-		<html><body>
-			<table>
-				<tr>
-					<td><a href="index.php?sid=12345"><img/></a></td>
-					<td class="sangol"><div>Test Show</div></td>
+	// Generate HTML with missing image src attribute
+	htmlContent := `<html><body>
+		<table>
+			<tbody>
+				<tr style="background-color: #ffffff">
+					<td style="padding: 5px;">
+						<a href="index.php?sid=12345"><img class="kategk"/></a>
+					</td>
+					<td class="sangol">
+						<div>Test Show</div>
+						<div class="sev"></div>
+					</td>
 				</tr>
-			</table>
-		</body></html>
-	`
+			</tbody>
+		</table>
+	</body></html>`
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -219,16 +164,21 @@ func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MissingName(t *testing.T) {
-	htmlContent := `
-		<html><body>
-			<table>
-				<tr>
-					<td><a href="index.php?sid=12345"><img src="sorozat_cat.php?kep=12345"/></a></td>
-					<td class="sangol"></td>
+	// Generate HTML with missing show name
+	htmlContent := `<html><body>
+		<table>
+			<tbody>
+				<tr style="background-color: #ffffff">
+					<td style="padding: 5px;">
+						<a href="index.php?sid=12345"><img class="kategk" src="sorozat_cat.php?kep=12345"/></a>
+					</td>
+					<td class="sangol">
+						<div class="sev"></div>
+					</td>
 				</tr>
-			</table>
-		</body></html>
-	`
+			</tbody>
+		</table>
+	</body></html>`
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -249,19 +199,10 @@ func TestShowParser_ParseHtml_MissingName(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_Simple(t *testing.T) {
-	htmlContent := `
-		<html><body>
-			<table>
-				<tr>
-					<td colspan="10">2025</td>
-				</tr>
-				<tr>
-					<td><a href="index.php?sid=12345"><img src="sorozat_cat.php?kep=12345"/></a></td>
-					<td class="sangol"><div>Test Show</div></td>
-				</tr>
-			</table>
-		</body></html>
-	`
+	// Generate simple proper HTML content
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
+	})
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
