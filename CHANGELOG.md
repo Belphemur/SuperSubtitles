@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.0...v1.4.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **parser:** normalize download URLs to prevent double-encoding in JSON ([94defa7](https://github.com/Belphemur/SuperSubtitles/commit/94defa7baad0fdc9f8b099c21680b82ba172d245))
+
 # [1.4.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.3.0...v1.4.0) (2026-02-09)
 
 
