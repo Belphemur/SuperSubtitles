@@ -56,15 +56,18 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	}
 }
 
-// DownloadSubtitle downloads a subtitle file, with support for extracting episodes from season packs
-func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downloadURL string, episode int) (*models.DownloadResult, error) {
+// DownloadSubtitle downloads a subtitle file, with support for extracting episodes from season packs.
+// If episode is nil, the entire file is returned without extraction.
+func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downloadURL string, episode *int) (*models.DownloadResult, error) {
 	logger := config.GetLogger()
 	subtitleID := extractSubtitleID(downloadURL)
-	logger.Info().
+	logEvent := logger.Info().
 		Str("url", downloadURL).
-		Str("subtitleID", subtitleID).
-		Int("episode", episode).
-		Msg("Downloading subtitle")
+		Str("subtitleID", subtitleID)
+	if episode != nil {
+		logEvent = logEvent.Int("episode", *episode)
+	}
+	logEvent.Msg("Downloading subtitle")
 
 	// Download the file
 	content, contentType, err := d.downloadFile(ctx, downloadURL)
@@ -76,7 +79,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 	isZip := isZipFile(content) || isZipContentType(contentType)
 
 	// If not requesting a specific episode, or if it's not a ZIP file, return as-is
-	if episode == 0 || !isZip {
+	if episode == nil || !isZip {
 		logger.Info().
 			Str("contentType", contentType).
 			Int("size", len(content)).
@@ -92,13 +95,13 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 
 	// It's a ZIP file and we need a specific episode - extract it
 	logger.Info().
-		Int("episode", episode).
+		Int("episode", *episode).
 		Int("zipSize", len(content)).
 		Msg("Extracting episode from season pack ZIP")
 
-	episodeFile, err := d.extractEpisodeFromZip(content, episode)
+	episodeFile, err := d.extractEpisodeFromZip(content, *episode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", episode, err)
+		return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, err)
 	}
 
 	logger.Info().

@@ -870,7 +870,7 @@ func (x *CheckForUpdatesResponse) GetHasUpdates() bool {
 type DownloadSubtitleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SubtitleId    string                 `protobuf:"bytes,1,opt,name=subtitle_id,json=subtitleId,proto3" json:"subtitle_id,omitempty"`
-	Episode       int32                  `protobuf:"varint,2,opt,name=episode,proto3" json:"episode,omitempty"` // Episode number to extract from season pack (0 = download entire file)
+	Episode       *int32                 `protobuf:"varint,2,opt,name=episode,proto3,oneof" json:"episode,omitempty"` // Episode number to extract from season pack (not set = download entire file)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -913,8 +913,8 @@ func (x *DownloadSubtitleRequest) GetSubtitleId() string {
 }
 
 func (x *DownloadSubtitleRequest) GetEpisode() int32 {
-	if x != nil {
-		return x.Episode
+	if x != nil && x.Episode != nil {
+		return *x.Episode
 	}
 	return 0
 }
@@ -1131,11 +1131,13 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"film_count\x18\x01 \x01(\x05R\tfilmCount\x12!\n" +
 	"\fseries_count\x18\x02 \x01(\x05R\vseriesCount\x12\x1f\n" +
 	"\vhas_updates\x18\x03 \x01(\bR\n" +
-	"hasUpdates\"T\n" +
+	"hasUpdates\"e\n" +
 	"\x17DownloadSubtitleRequest\x12\x1f\n" +
 	"\vsubtitle_id\x18\x01 \x01(\tR\n" +
-	"subtitleId\x12\x18\n" +
-	"\aepisode\x18\x02 \x01(\x05R\aepisode\"s\n" +
+	"subtitleId\x12\x1d\n" +
+	"\aepisode\x18\x02 \x01(\x05H\x00R\aepisode\x88\x01\x01B\n" +
+	"\n" +
+	"\b_episode\"s\n" +
 	"\x18DownloadSubtitleResponse\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12!\n" +
@@ -1230,6 +1232,7 @@ func file_supersubtitles_proto_init() {
 	if File_supersubtitles_proto != nil {
 		return
 	}
+	file_supersubtitles_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

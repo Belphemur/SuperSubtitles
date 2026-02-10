@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 // createTestZip creates a test ZIP file with season pack structure
@@ -71,7 +73,7 @@ func TestDownloadSubtitle_NonZipFile(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		0,
+		nil,
 	)
 
 	if err != nil {
@@ -118,7 +120,7 @@ func TestDownloadSubtitle_ZipFileNoEpisode(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		0,
+		nil,
 	)
 
 	if err != nil {
@@ -149,7 +151,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 	tests := []struct {
 		name            string
 		zipFiles        map[string]string
-		requestEpisode  int
+		requestEpisode  *int
 		expectedFile    string
 		expectedContent string
 		shouldFail      bool
@@ -161,7 +163,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 subtitle content",
 				"Hightown.S03E03.Fall.Brook.NF.WEB-DL.en.srt":      "Episode 3 subtitle content",
 			},
-			requestEpisode:  1,
+			requestEpisode:  testutil.IntPtr(1),
 			expectedFile:    "Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 1 subtitle content",
 			shouldFail:      false,
@@ -173,7 +175,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 subtitle content",
 				"Hightown.S03E03.Fall.Brook.NF.WEB-DL.en.srt":      "Episode 3 subtitle content",
 			},
-			requestEpisode:  2,
+			requestEpisode:  testutil.IntPtr(2),
 			expectedFile:    "Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 2 subtitle content",
 			shouldFail:      false,
@@ -185,7 +187,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e05.srt": "Episode 5 content",
 				"show.s03e06.srt": "Episode 6 content",
 			},
-			requestEpisode:  5,
+			requestEpisode:  testutil.IntPtr(5),
 			expectedFile:    "show.s03e05.srt",
 			expectedContent: "Episode 5 content",
 			shouldFail:      false,
@@ -197,7 +199,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.3x07.srt": "Episode 7 content",
 				"show.3x08.srt": "Episode 8 content",
 			},
-			requestEpisode:  7,
+			requestEpisode:  testutil.IntPtr(7),
 			expectedFile:    "show.3x07.srt",
 			expectedContent: "Episode 7 content",
 			shouldFail:      false,
@@ -208,7 +210,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03.NF.WEB-DL.en/Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt":      "Episode 1 content",
 				"Hightown.S03.NF.WEB-DL.en/Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 content",
 			},
-			requestEpisode:  1,
+			requestEpisode:  testutil.IntPtr(1),
 			expectedFile:    "Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 1 content",
 			shouldFail:      false,
@@ -219,7 +221,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e10.srt": "Episode 10 content",
 				"show.s03e11.srt": "Episode 11 content",
 			},
-			requestEpisode: 1,
+			requestEpisode: testutil.IntPtr(1),
 			shouldFail:     true,
 		},
 		{
@@ -228,7 +230,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e01.srt": "Episode 1 content",
 				"show.s03e02.srt": "Episode 2 content",
 			},
-			requestEpisode: 10,
+			requestEpisode: testutil.IntPtr(10),
 			shouldFail:     true,
 		},
 	}
@@ -313,7 +315,7 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	result1, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		1,
+		testutil.IntPtr(1),
 	)
 	if err != nil {
 		t.Fatalf("First request failed: %v", err)
@@ -326,7 +328,7 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	result2, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		2,
+		testutil.IntPtr(2),
 	)
 	if err != nil {
 		t.Fatalf("Second request failed: %v", err)
@@ -358,7 +360,7 @@ func TestDownloadSubtitle_HTTPError(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		0,
+		nil,
 	)
 
 	if err == nil {
@@ -386,7 +388,7 @@ func TestDownloadSubtitle_InvalidZip(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		1,
+		testutil.IntPtr(1),
 	)
 
 	if err == nil {
@@ -419,7 +421,7 @@ func TestDownloadSubtitle_ContextCancellation(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		ctx,
 		buildDownloadURL(server.URL, "123456789"),
-		0,
+		nil,
 	)
 
 	if err == nil {
@@ -469,7 +471,7 @@ func BenchmarkDownloadSubtitle_ExtractFromZip(b *testing.B) {
 		_, err := downloader.DownloadSubtitle(
 			context.Background(),
 			buildDownloadURL(server.URL, "123456789"),
-			episode,
+			testutil.IntPtr(episode),
 		)
 		if err != nil {
 			b.Fatalf("Download failed: %v", err)
@@ -525,7 +527,7 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 			result, err := downloader.DownloadSubtitle(
 				context.Background(),
 				buildDownloadURL(server.URL, "123456789"),
-				0,
+				nil,
 			)
 
 			if err != nil {
@@ -598,7 +600,7 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 			result, err := downloader.DownloadSubtitle(
 				context.Background(),
 				buildDownloadURL(server.URL, "123456789"),
-				1,
+				testutil.IntPtr(1),
 			)
 
 			if err != nil {
@@ -894,7 +896,7 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		1,
+		testutil.IntPtr(1),
 	)
 
 	if err == nil {
@@ -946,7 +948,7 @@ func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		2,
+		testutil.IntPtr(2),
 	)
 
 	if err != nil {
@@ -994,7 +996,7 @@ func TestDownloadSubtitle_ExceedsDownloadSizeLimit(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		0,
+		nil,
 	)
 
 	if err == nil {
@@ -1033,7 +1035,7 @@ func TestExtractEpisodeFromZip_MultipleMatches(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		1,
+		testutil.IntPtr(1),
 	)
 
 	if err != nil {
@@ -1082,7 +1084,7 @@ func TestExtractEpisodeFromZip_PreferSubtitleOverNonSubtitle(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		2,
+		testutil.IntPtr(2),
 	)
 
 	if err != nil {

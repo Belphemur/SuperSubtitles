@@ -121,12 +121,21 @@ func (s *server) CheckForUpdates(ctx context.Context, req *pb.CheckForUpdatesReq
 
 // DownloadSubtitle implements SuperSubtitlesServiceServer.DownloadSubtitle
 func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleRequest) (*pb.DownloadSubtitleResponse, error) {
-	s.logger.Debug().
-		Str("subtitle_id", req.SubtitleId).
-		Int32("episode", req.Episode).
-		Msg("DownloadSubtitle called")
+	logEvent := s.logger.Debug().
+		Str("subtitle_id", req.SubtitleId)
+	if req.Episode != nil {
+		logEvent = logEvent.Int32("episode", *req.Episode)
+	}
+	logEvent.Msg("DownloadSubtitle called")
 
-	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, int(req.Episode))
+	// Convert optional proto int32 to optional Go int
+	var episode *int
+	if req.Episode != nil {
+		e := int(*req.Episode)
+		episode = &e
+	}
+
+	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, episode)
 	if err != nil {
 		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
 		return nil, status.Errorf(codes.Internal, "failed to download subtitle: %v", err)

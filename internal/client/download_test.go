@@ -39,7 +39,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := client.DownloadSubtitle(ctx, expectedSubtitleID, 0)
+	result, err := client.DownloadSubtitle(ctx, expectedSubtitleID, nil)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)

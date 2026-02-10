@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
@@ -16,7 +18,7 @@ type mockClient struct {
 	getSubtitlesFunc       func(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	getShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	checkForUpdatesFunc    func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
-	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error)
+	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 }
 
@@ -48,7 +50,7 @@ func (m *mockClient) CheckForUpdates(ctx context.Context, contentID string) (*mo
 	return &models.UpdateCheckResult{}, nil
 }
 
-func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 	if m.downloadSubtitleFunc != nil {
 		return m.downloadSubtitleFunc(ctx, subtitleID, episode)
 	}
@@ -294,12 +296,12 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	}
 
 	mock := &mockClient{
-		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 			if subtitleID != "101" {
 				t.Errorf("Expected subtitle ID '101', got '%s'", subtitleID)
 			}
-			if episode != 1 {
-				t.Errorf("Expected episode 1, got %d", episode)
+			if episode == nil || *episode != 1 {
+				t.Errorf("Expected episode 1, got %v", episode)
 			}
 			return mockResult, nil
 		},
@@ -310,7 +312,7 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 
 	req := &pb.DownloadSubtitleRequest{
 		SubtitleId: "101",
-		Episode:    1,
+		Episode:    proto.Int32(1),
 	}
 
 	resp, err := srv.DownloadSubtitle(ctx, req)
@@ -326,6 +328,51 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	}
 	if resp.ContentType != "application/x-subrip" {
 		t.Errorf("Expected content type 'application/x-subrip', got '%s'", resp.ContentType)
+	}
+}
+
+// TestDownloadSubtitle_NoEpisode tests subtitle download without specifying an episode
+func TestDownloadSubtitle_NoEpisode(t *testing.T) {
+	mockResult := &models.DownloadResult{
+		Filename:    "breaking.bad.season.01.srt",
+		Content:     []byte("season pack content"),
+		ContentType: "application/zip",
+	}
+
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			if subtitleID != "999" {
+				t.Errorf("Expected subtitle ID '999', got '%s'", subtitleID)
+			}
+			if episode != nil {
+				t.Errorf("Expected episode to be nil, got %v", episode)
+			}
+			return mockResult, nil
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	// Request without episode - Episode field is nil
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "999",
+		Episode:    nil,
+	}
+
+	resp, err := srv.DownloadSubtitle(ctx, req)
+	if err != nil {
+		t.Fatalf("DownloadSubtitle returned error: %v", err)
+	}
+
+	if resp.Filename != "breaking.bad.season.01.srt" {
+		t.Errorf("Expected filename 'breaking.bad.season.01.srt', got '%s'", resp.Filename)
+	}
+	if string(resp.Content) != "season pack content" {
+		t.Errorf("Expected content 'season pack content', got '%s'", string(resp.Content))
+	}
+	if resp.ContentType != "application/zip" {
+		t.Errorf("Expected content type 'application/zip', got '%s'", resp.ContentType)
 	}
 }
 
