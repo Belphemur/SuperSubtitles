@@ -285,11 +285,6 @@ func TestCheckForUpdates_Success(t *testing.T) {
 	}
 }
 
-// intPtr is a helper for creating *int values in tests
-func intPtr(v int) *int {
-	return &v
-}
-
 // TestDownloadSubtitle_Success tests successful subtitle download
 func TestDownloadSubtitle_Success(t *testing.T) {
 	mockResult := &models.DownloadResult{
