@@ -11,7 +11,8 @@ import (
 
 // DownloadSubtitle downloads a subtitle file, with support for extracting specific episodes from season packs.
 // The download URL is derived from the subtitle ID.
-func (c *client) DownloadSubtitle(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+// If episode is nil, the entire file is returned without extraction.
+func (c *client) DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 	downloadURL, err := c.buildDownloadURL(subtitleID)
 	if err != nil {
 		return nil, err

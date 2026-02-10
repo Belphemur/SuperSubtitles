@@ -18,7 +18,7 @@ type Client interface {
 	GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	GetShowSubtitles(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
-	DownloadSubtitle(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error)
+	DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 	GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 }
 
