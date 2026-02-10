@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
@@ -308,10 +310,9 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	srv := NewServer(mock)
 	ctx := context.Background()
 
-	episode := int32(1)
 	req := &pb.DownloadSubtitleRequest{
 		SubtitleId: "101",
-		Episode:    &episode,
+		Episode:    proto.Int32(1),
 	}
 
 	resp, err := srv.DownloadSubtitle(ctx, req)
