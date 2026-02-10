@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.1...v1.4.2) (2026-02-10)
+
+
+### Bug Fixes
+
+* **proto:** make episode optional in DownloadSubtitleRequest  ([dca2cf2](https://github.com/Belphemur/SuperSubtitles/commit/dca2cf2adead69bf9994c715cd0e809bc6436cec)), closes [#25](https://github.com/Belphemur/SuperSubtitles/issues/25)
+
 ## [1.4.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.0...v1.4.1) (2026-02-10)
 
 
