@@ -16,7 +16,7 @@ type mockClient struct {
 	getSubtitlesFunc       func(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	getShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	checkForUpdatesFunc    func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
-	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error)
+	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 }
 
@@ -48,7 +48,7 @@ func (m *mockClient) CheckForUpdates(ctx context.Context, contentID string) (*mo
 	return &models.UpdateCheckResult{}, nil
 }
 
-func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 	if m.downloadSubtitleFunc != nil {
 		return m.downloadSubtitleFunc(ctx, subtitleID, episode)
 	}
@@ -285,6 +285,11 @@ func TestCheckForUpdates_Success(t *testing.T) {
 	}
 }
 
+// intPtr is a helper for creating *int values in tests
+func intPtr(v int) *int {
+	return &v
+}
+
 // TestDownloadSubtitle_Success tests successful subtitle download
 func TestDownloadSubtitle_Success(t *testing.T) {
 	mockResult := &models.DownloadResult{
@@ -294,12 +299,12 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	}
 
 	mock := &mockClient{
-		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 			if subtitleID != "101" {
 				t.Errorf("Expected subtitle ID '101', got '%s'", subtitleID)
 			}
-			if episode != 1 {
-				t.Errorf("Expected episode 1, got %d", episode)
+			if episode == nil || *episode != 1 {
+				t.Errorf("Expected episode 1, got %v", episode)
 			}
 			return mockResult, nil
 		},
@@ -308,9 +313,10 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	srv := NewServer(mock)
 	ctx := context.Background()
 
+	episode := int32(1)
 	req := &pb.DownloadSubtitleRequest{
 		SubtitleId: "101",
-		Episode:    1,
+		Episode:    &episode,
 	}
 
 	resp, err := srv.DownloadSubtitle(ctx, req)
