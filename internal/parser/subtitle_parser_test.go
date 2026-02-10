@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -58,9 +59,23 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 		t.Errorf("Expected IsSeasonPack false")
 	}
 
-	expectedURL := "https://feliratok.eu/index.php?action=letolt&fnev=outlander.s07e16.srt&felirat=1737439811"
-	if subtitle.DownloadURL != expectedURL {
-		t.Errorf("Expected download URL %q, got %q", expectedURL, subtitle.DownloadURL)
+	// Verify URL components instead of exact string (parameter order may vary due to normalization)
+	parsedURL, err := url.Parse(subtitle.DownloadURL)
+	if err != nil {
+		t.Fatalf("Failed to parse URL: %v", err)
+	}
+	if parsedURL.Scheme != "https" || parsedURL.Host != "feliratok.eu" || parsedURL.Path != "/index.php" {
+		t.Errorf("Invalid URL structure: %q", subtitle.DownloadURL)
+	}
+	params := parsedURL.Query()
+	if params.Get("action") != "letolt" {
+		t.Errorf("Expected action=letolt, got %q", params.Get("action"))
+	}
+	if params.Get("felirat") != "1737439811" {
+		t.Errorf("Expected felirat=1737439811, got %q", params.Get("felirat"))
+	}
+	if params.Get("fnev") != "outlander.s07e16.srt" {
+		t.Errorf("Expected fnev=outlander.s07e16.srt, got %q", params.Get("fnev"))
 	}
 	if subtitle.ID != 1737439811 {
 		t.Errorf("Expected ID %d, got %d", 1737439811, subtitle.ID)

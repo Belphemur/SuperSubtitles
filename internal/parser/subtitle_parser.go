@@ -252,6 +252,9 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		return nil
 	}
 
+	// Normalize the URL by decoding it (ensures properly formed URLs)
+	downloadURL = p.normalizeDownloadURL(downloadURL)
+
 	// Parse description to extract show name, season, episode, and release info
 	showName, season, episode, releaseInfo, isSeasonPack := p.parseDescription(description)
 
@@ -510,6 +513,36 @@ func (p *SubtitleParser) constructDownloadURL(link string) string {
 
 	// Otherwise, it's a relative link
 	return p.baseURL + "/" + link
+}
+
+// normalizeDownloadURL ensures the download URL is properly decoded and normalized
+// It parses the URL and reconstructs it with properly decoded query parameters
+func (p *SubtitleParser) normalizeDownloadURL(downloadURL string) string {
+	logger := config.GetLogger()
+
+	// Parse the URL
+	parsedURL, err := url.Parse(downloadURL)
+	if err != nil {
+		logger.Debug().Str("url", downloadURL).Err(err).Msg("Failed to parse download URL for normalization")
+		return downloadURL // Return original if parsing fails
+	}
+
+	// Parse query parameters - this ensures any encoded characters are decoded
+	queryParams := parsedURL.Query()
+
+	// Reconstruct the URL with normalized query string
+	// The Query().Encode() will properly re-encode any special characters
+	normalizedURL := &url.URL{
+		Scheme:   parsedURL.Scheme,
+		User:     parsedURL.User,
+		Host:     parsedURL.Host,
+		Path:     parsedURL.Path,
+		RawPath:  parsedURL.RawPath,
+		RawQuery: queryParams.Encode(),
+		Fragment: parsedURL.Fragment,
+	}
+
+	return normalizedURL.String()
 }
 
 // extractIDFromDownloadLink extracts a unique ID from the download link
