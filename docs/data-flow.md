@@ -106,8 +106,9 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 ## Subtitle Download with Episode Extraction
 
-1. `DownloadSubtitle` method in the Client interface accepts a download URL and a `DownloadRequest`
-2. **`SubtitleDownloader` service is the primary download handler for all subtitle files**:
+1. `DownloadSubtitle` method in the Client interface accepts a `DownloadRequest` with the subtitle ID
+2. Client builds the download URL as `index.php?action=letolt&felirat=<subtitleID>` against the configured base domain
+3. **`SubtitleDownloader` service is the primary download handler for all subtitle files**:
    - **Regular subtitle files** (SRT, ASS, VTT, SUB): Downloaded and returned with correct content-type and extension
    - **ZIP files without episode number**: Entire ZIP returned (for manual extraction)
    - **ZIP files with episode number**:
@@ -115,19 +116,19 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
      - Episode pattern matching using regex with word boundaries: `S03E01`, `s03e01`, `3x01`, `E01` (with guards against false positives like E01 matching E010)
      - Specific episode subtitle extracted from the ZIP archive
      - Only the requested episode file is returned with correct content-type based on file extension
-3. **Multi-Format Support**:
+4. **Multi-Format Support**:
    - SRT (SubRip) - `application/x-subrip`
    - ASS (Advanced SubStation Alpha) - `application/x-ass`, `text/ass`
    - VTT (WebVTT) - `text/vtt`, `text/webvtt`
    - SUB (MicroDVD) - `application/x-sub`
    - ZIP archives - `application/zip`
    - Unknown formats default to `application/octet-stream`
-4. **Caching Strategy**:
+5. **Caching Strategy**:
    - LRU cache with 100-entry capacity and 1-hour TTL
    - Only ZIP files are cached (regular subtitle files are small and not cached)
    - Cache key is the download URL
    - Multiple episode requests from same season pack use cached ZIP
-5. **File Structure Support**:
+6. **File Structure Support**:
    - Flat ZIP structure (all files in root)
    - Nested folders (e.g., `ShowName.S03/ShowName.S03E01.srt`)
    - Various naming patterns (uppercase, lowercase, different separators)

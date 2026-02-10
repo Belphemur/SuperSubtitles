@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -56,12 +57,13 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 }
 
 // DownloadSubtitle downloads a subtitle file, with support for extracting episodes from season packs
-func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downloadURL string, req models.DownloadRequest) (*models.DownloadResult, error) {
+func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downloadURL string, episode int) (*models.DownloadResult, error) {
 	logger := config.GetLogger()
+	subtitleID := extractSubtitleID(downloadURL)
 	logger.Info().
 		Str("url", downloadURL).
-		Str("subtitleID", req.SubtitleID).
-		Int("episode", req.Episode).
+		Str("subtitleID", subtitleID).
+		Int("episode", episode).
 		Msg("Downloading subtitle")
 
 	// Download the file
@@ -74,7 +76,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 	isZip := isZipFile(content) || isZipContentType(contentType)
 
 	// If not requesting a specific episode, or if it's not a ZIP file, return as-is
-	if req.Episode == 0 || !isZip {
+	if episode == 0 || !isZip {
 		logger.Info().
 			Str("contentType", contentType).
 			Int("size", len(content)).
@@ -82,7 +84,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 			Msg("Returning downloaded file as-is")
 
 		return &models.DownloadResult{
-			Filename:    generateFilename(req.SubtitleID, contentType),
+			Filename:    generateFilename(subtitleID, contentType),
 			Content:     content,
 			ContentType: contentType,
 		}, nil
@@ -90,13 +92,13 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 
 	// It's a ZIP file and we need a specific episode - extract it
 	logger.Info().
-		Int("episode", req.Episode).
+		Int("episode", episode).
 		Int("zipSize", len(content)).
 		Msg("Extracting episode from season pack ZIP")
 
-	episodeFile, err := d.extractEpisodeFromZip(content, req.Episode)
+	episodeFile, err := d.extractEpisodeFromZip(content, episode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", req.Episode, err)
+		return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", episode, err)
 	}
 
 	logger.Info().
@@ -109,8 +111,20 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 
 // generateFilename creates a filename with appropriate extension based on content type
 func generateFilename(subtitleID, contentType string) string {
+	if subtitleID == "" {
+		subtitleID = "subtitle"
+	}
 	ext := getExtensionFromContentType(contentType)
 	return fmt.Sprintf("%s%s", subtitleID, ext)
+}
+
+func extractSubtitleID(downloadURL string) string {
+	parsedURL, err := url.Parse(downloadURL)
+	if err != nil {
+		return ""
+	}
+
+	return parsedURL.Query().Get("felirat")
 }
 
 // getExtensionFromContentType derives file extension from MIME type

@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // createTestZip creates a test ZIP file with season pack structure
@@ -40,6 +39,21 @@ func createTestZip(t *testing.T, files map[string]string) []byte {
 	return buf.Bytes()
 }
 
+func buildDownloadURL(baseURL, subtitleID string) string {
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return baseURL
+	}
+
+	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + "/index.php"
+	query := parsedURL.Query()
+	query.Set("action", "letolt")
+	query.Set("felirat", subtitleID)
+	parsedURL.RawQuery = query.Encode()
+
+	return parsedURL.String()
+}
+
 func TestDownloadSubtitle_NonZipFile(t *testing.T) {
 	// Create test HTTP server
 	content := "1\n00:00:01,000 --> 00:00:02,000\nTest subtitle\n"
@@ -54,10 +68,11 @@ func TestDownloadSubtitle_NonZipFile(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Test download
-	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    0,
-	})
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		0,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -100,10 +115,11 @@ func TestDownloadSubtitle_ZipFileNoEpisode(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Test download without episode number (should return ZIP as-is)
-	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    0,
-	})
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		0,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -234,10 +250,11 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 			downloader := NewSubtitleDownloader(server.Client())
 
 			// Test download with episode extraction
-			result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-				SubtitleID: "123456789",
-				Episode:    tt.requestEpisode,
-			})
+			result, err := downloader.DownloadSubtitle(
+				context.Background(),
+				buildDownloadURL(server.URL, "123456789"),
+				tt.requestEpisode,
+			)
 
 			if tt.shouldFail {
 				if err == nil {
@@ -293,10 +310,11 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// First request - should hit the server
-	result1, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    1,
-	})
+	result1, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		1,
+	)
 	if err != nil {
 		t.Fatalf("First request failed: %v", err)
 	}
@@ -305,10 +323,11 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	}
 
 	// Second request for same URL but different episode - should use cache
-	result2, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    2,
-	})
+	result2, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		2,
+	)
 	if err != nil {
 		t.Fatalf("Second request failed: %v", err)
 	}
@@ -336,10 +355,11 @@ func TestDownloadSubtitle_HTTPError(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Test download
-	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    0,
-	})
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		0,
+	)
 
 	if err == nil {
 		t.Fatal("Expected error for 404 response, got nil")
@@ -363,10 +383,11 @@ func TestDownloadSubtitle_InvalidZip(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Test download with episode extraction from invalid ZIP
-	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    1,
-	})
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		1,
+	)
 
 	if err == nil {
 		t.Fatal("Expected error for invalid ZIP, got nil")
@@ -395,10 +416,11 @@ func TestDownloadSubtitle_ContextCancellation(t *testing.T) {
 	cancel()
 
 	// Test download with cancelled context
-	_, err := downloader.DownloadSubtitle(ctx, server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    0,
-	})
+	_, err := downloader.DownloadSubtitle(
+		ctx,
+		buildDownloadURL(server.URL, "123456789"),
+		0,
+	)
 
 	if err == nil {
 		t.Fatal("Expected error for cancelled context, got nil")
@@ -444,10 +466,11 @@ func BenchmarkDownloadSubtitle_ExtractFromZip(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Alternate between different episodes to test cache
 		episode := (i % 20) + 1
-		_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-			SubtitleID: "123456789",
-			Episode:    episode,
-		})
+		_, err := downloader.DownloadSubtitle(
+			context.Background(),
+			buildDownloadURL(server.URL, "123456789"),
+			episode,
+		)
 		if err != nil {
 			b.Fatalf("Download failed: %v", err)
 		}
@@ -499,10 +522,11 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 
 			downloader := NewSubtitleDownloader(server.Client())
 
-			result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-				SubtitleID: "123456789",
-				Episode:    0,
-			})
+			result, err := downloader.DownloadSubtitle(
+				context.Background(),
+				buildDownloadURL(server.URL, "123456789"),
+				0,
+			)
 
 			if err != nil {
 				t.Fatalf("Expected no error, got: %v", err)
@@ -571,10 +595,11 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 
 			downloader := NewSubtitleDownloader(server.Client())
 
-			result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-				SubtitleID: "123456789",
-				Episode:    1,
-			})
+			result, err := downloader.DownloadSubtitle(
+				context.Background(),
+				buildDownloadURL(server.URL, "123456789"),
+				1,
+			)
 
 			if err != nil {
 				t.Fatalf("Expected no error, got: %v", err)
@@ -866,10 +891,11 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Attempt to extract episode - should fail due to ZIP bomb detection
-	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    1,
-	})
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		1,
+	)
 
 	if err == nil {
 		t.Fatal("Expected error due to ZIP bomb detection, got nil")
@@ -917,10 +943,11 @@ func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Request episode 2 - should match the folder name "Hightown.S03E02"
-	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    2,
-	})
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		2,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -964,10 +991,11 @@ func TestDownloadSubtitle_ExceedsDownloadSizeLimit(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Test download that exceeds size limit
-	_, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    0,
-	})
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		0,
+	)
 
 	if err == nil {
 		t.Fatal("Expected error for oversized download, got nil")
@@ -1002,10 +1030,11 @@ func TestExtractEpisodeFromZip_MultipleMatches(t *testing.T) {
 	downloader := NewSubtitleDownloader(server.Client())
 
 	// Request episode 1 - should prefer .srt over other types
-	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    1,
-	})
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		1,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -1050,10 +1079,11 @@ func TestExtractEpisodeFromZip_PreferSubtitleOverNonSubtitle(t *testing.T) {
 
 	downloader := NewSubtitleDownloader(server.Client())
 
-	result, err := downloader.DownloadSubtitle(context.Background(), server.URL, models.DownloadRequest{
-		SubtitleID: "123456789",
-		Episode:    2,
-	})
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		2,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)

@@ -128,9 +128,8 @@ message CheckForUpdatesResponse {
 
 // DownloadSubtitleRequest requests a subtitle download
 message DownloadSubtitleRequest {
-  string download_url = 1;
-  string subtitle_id = 2;
-  int32 episode = 3; // Episode number to extract from season pack (0 = download entire file)
+  string subtitle_id = 1;
+  int32 episode = 2; // Episode number to extract from season pack (0 = download entire file)
 }
 
 // DownloadSubtitleResponse contains the downloaded subtitle data

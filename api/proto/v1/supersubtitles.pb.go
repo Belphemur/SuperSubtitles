@@ -869,9 +869,8 @@ func (x *CheckForUpdatesResponse) GetHasUpdates() bool {
 // DownloadSubtitleRequest requests a subtitle download
 type DownloadSubtitleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DownloadUrl   string                 `protobuf:"bytes,1,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
-	SubtitleId    string                 `protobuf:"bytes,2,opt,name=subtitle_id,json=subtitleId,proto3" json:"subtitle_id,omitempty"`
-	Episode       int32                  `protobuf:"varint,3,opt,name=episode,proto3" json:"episode,omitempty"` // Episode number to extract from season pack (0 = download entire file)
+	SubtitleId    string                 `protobuf:"bytes,1,opt,name=subtitle_id,json=subtitleId,proto3" json:"subtitle_id,omitempty"`
+	Episode       int32                  `protobuf:"varint,2,opt,name=episode,proto3" json:"episode,omitempty"` // Episode number to extract from season pack (0 = download entire file)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -904,13 +903,6 @@ func (x *DownloadSubtitleRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DownloadSubtitleRequest.ProtoReflect.Descriptor instead.
 func (*DownloadSubtitleRequest) Descriptor() ([]byte, []int) {
 	return file_supersubtitles_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *DownloadSubtitleRequest) GetDownloadUrl() string {
-	if x != nil {
-		return x.DownloadUrl
-	}
-	return ""
 }
 
 func (x *DownloadSubtitleRequest) GetSubtitleId() string {
@@ -1139,12 +1131,11 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"film_count\x18\x01 \x01(\x05R\tfilmCount\x12!\n" +
 	"\fseries_count\x18\x02 \x01(\x05R\vseriesCount\x12\x1f\n" +
 	"\vhas_updates\x18\x03 \x01(\bR\n" +
-	"hasUpdates\"w\n" +
-	"\x17DownloadSubtitleRequest\x12!\n" +
-	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x12\x1f\n" +
-	"\vsubtitle_id\x18\x02 \x01(\tR\n" +
+	"hasUpdates\"T\n" +
+	"\x17DownloadSubtitleRequest\x12\x1f\n" +
+	"\vsubtitle_id\x18\x01 \x01(\tR\n" +
 	"subtitleId\x12\x18\n" +
-	"\aepisode\x18\x03 \x01(\x05R\aepisode\"s\n" +
+	"\aepisode\x18\x02 \x01(\x05R\aepisode\"s\n" +
 	"\x18DownloadSubtitleResponse\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontent\x12!\n" +

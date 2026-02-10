@@ -149,7 +149,6 @@ Downloads a subtitle file, optionally extracting a specific episode from a seaso
 
 **Request:**
 
-- `download_url` (string): Subtitle download URL
 - `subtitle_id` (string): Subtitle identifier
 - `episode` (int32): Episode number to extract (0 = download entire file)
 
@@ -162,7 +161,7 @@ Downloads a subtitle file, optionally extracting a specific episode from a seaso
 **Example:**
 
 ```bash
-grpcurl -plaintext -d '{"download_url": "http://...", "subtitle_id": "101", "episode": 1}' \
+grpcurl -plaintext -d '{"subtitle_id": "101", "episode": 1}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/DownloadSubtitle
 ```
 
