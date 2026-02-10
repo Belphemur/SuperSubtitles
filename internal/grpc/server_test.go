@@ -330,6 +330,51 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	}
 }
 
+// TestDownloadSubtitle_NoEpisode tests subtitle download without specifying an episode
+func TestDownloadSubtitle_NoEpisode(t *testing.T) {
+	mockResult := &models.DownloadResult{
+		Filename:    "breaking.bad.season.01.srt",
+		Content:     []byte("season pack content"),
+		ContentType: "application/zip",
+	}
+
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			if subtitleID != "999" {
+				t.Errorf("Expected subtitle ID '999', got '%s'", subtitleID)
+			}
+			if episode != nil {
+				t.Errorf("Expected episode to be nil, got %v", episode)
+			}
+			return mockResult, nil
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	// Request without episode - Episode field is nil
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "999",
+		Episode:    nil,
+	}
+
+	resp, err := srv.DownloadSubtitle(ctx, req)
+	if err != nil {
+		t.Fatalf("DownloadSubtitle returned error: %v", err)
+	}
+
+	if resp.Filename != "breaking.bad.season.01.srt" {
+		t.Errorf("Expected filename 'breaking.bad.season.01.srt', got '%s'", resp.Filename)
+	}
+	if string(resp.Content) != "season pack content" {
+		t.Errorf("Expected content 'season pack content', got '%s'", string(resp.Content))
+	}
+	if resp.ContentType != "application/zip" {
+		t.Errorf("Expected content type 'application/zip', got '%s'", resp.ContentType)
+	}
+}
+
 // TestGetRecentSubtitles_Success tests successful recent subtitles retrieval
 func TestGetRecentSubtitles_Success(t *testing.T) {
 	mockShowSubtitles := []models.ShowSubtitles{
