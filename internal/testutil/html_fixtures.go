@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// IntPtr is a helper for creating *int values in tests
+func IntPtr(v int) *int {
+	return &v
+}
+
 // SubtitleRowOptions contains options for generating a subtitle row
 type SubtitleRowOptions struct {
 	ShowID           int
