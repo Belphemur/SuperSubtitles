@@ -16,7 +16,7 @@ type mockClient struct {
 	getSubtitlesFunc       func(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	getShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	checkForUpdatesFunc    func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
-	downloadSubtitleFunc   func(ctx context.Context, downloadURL string, req models.DownloadRequest) (*models.DownloadResult, error)
+	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error)
 	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 }
 
@@ -48,9 +48,9 @@ func (m *mockClient) CheckForUpdates(ctx context.Context, contentID string) (*mo
 	return &models.UpdateCheckResult{}, nil
 }
 
-func (m *mockClient) DownloadSubtitle(ctx context.Context, downloadURL string, req models.DownloadRequest) (*models.DownloadResult, error) {
+func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
 	if m.downloadSubtitleFunc != nil {
-		return m.downloadSubtitleFunc(ctx, downloadURL, req)
+		return m.downloadSubtitleFunc(ctx, subtitleID, episode)
 	}
 	return &models.DownloadResult{}, nil
 }
@@ -294,15 +294,12 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	}
 
 	mock := &mockClient{
-		downloadSubtitleFunc: func(ctx context.Context, downloadURL string, req models.DownloadRequest) (*models.DownloadResult, error) {
-			if downloadURL != "http://example.com/download" {
-				t.Errorf("Expected download URL 'http://example.com/download', got '%s'", downloadURL)
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode int) (*models.DownloadResult, error) {
+			if subtitleID != "101" {
+				t.Errorf("Expected subtitle ID '101', got '%s'", subtitleID)
 			}
-			if req.SubtitleID != "101" {
-				t.Errorf("Expected subtitle ID '101', got '%s'", req.SubtitleID)
-			}
-			if req.Episode != 1 {
-				t.Errorf("Expected episode 1, got %d", req.Episode)
+			if episode != 1 {
+				t.Errorf("Expected episode 1, got %d", episode)
 			}
 			return mockResult, nil
 		},
@@ -312,9 +309,8 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 	ctx := context.Background()
 
 	req := &pb.DownloadSubtitleRequest{
-		DownloadUrl: "http://example.com/download",
-		SubtitleId:  "101",
-		Episode:     1,
+		SubtitleId: "101",
+		Episode:    1,
 	}
 
 	resp, err := srv.DownloadSubtitle(ctx, req)

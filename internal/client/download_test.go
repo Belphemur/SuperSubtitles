@@ -7,14 +7,24 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 func TestClient_DownloadSubtitle(t *testing.T) {
 	// Test download of a regular (non-ZIP) subtitle file
 	subtitleContent := "1\n00:00:01,000 --> 00:00:02,000\nTest subtitle line\n"
+	expectedSubtitleID := "1234567890"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/index.php" {
+			t.Errorf("Expected path '/index.php', got '%s'", r.URL.Path)
+		}
+		if action := r.URL.Query().Get("action"); action != "letolt" {
+			t.Errorf("Expected action 'letolt', got '%s'", action)
+		}
+		if subtitleID := r.URL.Query().Get("felirat"); subtitleID != expectedSubtitleID {
+			t.Errorf("Expected subtitle ID '%s', got '%s'", expectedSubtitleID, subtitleID)
+		}
+
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(subtitleContent))
@@ -29,10 +39,7 @@ func TestClient_DownloadSubtitle(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := client.DownloadSubtitle(ctx, server.URL, models.DownloadRequest{
-		SubtitleID: "1234567890",
-		Episode:    0,
-	})
+	result, err := client.DownloadSubtitle(ctx, expectedSubtitleID, 0)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)

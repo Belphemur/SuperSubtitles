@@ -176,7 +176,7 @@ grpcurl -plaintext -d '{"show_id": 1234}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetSubtitles
 
 # Download a subtitle
-grpcurl -plaintext -d '{"download_url": "http://...", "subtitle_id": "101", "episode": 3}' \
+grpcurl -plaintext -d '{"subtitle_id": "101", "episode": 3}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/DownloadSubtitle
 ```
 
@@ -190,7 +190,7 @@ type Client interface {
     GetSubtitles(ctx context.Context, showID int) (*SubtitleCollection, error)
     GetShowSubtitles(ctx context.Context, shows []Show) ([]ShowSubtitles, error)
     CheckForUpdates(ctx context.Context, contentID string) (*UpdateCheckResult, error)
-    DownloadSubtitle(ctx context.Context, downloadURL string, req DownloadRequest) (*DownloadResult, error)
+    DownloadSubtitle(ctx context.Context, req DownloadRequest) (*DownloadResult, error)
     GetRecentSubtitles(ctx context.Context, sinceID int) ([]ShowSubtitles, error)
 }
 ```
