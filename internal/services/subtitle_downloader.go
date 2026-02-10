@@ -8,6 +8,7 @@ import (
 
 // SubtitleDownloader defines the interface for downloading subtitles
 type SubtitleDownloader interface {
-	// DownloadSubtitle downloads a subtitle, optionally extracting a specific episode from a season pack
-	DownloadSubtitle(ctx context.Context, downloadURL string, episode int) (*models.DownloadResult, error)
+	// DownloadSubtitle downloads a subtitle, optionally extracting a specific episode from a season pack.
+	// If episode is nil, the entire file is returned without extraction.
+	DownloadSubtitle(ctx context.Context, downloadURL string, episode *int) (*models.DownloadResult, error)
 }
