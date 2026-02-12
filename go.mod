@@ -9,7 +9,7 @@ require (
 	github.com/klauspost/compress v1.18.4
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.79.0
 	google.golang.org/protobuf v1.36.11
 )
 
