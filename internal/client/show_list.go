@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
@@ -31,7 +32,7 @@ func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
 }
 
 // StreamShowList streams shows as they become available from multiple endpoints.
-// Shows are deduplicated by ID. The channel is closed when all endpoints have been processed.
+// Shows are deduplicated by ID on the fly. The channel is closed when all endpoints have been processed.
 func (c *client) StreamShowList(ctx context.Context) <-chan StreamResult[models.Show] {
 	ch := make(chan StreamResult[models.Show])
 
@@ -47,80 +48,93 @@ func (c *client) StreamShowList(ctx context.Context) <-chan StreamResult[models.
 			fmt.Sprintf("%s/index.php?sorf=nem-all-forditas-alatt", c.baseURL),
 		}
 
-		// Worker function for fetching & parsing an endpoint
-		type result struct {
-			shows []models.Show
-			err   error
-		}
+		// Thread-safe map to track seen show IDs
+		var seen sync.Map
 
-		fetch := func(ctx context.Context, endpoint string) result {
-			req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-			if err != nil {
-				return result{nil, fmt.Errorf("create request %s: %w", endpoint, err)}
-			}
-			req.Header.Set("User-Agent", config.GetUserAgent())
+		// Track if we sent any shows and endpoint errors
+		var sentShows int64
+		var errsMu sync.Mutex
+		var endpointErrors []error
 
-			resp, err := c.httpClient.Do(req)
-			if err != nil {
-				return result{nil, fmt.Errorf("fetch %s: %w", endpoint, err)}
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				return result{nil, fmt.Errorf("endpoint %s returned status %d", endpoint, resp.StatusCode)}
-			}
-
-			shows, err := c.parser.ParseHtml(resp.Body)
-			if err != nil {
-				return result{nil, fmt.Errorf("parse %s: %w", endpoint, err)}
-			}
-			return result{shows, nil}
-		}
-
-		// Run all fetches in parallel
-		results := make([]result, len(endpoints))
+		// Run all fetches in parallel and stream results as they arrive
 		var wg sync.WaitGroup
 		wg.Add(len(endpoints))
-		for i, ep := range endpoints {
-			i, ep := i, ep
+
+		for _, ep := range endpoints {
+			ep := ep
 			go func() {
 				defer wg.Done()
-				results[i] = fetch(ctx, ep)
-			}()
-		}
-		wg.Wait()
 
-		// Stream shows, deduplicating by ID
-		seen := make(map[int]struct{})
-		var errs []error
-		for idx, r := range results {
-			if r.err != nil {
-				logger.Warn().Err(r.err).Int("endpoint_index", idx).Msg("Show list endpoint failed")
-				errs = append(errs, r.err)
-				continue
-			}
-			for _, s := range r.shows {
-				if _, exists := seen[s.ID]; exists {
-					continue
-				}
-				seen[s.ID] = struct{}{}
-				select {
-				case ch <- StreamResult[models.Show]{Value: s}:
-				case <-ctx.Done():
+				req, err := http.NewRequestWithContext(ctx, "GET", ep, nil)
+				if err != nil {
+					logger.Warn().Err(err).Str("endpoint", ep).Msg("Failed to create request")
+					errsMu.Lock()
+					endpointErrors = append(endpointErrors, err)
+					errsMu.Unlock()
 					return
 				}
-			}
+				req.Header.Set("User-Agent", config.GetUserAgent())
+
+				resp, err := c.httpClient.Do(req)
+				if err != nil {
+					logger.Warn().Err(err).Str("endpoint", ep).Msg("Failed to fetch endpoint")
+					errsMu.Lock()
+					endpointErrors = append(endpointErrors, err)
+					errsMu.Unlock()
+					return
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					err := fmt.Errorf("endpoint returned status %d", resp.StatusCode)
+					logger.Warn().Err(err).Str("endpoint", ep).Msg("Failed to fetch endpoint")
+					errsMu.Lock()
+					endpointErrors = append(endpointErrors, err)
+					errsMu.Unlock()
+					return
+				}
+
+				shows, err := c.parser.ParseHtml(resp.Body)
+				if err != nil {
+					logger.Warn().Err(err).Str("endpoint", ep).Msg("Failed to parse endpoint")
+					errsMu.Lock()
+					endpointErrors = append(endpointErrors, err)
+					errsMu.Unlock()
+					return
+				}
+
+				// Stream shows as they arrive, deduplicate by ID
+				for _, s := range shows {
+					if _, exists := seen.LoadOrStore(s.ID, struct{}{}); exists {
+						continue
+					}
+					select {
+					case ch <- StreamResult[models.Show]{Value: s}:
+						atomic.AddInt64(&sentShows, 1)
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
 		}
 
-		if len(seen) == 0 && len(errs) == len(endpoints) {
+		// Wait for all endpoints to complete
+		wg.Wait()
+
+		// Check final status
+		errsMu.Lock()
+		errs := endpointErrors
+		errsMu.Unlock()
+
+		if atomic.LoadInt64(&sentShows) == 0 && len(errs) == len(endpoints) {
 			select {
 			case ch <- StreamResult[models.Show]{Err: fmt.Errorf("all show list endpoints failed: %v", errors.Join(errs...))}:
 			case <-ctx.Done():
 			}
 		} else if len(errs) > 0 {
-			logger.Warn().Err(errors.Join(errs...)).Int("successful_endpoints", len(endpoints)-len(errs)).Int("total_shows", len(seen)).Msg("Partial success fetching show lists")
-		} else {
-			logger.Info().Int("total_shows", len(seen)).Msg("Successfully fetched show lists from all endpoints")
+			logger.Warn().Err(errors.Join(errs...)).Int("successful_endpoints", len(endpoints)-len(errs)).Msg("Partial success fetching show lists")
+		} else if atomic.LoadInt64(&sentShows) > 0 {
+			logger.Info().Msg("Successfully fetched show lists from all endpoints")
 		}
 	}()
 
