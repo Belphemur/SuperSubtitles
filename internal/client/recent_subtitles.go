@@ -33,7 +33,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 	}
 
 	if len(showInfoMap) == 0 && len(subtitlesByShow) == 0 {
-		return nil, nil
+		return []models.ShowSubtitles{}, nil
 	}
 
 	// Build ShowSubtitles results in order
@@ -116,8 +116,14 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 
 			showID := subtitle.ShowID
 
+			// Skip subtitles without a valid show ID to avoid orphaned items
+			if showID == 0 {
+				logger.Warn().Int("subtitleID", subtitle.ID).Str("showName", subtitle.ShowName).Msg("Skipping subtitle with missing show_id")
+				continue
+			}
+
 			// If we haven't sent ShowInfo for this show yet, fetch and send it
-			if showID != 0 && !sentShowInfo[showID] {
+			if !sentShowInfo[showID] {
 				showInfo := c.fetchShowInfoForRecent(ctx, subtitle)
 				select {
 				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
