@@ -141,7 +141,7 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 				}
 			}
 
-			thirdPartyIds := models.ThirdPartyIds{}
+			var thirdPartyIds models.ThirdPartyIds
 			if episodeID == 0 {
 				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, cannot fetch third-party IDs")
 			} else {
