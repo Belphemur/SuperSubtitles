@@ -12,7 +12,7 @@ SuperSubtitles is a Go proxy service that interfaces with [feliratok.eu](https:/
 6. **Checks for updates** since a given content ID via the recheck endpoint.
 7. **Downloads subtitles with episode extraction** — downloads subtitle files with support for extracting specific episodes from season pack ZIP files, using an LRU cache (1-hour TTL) to optimize repeated requests.
 
-The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all client functionality through a clean gRPC API. The server listens on the configured address and port (`server.address` and `server.port` in config), supports graceful shutdown, and includes gRPC reflection for tools like grpcurl.
+The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all client functionality through a clean gRPC API with **server-side streaming** for list/collection endpoints. The server listens on the configured address and port (`server.address` and `server.port` in config), supports graceful shutdown, and includes gRPC reflection for tools like grpcurl.
 
 ## High-Level Architecture
 
@@ -31,14 +31,15 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │                    internal/grpc/server                       │
 │                                                               │
 │  Implements SuperSubtitlesServiceServer:                      │
-│    • GetShowList                                              │
-│    • GetSubtitles                                             │
-│    • GetShowSubtitles                                         │
-│    • CheckForUpdates                                          │
-│    • DownloadSubtitle                                         │
-│    • GetRecentSubtitles                                       │
+│    • GetShowList        (server-side streaming)                │
+│    • GetSubtitles       (server-side streaming)                │
+│    • GetShowSubtitles   (server-side streaming)                │
+│    • CheckForUpdates    (unary)                                │
+│    • DownloadSubtitle   (unary)                                │
+│    • GetRecentSubtitles (server-side streaming)                │
 │                                                               │
-│  Converts between proto messages and internal models          │
+│  Consumes channel-based streaming from client,                │
+│  converts and sends proto messages as they arrive              │
 └────────┬──────────────────────────────────────────────────────┘
          │
          ▼
@@ -46,8 +47,8 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │                  api/proto/v1/supersubtitles.proto            │
 │                                                               │
 │  Proto definitions for:                                       │
-│    • Service: SuperSubtitlesService                           │
-│    • Messages: Show, Subtitle, SubtitleCollection, etc.       │
+│    • Service: SuperSubtitlesService (4 streaming, 2 unary)    │
+│    • Messages: Show, Subtitle, ShowInfo, ShowSubtitleItem     │
 │    • Enums: Quality (360p-2160p)                              │
 │                                                               │
 │  Generated via: go generate ./api/proto/v1                    │
@@ -64,7 +65,14 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │    • GetRecentSubtitles(ctx, sinceID) → []ShowSubtitles [**]  │
 │    • CheckForUpdates(ctx, contentID) → *UpdateCheckResult     │
 │    • DownloadSubtitle(ctx, url, req) → *DownloadResult        │
+│    •                                                          │
+│    • StreamShowList(ctx) → <-chan StreamResult[Show]           │
+│    • StreamSubtitles(ctx, showID) → <-chan StreamResult[Sub]  │
+│    • StreamShowSubtitles(ctx, shows) → <-chan StreamResult    │
+│    • StreamRecentSubtitles(ctx, sinceID) → <-chan StreamResult│
 │                                                               │
+│  Channel-based streaming methods send items as they arrive.   │
+│  GetX methods consume from StreamX channels internally.       │
 │  Handles HTTP requests, proxy config, parallel fetching,      │
 │  error aggregation, and partial-failure resilience.            │
 │  [*] HTML-based with parallel pagination (2 pages at a time)  │
@@ -104,8 +112,8 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │                     internal/models                           │
 │                                                               │
 │  Show, Subtitle, SubtitleCollection, SuperSubtitleResponse,   │
-│  ShowSubtitles, ThirdPartyIds, Quality (enum),                │
-│  UpdateCheckResponse, UpdateCheckResult,                      │
+│  ShowSubtitles, ShowInfo, ShowSubtitleItem, ThirdPartyIds,    │
+│  Quality (enum), UpdateCheckResponse, UpdateCheckResult,      │
 │  DownloadRequest, DownloadResult                              │
 └───────────────────────────────────────────────────────────────┘
                     │

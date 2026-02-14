@@ -4,7 +4,7 @@ A Go gRPC service that interfaces with [feliratok.eu](https://feliratok.eu), a H
 
 ## Features
 
-- **gRPC API** — Clean, type-safe API with Protocol Buffers for all operations
+- **gRPC API** — Clean, type-safe API with Protocol Buffers and server-side streaming for all list/collection operations
 - **Show Listing Scraping** — Fetches and deduplicates TV shows from multiple feliratok.eu endpoints in parallel
 - **Subtitle Fetching** — Retrieves subtitle metadata (language, quality, season/episode, uploader, download URLs) via JSON API
 - **Third-Party ID Extraction** — Automatically extracts IMDB, TVDB, TVMaze, and Trakt IDs from show detail pages
@@ -153,14 +153,16 @@ SuperSubtitles exposes a gRPC API with 6 main operations. For complete API docum
 
 ```protobuf
 service SuperSubtitlesService {
-  rpc GetShowList(GetShowListRequest) returns (GetShowListResponse);
-  rpc GetSubtitles(GetSubtitlesRequest) returns (GetSubtitlesResponse);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (GetShowSubtitlesResponse);
+  rpc GetShowList(GetShowListRequest) returns (stream Show);
+  rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (GetRecentSubtitlesResponse);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
 }
 ```
+
+Four of six RPCs use **server-side streaming** to send results as they become available, improving time-to-first-result and reducing memory usage.
 
 ### Example: Using grpcurl
 
@@ -182,7 +184,7 @@ grpcurl -plaintext -d '{"subtitle_id": "101", "episode": 3}' \
 
 ### Internal Client Interface
 
-The gRPC server wraps the internal `Client` interface:
+The gRPC server wraps the internal `Client` interface, which provides both batch and streaming methods:
 
 ```go
 type Client interface {
@@ -192,6 +194,12 @@ type Client interface {
     CheckForUpdates(ctx context.Context, contentID string) (*UpdateCheckResult, error)
     DownloadSubtitle(ctx context.Context, req DownloadRequest) (*DownloadResult, error)
     GetRecentSubtitles(ctx context.Context, sinceID int) ([]ShowSubtitles, error)
+
+    // Channel-based streaming methods (used by gRPC server)
+    StreamShowList(ctx context.Context) <-chan StreamResult[Show]
+    StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
+    StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitleItem]
+    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitleItem]
 }
 ```
 

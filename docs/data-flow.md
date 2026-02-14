@@ -4,19 +4,22 @@ This document describes the data flow for all major operations in SuperSubtitles
 
 ## Show List Fetching
 
-1. `GetShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
+1. `StreamShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
 2. Each response is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
 3. Results are merged and deduplicated by show ID, preserving first-occurrence order
-4. Partial failures are tolerated — if at least one endpoint succeeds, results are returned
+4. Each deduplicated show is sent to a `StreamResult[Show]` channel as it becomes available
+5. Partial failures are tolerated — if at least one endpoint succeeds, results are streamed
+6. The gRPC server consumes from the channel and streams `Show` messages to the client
+7. `GetShowList` wraps `StreamShowList`, collecting all channel results into a slice
 
 **Implementation:**
 
-- `internal/client/client.go` - `GetShowList` method
+- `internal/client/show_list.go` - `StreamShowList` and `GetShowList` methods
 - `internal/parser/show_parser.go` - ShowParser implementation
 
 ## Subtitle Fetching
 
-`GetSubtitles` fetches subtitles from HTML pages with automatic parallel pagination support.
+`StreamSubtitles` streams subtitles from HTML pages with automatic parallel pagination support.
 
 **Process:**
 
@@ -28,11 +31,14 @@ This document describes the data flow for all major operations in SuperSubtitles
    - Splits comma-separated release groups
    - Detects season packs by looking for special naming patterns
    - Extracts pagination info from `oldal=<page>` parameters
-3. If totalPages > 1, fetch remaining pages in parallel **2 pages at a time**:
+3. Parsed subtitles are sent to a `StreamResult[Subtitle]` channel as they become available
+4. If totalPages > 1, fetch remaining pages in parallel **2 pages at a time**:
    - Pages 2–3 fetched in parallel
    - Pages 4–5 fetched in parallel
    - And so on...
-4. Aggregate all subtitles from all pages
+5. Subtitles from each page are streamed to the channel as pages complete
+6. The gRPC server consumes from the channel and streams `Subtitle` messages to the client
+7. `GetSubtitles` wraps `StreamSubtitles`, collecting all channel results into a `SubtitleCollection`
 
 **Example:**
 
@@ -47,23 +53,26 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 - `internal/parser/subtitle_parser.go` - HTML table parser with pagination support
 - `internal/parser/subtitle_parser_test.go` - 23 comprehensive tests covering quality detection, release groups, season packs, pagination
-- `internal/client/subtitles.go` - `GetSubtitles` method with parallel page fetching and pagination
+- `internal/client/subtitles.go` - `StreamSubtitles` and `GetSubtitles` methods with parallel page fetching and pagination
 - `internal/client/subtitles_test.go` - Unit tests for pagination (3 tests)
 
 ## Third-Party ID Extraction
 
-1. `GetShowSubtitles` processes shows in batches of 20
+1. `StreamShowSubtitles` processes shows in batches of 20
 2. For each show, it fetches **all subtitles** (all pages), then loads the detail page HTML using the first valid (non-zero) subtitle ID
 3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
+4. For each show, a `ShowSubtitleItem` with `ShowInfo` (show + third-party IDs) is sent to the channel first, followed by individual `ShowSubtitleItem` entries for each subtitle
+5. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
 
 **Implementation:**
 
 - `internal/parser/third_party_parser.go` - ThirdPartyIdParser implementation
-- `internal/client/show_subtitles.go` - `GetShowSubtitles` method with batching
+- `internal/client/show_subtitles.go` - `StreamShowSubtitles` and `GetShowSubtitles` methods with batching
+- `internal/models/show_subtitles.go` - `ShowInfo` and `ShowSubtitleItem` models
 
 ## Recent Subtitles Fetching
 
-`GetRecentSubtitles` fetches the latest subtitles from the main show page with optional ID filtering.
+`StreamRecentSubtitles` streams the latest subtitles from the main show page with optional ID filtering, including show information for each unique show.
 
 **Process:**
 
@@ -75,27 +84,27 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 3. Filter subtitles by ID:
    - If `sinceID` is provided, only returns subtitles with `ID > sinceID` (numeric integer comparison on `Subtitle.ID`)
    - Useful for incremental updates and polling for new content
-4. Group subtitles by show ID to avoid duplicate fetches
-5. For each unique show, fetch detail page in batches of 20 to extract third-party IDs (with concurrency limit)
-6. Build `ShowSubtitles` objects combining:
-   - Show metadata (ID, name from subtitle data)
-   - Third-party IDs (IMDB, TVDB, TVMaze, Trakt)
-   - Subtitle collection for that show
+4. For each filtered subtitle, check if ShowInfo for its `show_id` has already been sent:
+   - If not: fetch the detail page to get third-party IDs, stream a `ShowInfo` item first
+   - Uses an in-memory cache per call to avoid duplicate ShowInfo for the same show
+5. Stream each `Subtitle` as a `ShowSubtitleItem` to the channel
+6. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
+7. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results into `[]ShowSubtitles`
 
 **Key Features:**
 
 - **Efficient filtering**: Only processes subtitles newer than a given ID (numeric comparison)
-- **Batched parallel processing**: Show details fetched in batches of 20 to limit concurrency
+- **Show info deduplication**: ShowInfo sent only once per unique `show_id` within a call using an in-memory cache
+- **Third-party ID enrichment**: Fetches detail pages to include IMDB, TVDB, TVMaze, Trakt IDs with show info
 - **Reuses existing parsers**: Same `SubtitleParser` used for both individual show pages and main page
-- **Partial failure resilience**: Returns successfully processed shows even if some fail
-- **Error context**: All errors include showID and detailURL for debugging
+- **Partial failure resilience**: If a detail page fetch fails, ShowInfo is still sent with empty third-party IDs
 
 **Implementation Files:**
 
 - `internal/parser/subtitle_parser.go` - `extractShowIDFromCategory` method extracts show ID from HTML
-- `internal/client/recent_subtitles.go` - `GetRecentSubtitles` method with filtering and parallel processing
-- `internal/client/recent_subtitles_test.go` - 4 comprehensive tests covering filtering, empty results, and errors
-- `internal/models/subtitle.go` - `ShowID` field added to Subtitle model
+- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering, show info caching, and detail page fetching
+- `internal/client/recent_subtitles_test.go` - 5 comprehensive tests covering filtering, empty results, errors, and show info deduplication
+- `internal/models/subtitle.go` - `ShowID` field on Subtitle model
 
 **Example Use Cases:**
 

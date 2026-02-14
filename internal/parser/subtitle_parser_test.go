@@ -169,20 +169,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 	// Generate proper HTML with oldal-based pagination
-	htmlContent := `<html>
-	<body>
-		<table width="100%" align="center" border="0" cellspacing="0" cellpadding="5" class="result">
-			<thead>
-				<tr height="30">
-					<th>Kategória</th><th>Nyelv</th><th>Címek</th><th>Feltöltő</th><th>Idő</th><th>Letöltés</th>
-				</tr>
-			</thead>
-			<tbody>
-			</tbody>
-		</table>
-		` + testutil.GeneratePaginationHTML(1, 3, true) + `
-	</body>
-	</html>`
+	htmlContent := testutil.GenerateSubtitleTableHTMLWithPagination(nil, 1, 3, true)
 
 	parser := NewSubtitleParser("https://feliratok.eu")
 	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))

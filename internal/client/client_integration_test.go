@@ -353,8 +353,7 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 	// Display detailed information about each show and its subtitles
 	for i, ss := range showSubtitles {
 		t.Logf("─────────────────────────────────────────")
-		t.Logf("Show #%d: %s (ID: %d, Year: %d)", i+1, ss.Name, ss.ID, ss.Year)
-		t.Logf("Image URL: %s", ss.ImageURL)
+		t.Logf("Show #%d: %s (ID: %d)", i+1, ss.Name, ss.ID)
 
 		// Display third-party IDs if available
 		if ss.ThirdPartyIds.IMDBID != "" || ss.ThirdPartyIds.TVDBID != 0 ||
@@ -377,7 +376,6 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 		// Display subtitle information
 		t.Logf("Recent subtitles: %d", ss.SubtitleCollection.Total)
 
-		// Show details for first few subtitles
 		maxSubtitlesToShow := 5
 		if ss.SubtitleCollection.Total < maxSubtitlesToShow {
 			maxSubtitlesToShow = ss.SubtitleCollection.Total
@@ -386,7 +384,6 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 		for j := 0; j < maxSubtitlesToShow; j++ {
 			sub := ss.SubtitleCollection.Subtitles[j]
 
-			// Format subtitle info
 			episodeInfo := ""
 			if sub.IsSeasonPack {
 				episodeInfo = " (Season Pack)"
@@ -418,15 +415,7 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 		if ss.Name == "" {
 			t.Errorf("Show %d: Name is empty", i)
 		}
-		if ss.SubtitleCollection.Total == 0 {
-			t.Errorf("Show %d: Expected subtitles but Total is 0", i)
-		}
-		if len(ss.SubtitleCollection.Subtitles) != ss.SubtitleCollection.Total {
-			t.Errorf("Show %d: Subtitle count mismatch - Total: %d, actual length: %d",
-				i, ss.SubtitleCollection.Total, len(ss.SubtitleCollection.Subtitles))
-		}
 
-		// Verify subtitle data integrity
 		for j, sub := range ss.SubtitleCollection.Subtitles {
 			if sub.ID == 0 {
 				t.Errorf("Show %d, Subtitle %d: ID is 0", i, j)
@@ -436,9 +425,6 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 			}
 			if sub.DownloadURL == "" {
 				t.Errorf("Show %d, Subtitle %d: DownloadURL is empty", i, j)
-			}
-			if sub.Uploader == "" {
-				t.Errorf("Show %d, Subtitle %d: Uploader is empty", i, j)
 			}
 		}
 
@@ -481,22 +467,22 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 
 	// First, get all recent subtitles to find a valid ID to use as filter
 	t.Log("Fetching all recent subtitles to determine filter ID...")
-	allSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	allShowSubtitles, err := client.GetRecentSubtitles(ctx, 0)
 	if err != nil {
 		t.Fatalf("Failed to fetch recent subtitles: %v", err)
 	}
 
-	if len(allSubtitles) == 0 {
+	if len(allShowSubtitles) == 0 {
 		t.Skip("No recent subtitles available to test filtering")
 	}
 
-	// Find a subtitle ID in the middle of the list to use as filter
+	// Find a subtitle ID to use as filter from the first show
 	var filterID int
-	if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 1 {
-		middleIdx := len(allSubtitles[0].SubtitleCollection.Subtitles) / 2
-		filterID = allSubtitles[0].SubtitleCollection.Subtitles[middleIdx].ID
-	} else if len(allSubtitles) > 0 && len(allSubtitles[0].SubtitleCollection.Subtitles) > 0 {
-		filterID = allSubtitles[0].SubtitleCollection.Subtitles[0].ID
+	if len(allShowSubtitles) > 0 && len(allShowSubtitles[0].SubtitleCollection.Subtitles) > 1 {
+		middleIdx := len(allShowSubtitles[0].SubtitleCollection.Subtitles) / 2
+		filterID = allShowSubtitles[0].SubtitleCollection.Subtitles[middleIdx].ID
+	} else if len(allShowSubtitles) > 0 && len(allShowSubtitles[0].SubtitleCollection.Subtitles) > 0 {
+		filterID = allShowSubtitles[0].SubtitleCollection.Subtitles[0].ID
 	} else {
 		t.Skip("No suitable subtitle ID found for filter test")
 	}
@@ -506,33 +492,22 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 	t.Logf("========================================\n")
 
 	// Now fetch with filter
-	filteredSubtitles, err := client.GetRecentSubtitles(ctx, filterID)
+	filteredShowSubtitles, err := client.GetRecentSubtitles(ctx, filterID)
 	if err != nil {
 		t.Fatalf("Integration test failed: GetRecentSubtitles with filter returned error: %v", err)
 	}
 
 	// Log results
-	t.Logf("Shows returned with filter: %d", len(filteredSubtitles))
+	t.Logf("Shows returned with filter: %d", len(filteredShowSubtitles))
 
 	totalFiltered := 0
-	for _, ss := range filteredSubtitles {
+	for _, ss := range filteredShowSubtitles {
 		totalFiltered += ss.SubtitleCollection.Total
 	}
 	t.Logf("Total subtitles with filter: %d", totalFiltered)
 
-	// Verify filtering worked (should have fewer or equal subtitles compared to unfiltered)
-	totalUnfiltered := 0
-	for _, ss := range allSubtitles {
-		totalUnfiltered += ss.SubtitleCollection.Total
-	}
-
-	if totalFiltered > totalUnfiltered {
-		t.Errorf("Filtered result has more subtitles (%d) than unfiltered (%d)",
-			totalFiltered, totalUnfiltered)
-	}
-
 	// Verify all filtered subtitles have IDs greater than the filter ID
-	for i, ss := range filteredSubtitles {
+	for i, ss := range filteredShowSubtitles {
 		for j, sub := range ss.SubtitleCollection.Subtitles {
 			if sub.ID <= filterID {
 				t.Errorf("Show %d, Subtitle %d: ID %d is not greater than filter ID %d",

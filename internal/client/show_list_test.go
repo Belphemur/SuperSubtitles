@@ -8,25 +8,22 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestClient_GetShowList(t *testing.T) {
 	// HTML for waiting (varakozik) endpoint
-	waitingHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2025</td></tr>
-		<tr><td><a href="index.php?sid=12190"><img src="sorozat_cat.php?kep=12190"/></a></td><td class="sangol"><div>7 Bears</div></td></tr>
-		<tr><td><a href="index.php?sid=12347"><img src="sorozat_cat.php?kep=12347"/></a></td><td class="sangol"><div>#1 Happy Family USA</div></td></tr>
-		<tr><td><a href="index.php?sid=12549"><img src="sorozat_cat.php?kep=12549"/></a></td><td class="sangol"><div>A Thousand Blows</div></td></tr>
-		</tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
+		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
+		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
+	})
 
 	// HTML for under translation (alatt) endpoint
-	underHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2024</td></tr>
-		<tr><td><a href="index.php?sid=12076"><img src="sorozat_cat.php?kep=12076"/></a></td><td class="sangol"><div>Adults</div></td></tr>
-		<tr><td><a href="index.php?sid=12007"><img src="sorozat_cat.php?kep=12007"/></a></td><td class="sangol"><div>Asura</div></td></tr>
-		</tbody></table></body></html>`
+	underHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12076, ShowName: "Adults", Year: 2024},
+		{ShowID: 12007, ShowName: "Asura", Year: 2024},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
@@ -37,7 +34,7 @@ func TestClient_GetShowList(t *testing.T) {
 			_, _ = w.Write([]byte(underHTML))
 		} else if r.URL.Query().Get("sorf") == "nem-all-forditas-alatt" {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body><table></table></body></html>"))
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
 		}
 	}))
 	defer server.Close()
@@ -66,28 +63,45 @@ func TestClient_GetShowList(t *testing.T) {
 		t.Fatalf("Expected %d shows, got %d", expectedCount, len(shows))
 	}
 
-	// Test specific shows (order: from first endpoint then second)
-	expectedShows := []models.Show{
-		{Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
-		{Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
-		{Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
-		{Name: "Adults", ID: 12076, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
-		{Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
+	// Test specific shows - map by ID since order is not deterministic
+	expectedShows := map[int]models.Show{
+		12190: {Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
+		12347: {Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
+		12549: {Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
+		12076: {Name: "Adults", ID: 12076, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
+		12007: {Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
 	}
 
-	for i, expected := range expectedShows {
-		if shows[i].Name != expected.Name {
-			t.Errorf("Show %d: expected name %s, got %s", i, expected.Name, shows[i].Name)
+	// Verify each show by ID
+	seenIDs := make(map[int]bool)
+	for _, show := range shows {
+		expected, exists := expectedShows[show.ID]
+		if !exists {
+			t.Errorf("Unexpected show ID %d", show.ID)
+			continue
 		}
-		if shows[i].ID != expected.ID {
-			t.Errorf("Show %d: expected ID %d, got %d", i, expected.ID, shows[i].ID)
+		seenIDs[show.ID] = true
+
+		if show.Name != expected.Name {
+			t.Errorf("Show %d: expected name %s, got %s", show.ID, expected.Name, show.Name)
 		}
-		if shows[i].Year != expected.Year {
-			t.Errorf("Show %d: expected year %d, got %d", i, expected.Year, shows[i].Year)
+		if show.Year != expected.Year {
+			t.Errorf("Show %d: expected year %d, got %d", show.ID, expected.Year, show.Year)
 		}
-		if shows[i].ImageURL != expected.ImageURL {
-			t.Errorf("Show %d: expected image URL %s, got %s", i, expected.ImageURL, shows[i].ImageURL)
+		if show.ImageURL != expected.ImageURL {
+			t.Errorf("Show %d: expected image URL %s, got %s", show.ID, expected.ImageURL, show.ImageURL)
 		}
+	}
+
+	// Verify we got all expected shows
+	if len(seenIDs) != len(expectedShows) {
+		missing := make([]int, 0)
+		for id := range expectedShows {
+			if !seenIDs[id] {
+				missing = append(missing, id)
+			}
+		}
+		t.Errorf("Missing shows with IDs: %v", missing)
 	}
 }
 
@@ -123,7 +137,9 @@ func TestClient_GetShowList_ServerError(t *testing.T) {
 
 func TestClient_GetShowList_PartialFailure(t *testing.T) {
 	// One endpoint succeeds, the other fails (500)
-	waitingHTML := `<html><body><table><tbody><tr><td colspan="10">2025</td></tr><tr><td><a href="index.php?sid=999"><img src="sorozat_cat.php?kep=999"/></a></td><td class="sangol"><div>Only Show</div></td></tr></tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 999, ShowName: "Only Show", Year: 2025},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
@@ -157,7 +173,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done() // Delay longer than timeout
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte(testutil.GenerateEmptyHTML()))
 	}))
 	defer server.Close()
 
@@ -217,21 +233,9 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 
 func TestClient_GetShowList_WithProxy(t *testing.T) {
 	// Sample HTML content
-	htmlContent := `
-		<html>
-		<body>
-			<table>
-				<tr>
-					<td colspan="10">2025</td>
-				</tr>
-				<tr>
-					<td><a href="index.php?sid=12345"><img src="sorozat_cat.php?kep=12345"/></a></td>
-					<td class="sangol"><div>Test Show</div></td>
-				</tr>
-			</table>
-		</body>
-		</html>
-	`
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
+	})
 
 	// Create a test server that returns the sample HTML
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -109,25 +109,24 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 	}
 }
 
-// convertSubtitleCollectionToProto converts a models.SubtitleCollection to a proto SubtitleCollection message
-func convertSubtitleCollectionToProto(collection models.SubtitleCollection) *pb.SubtitleCollection {
-	subtitles := make([]*pb.Subtitle, len(collection.Subtitles))
-	for i, subtitle := range collection.Subtitles {
-		subtitles[i] = convertSubtitleToProto(subtitle)
+// convertShowSubtitleItemToProto converts a models.ShowSubtitleItem to a proto ShowSubtitleItem
+func convertShowSubtitleItemToProto(item models.ShowSubtitleItem) *pb.ShowSubtitleItem {
+	if item.ShowInfo != nil {
+		return &pb.ShowSubtitleItem{
+			Item: &pb.ShowSubtitleItem_ShowInfo{
+				ShowInfo: &pb.ShowInfo{
+					Show:          convertShowToProto(item.ShowInfo.Show),
+					ThirdPartyIds: convertThirdPartyIdsToProto(item.ShowInfo.ThirdPartyIds),
+				},
+			},
+		}
 	}
-
-	return &pb.SubtitleCollection{
-		ShowName:  collection.ShowName,
-		Subtitles: subtitles,
-		Total:     safeInt64(collection.Total),
+	if item.Subtitle != nil {
+		return &pb.ShowSubtitleItem{
+			Item: &pb.ShowSubtitleItem_Subtitle{
+				Subtitle: convertSubtitleToProto(*item.Subtitle),
+			},
+		}
 	}
-}
-
-// convertShowSubtitlesToProto converts a models.ShowSubtitles to a proto ShowSubtitles message
-func convertShowSubtitlesToProto(ss models.ShowSubtitles) *pb.ShowSubtitles {
-	return &pb.ShowSubtitles{
-		Show:               convertShowToProto(ss.Show),
-		ThirdPartyIds:      convertThirdPartyIdsToProto(ss.ThirdPartyIds),
-		SubtitleCollection: convertSubtitleCollectionToProto(ss.SubtitleCollection),
-	}
+	return nil
 }

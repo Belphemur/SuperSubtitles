@@ -188,84 +188,124 @@ func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
 	}
 }
 
-// TestConvertSubtitleCollectionToProto tests SubtitleCollection conversion
-func TestConvertSubtitleCollectionToProto(t *testing.T) {
-	collection := models.SubtitleCollection{
-		ShowName: "Breaking Bad",
-		Total:    2,
-		Subtitles: []models.Subtitle{
-			{
-				ID:       101,
-				ShowID:   1,
-				Language: "hun",
+func TestConvertShowSubtitleItemToProto_ShowInfo(t *testing.T) {
+	item := models.ShowSubtitleItem{
+		ShowInfo: &models.ShowInfo{
+			Show: models.Show{
+				Name:     "The Expanse",
+				ID:       204,
+				Year:     2015,
+				ImageURL: "http://example.com/expanse.jpg",
 			},
-			{
-				ID:       102,
-				ShowID:   1,
-				Language: "eng",
+			ThirdPartyIds: models.ThirdPartyIds{
+				IMDBID:   "tt3230854",
+				TVDBID:   281620,
+				TVMazeID: 151,
+				TraktID:  11463,
 			},
 		},
 	}
 
-	result := convertSubtitleCollectionToProto(collection)
+	result := convertShowSubtitleItemToProto(item)
 
-	if result.ShowName != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", result.ShowName)
+	if result.Item == nil {
+		t.Fatal("Expected oneof item to be set")
 	}
-	if result.Total != 2 {
-		t.Errorf("Expected total 2, got %d", result.Total)
+
+	showInfoItem, ok := result.Item.(*pb.ShowSubtitleItem_ShowInfo)
+	if !ok {
+		t.Fatalf("Expected ShowInfo oneof, got %T", result.Item)
 	}
-	if len(result.Subtitles) != 2 {
-		t.Fatalf("Expected 2 subtitles, got %d", len(result.Subtitles))
+
+	if showInfoItem.ShowInfo == nil || showInfoItem.ShowInfo.Show == nil {
+		t.Fatal("Expected show info with nested show")
 	}
-	if result.Subtitles[0].Id != 101 {
-		t.Errorf("Expected first subtitle ID 101, got %d", result.Subtitles[0].Id)
+
+	if showInfoItem.ShowInfo.Show.Name != "The Expanse" {
+		t.Errorf("Expected show name 'The Expanse', got '%s'", showInfoItem.ShowInfo.Show.Name)
 	}
-	if result.Subtitles[1].Id != 102 {
-		t.Errorf("Expected second subtitle ID 102, got %d", result.Subtitles[1].Id)
+	if showInfoItem.ShowInfo.Show.Id != 204 {
+		t.Errorf("Expected show ID 204, got %d", showInfoItem.ShowInfo.Show.Id)
+	}
+	if showInfoItem.ShowInfo.Show.Year != 2015 {
+		t.Errorf("Expected show year 2015, got %d", showInfoItem.ShowInfo.Show.Year)
+	}
+	if showInfoItem.ShowInfo.Show.ImageUrl != "http://example.com/expanse.jpg" {
+		t.Errorf("Expected show image URL 'http://example.com/expanse.jpg', got '%s'", showInfoItem.ShowInfo.Show.ImageUrl)
+	}
+
+	if showInfoItem.ShowInfo.ThirdPartyIds == nil {
+		t.Fatal("Expected third-party IDs to be set")
+	}
+	if showInfoItem.ShowInfo.ThirdPartyIds.ImdbId != "tt3230854" {
+		t.Errorf("Expected IMDB ID 'tt3230854', got '%s'", showInfoItem.ShowInfo.ThirdPartyIds.ImdbId)
+	}
+	if showInfoItem.ShowInfo.ThirdPartyIds.TvdbId != 281620 {
+		t.Errorf("Expected TVDB ID 281620, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TvdbId)
+	}
+	if showInfoItem.ShowInfo.ThirdPartyIds.TvMazeId != 151 {
+		t.Errorf("Expected TVMaze ID 151, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TvMazeId)
+	}
+	if showInfoItem.ShowInfo.ThirdPartyIds.TraktId != 11463 {
+		t.Errorf("Expected Trakt ID 11463, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TraktId)
 	}
 }
 
-// TestConvertShowSubtitlesToProto tests ShowSubtitles conversion
-func TestConvertShowSubtitlesToProto(t *testing.T) {
-	showSubtitles := models.ShowSubtitles{
-		Show: models.Show{
-			Name:     "Breaking Bad",
-			ID:       1,
-			Year:     2008,
-			ImageURL: "http://example.com/image.jpg",
-		},
-		ThirdPartyIds: models.ThirdPartyIds{
-			IMDBID:   "tt0903747",
-			TVDBID:   81189,
-			TVMazeID: 169,
-			TraktID:  1388,
-		},
-		SubtitleCollection: models.SubtitleCollection{
-			ShowName: "Breaking Bad",
-			Total:    1,
-			Subtitles: []models.Subtitle{
-				{
-					ID:       101,
-					ShowID:   1,
-					Language: "hun",
-				},
-			},
-		},
+func TestConvertShowSubtitleItemToProto_Subtitle(t *testing.T) {
+	uploadTime := time.Date(2024, 2, 5, 8, 15, 0, 0, time.UTC)
+	subtitle := models.Subtitle{
+		ID:           3001,
+		ShowID:       77,
+		ShowName:     "The Expanse",
+		Name:         "S03E05",
+		Language:     "hun",
+		Season:       3,
+		Episode:      5,
+		Filename:     "the.expanse.s03e05.srt",
+		DownloadURL:  "http://example.com/download/3001",
+		Uploader:     "subtitlefan",
+		UploadedAt:   uploadTime,
+		Qualities:    []models.Quality{models.Quality720p},
+		Release:      "WEB-DL",
+		IsSeasonPack: true,
 	}
 
-	result := convertShowSubtitlesToProto(showSubtitles)
+	item := models.ShowSubtitleItem{Subtitle: &subtitle}
+	result := convertShowSubtitleItemToProto(item)
 
-	if result.Show.Name != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", result.Show.Name)
+	if result.Item == nil {
+		t.Fatal("Expected oneof item to be set")
 	}
-	if result.ThirdPartyIds.ImdbId != "tt0903747" {
-		t.Errorf("Expected IMDB ID 'tt0903747', got '%s'", result.ThirdPartyIds.ImdbId)
+
+	subtitleItem, ok := result.Item.(*pb.ShowSubtitleItem_Subtitle)
+	if !ok {
+		t.Fatalf("Expected Subtitle oneof, got %T", result.Item)
 	}
-	if result.SubtitleCollection.ShowName != "Breaking Bad" {
-		t.Errorf("Expected collection show name 'Breaking Bad', got '%s'", result.SubtitleCollection.ShowName)
+	if subtitleItem.Subtitle == nil {
+		t.Fatal("Expected subtitle to be set")
 	}
-	if len(result.SubtitleCollection.Subtitles) != 1 {
-		t.Fatalf("Expected 1 subtitle, got %d", len(result.SubtitleCollection.Subtitles))
+	if subtitleItem.Subtitle.Id != 3001 {
+		t.Errorf("Expected subtitle ID 3001, got %d", subtitleItem.Subtitle.Id)
+	}
+	if subtitleItem.Subtitle.ShowId != 77 {
+		t.Errorf("Expected show ID 77, got %d", subtitleItem.Subtitle.ShowId)
+	}
+	if subtitleItem.Subtitle.Language != "hun" {
+		t.Errorf("Expected language 'hun', got '%s'", subtitleItem.Subtitle.Language)
+	}
+	if subtitleItem.Subtitle.UploadedAt == nil {
+		t.Fatal("Expected UploadedAt to be set")
+	}
+	if !subtitleItem.Subtitle.UploadedAt.AsTime().Equal(uploadTime) {
+		t.Errorf("Expected upload time %v, got %v", uploadTime, subtitleItem.Subtitle.UploadedAt.AsTime())
+	}
+	if len(subtitleItem.Subtitle.Qualities) != 1 {
+		t.Fatalf("Expected 1 quality, got %d", len(subtitleItem.Subtitle.Qualities))
+	}
+	if subtitleItem.Subtitle.Qualities[0] != pb.Quality_QUALITY_720P {
+		t.Errorf("Expected quality 720p, got %v", subtitleItem.Subtitle.Qualities[0])
+	}
+	if !subtitleItem.Subtitle.IsSeasonPack {
+		t.Error("Expected IsSeasonPack to be true")
 	}
 }

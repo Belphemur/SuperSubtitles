@@ -128,6 +128,7 @@ SuperSubtitles/
 - **Configuration:** Loaded via `viper` from `config/config.yaml` or `./config.yaml`. Env vars prefixed with `APP_`. Log level also settable via `LOG_LEVEL` env var.
 - **Logging:** Uses `rs/zerolog` with a console writer. Access via `config.GetLogger()`. Structured logging with chained `.Str()`, `.Int()`, `.Msg()` calls. Do not create new logger instances.
 - **Error handling:** Custom error types (e.g., `ErrNotFound`) with `Is()` method for `errors.Is()` support. Wrap errors with `fmt.Errorf("...: %w", err)`. Partial failures return data with logged warnings rather than failing entirely.
+- **gRPC streaming:** Prefer server-side streaming RPCs (`returns (stream ...)`) over unary RPCs for list/collection endpoints. Streaming improves time-to-first-result and reduces memory usage by sending items as they become available instead of buffering entire responses.
 - **Concurrency:** `sync.WaitGroup` for parallel HTTP fetches. Batch processing with a batch size of 20 in `GetShowSubtitles`.
 - **HTML parsing:** Uses `PuerkitoBio/goquery` (jQuery-like selectors). Parsers implement the generic `Parser[T]` or `SingleResultParser[T]` interfaces from `internal/parser/interfaces.go`.
 - **Testing:** Standard `testing` package only (no testify). Unit tests use `httptest.NewServer` for HTTP mocking. Test functions follow `TestTypeName_MethodName` naming. Integration tests check for `CI` / `SKIP_INTEGRATION_TESTS` env vars. **Important:** `SuperSubtitleResponse` is a `map[string]SuperSubtitle` — never rely on iteration order in tests; use map lookups by key fields instead.
@@ -192,14 +193,15 @@ SuperSubtitles/
 
 ### HTML Test Fixtures
 
-**Always use `internal/testutil/html_fixtures.go` for generating HTML test data:**
+**Always use `internal/testutil/html_fixtures.go` for generating ALL HTML test data — no exceptions:**
 
-- **Never hardcode HTML strings in tests** — use the centralized generator functions instead
-- Use `GenerateSubtitleTableHTML()` for subtitle listing tests
+- **NEVER hardcode HTML strings in tests** — always use the centralized generator functions, even for empty or minimal HTML responses
+- Use `GenerateSubtitleTableHTML()` for subtitle listing tests; pass `nil` or empty slice for empty table responses
 - Use `GenerateSubtitleTableHTMLWithPagination()` for pagination tests
 - Use `GenerateShowTableHTML()` for show listing tests
-- Use `GenerateThirdPartyIDHTML()` for third-party ID extraction tests
+- Use `GenerateThirdPartyIDHTML()` for third-party ID / detail page tests; pass empty/zero values for pages with no IDs
 - Configure fixtures using option structs (`SubtitleRowOptions`, `ShowRowOptions`) for clarity
+- If a test needs HTML that no existing generator supports, **add a new generator function to `html_fixtures.go`** rather than embedding HTML in the test
 - This ensures consistency across all tests and makes HTML structure changes easy to maintain
 
 Trust these instructions. Only search the codebase if information here is incomplete or found to be in error.

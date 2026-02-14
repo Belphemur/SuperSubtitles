@@ -14,22 +14,7 @@ import (
 
 func TestClient_GetShowSubtitles(t *testing.T) {
 	// Sample HTML for detail page with third-party IDs
-	detailPageHTML := `
-		<html>
-		<body>
-			<div class="adatlapTabla">
-				<div class="adatlapAdat">
-					<div class="adatlapRow">
-						<a href="http://www.imdb.com/title/tt12345678/" target="_blank" alt="iMDB"></a>
-						<a href="http://thetvdb.com/?tab=series&id=987654" target="_blank" alt="TheTVDB"></a>
-						<a href="http://www.tvmaze.com/shows/555666" target="_blank" alt="TVMaze"></a>
-						<a href="http://trakt.tv/search/tvdb?utf8=%E2%9C%93&query=987654" target="_blank" alt="trakt"></a>
-					</div>
-				</div>
-			</div>
-		</body>
-		</html>
-	`
+	detailPageHTML := testutil.GenerateThirdPartyIDHTML("tt12345678", 987654, 555666, 987654)
 
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

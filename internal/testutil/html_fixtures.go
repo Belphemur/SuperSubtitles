@@ -10,6 +10,11 @@ func IntPtr(v int) *int {
 	return &v
 }
 
+// BoolPtr is a helper for creating *bool values in tests
+func BoolPtr(v bool) *bool {
+	return &v
+}
+
 // SubtitleRowOptions contains options for generating a subtitle row
 type SubtitleRowOptions struct {
 	ShowID           int
@@ -33,6 +38,10 @@ type ShowRowOptions struct {
 	ShowName        string
 	Year            int
 	BackgroundColor string
+	ImageSrc        string
+	IncludeImage    *bool
+	IncludeName     *bool
+	YearHeaderLabel string
 }
 
 // GenerateSubtitleTableHTML generates a proper HTML table structure for subtitle listings
@@ -303,12 +312,16 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 		// Add year header if year changed
 		if show.Year != currentYear {
 			currentYear = show.Year
+			yearLabel := fmt.Sprintf("%d", show.Year)
+			if show.YearHeaderLabel != "" {
+				yearLabel = show.YearHeaderLabel
+			}
 			sb.WriteString(fmt.Sprintf(`
 		<tr>
 			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-				%d
+				%s
 			</td>
-		</tr>`, show.Year))
+		</tr>`, yearLabel))
 		}
 
 		// Alternate background colors if not specified
@@ -321,16 +334,41 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 			}
 		}
 
+		includeImage := true
+		if show.IncludeImage != nil {
+			includeImage = *show.IncludeImage
+		}
+
+		includeName := true
+		if show.IncludeName != nil {
+			includeName = *show.IncludeName
+		}
+
+		imageSrc := show.ImageSrc
+		if imageSrc == "" {
+			imageSrc = fmt.Sprintf("sorozat_cat.php?kep=%d", show.ShowID)
+		}
+
+		imageHTML := fmt.Sprintf(`<img class="kategk" src="%s"/>`, imageSrc)
+		if !includeImage {
+			imageHTML = `<img class="kategk"/>`
+		}
+
+		nameHTML := fmt.Sprintf(`<div>%s</div>
+				<div class="sev"></div>`, show.ShowName)
+		if !includeName {
+			nameHTML = `<div class="sev"></div>`
+		}
+
 		sb.WriteString(fmt.Sprintf(`
 		<tr style="background-color: %s">
 			<td style="padding: 5px;">
-				<a href="index.php?sid=%d"><img class="kategk" src="sorozat_cat.php?kep=%d"/></a>
+				<a href="index.php?sid=%d">%s</a>
 			</td>
 			<td class="sangol">
-				<div>%s</div>
-				<div class="sev"></div>
+				%s
 			</td>
-		</tr>`, bgColor, show.ShowID, show.ShowID, show.ShowName))
+		</tr>`, bgColor, show.ShowID, imageHTML, nameHTML))
 
 		rowIndex++
 	}
@@ -366,12 +404,16 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 		// Check if we need a year header
 		if shows[i].Year != currentYear {
 			currentYear = shows[i].Year
+			yearLabel := fmt.Sprintf("%d", shows[i].Year)
+			if shows[i].YearHeaderLabel != "" {
+				yearLabel = shows[i].YearHeaderLabel
+			}
 			sb.WriteString(fmt.Sprintf(`
 		<tr>
 			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
-				%d
+				%s
 			</td>
-		</tr>`, currentYear))
+		</tr>`, yearLabel))
 		}
 
 		// Determine row background color
@@ -390,14 +432,40 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 		// Add shows for this row (up to columnsPerRow)
 		for j := 0; j < columnsPerRow && i+j < len(shows); j++ {
 			show := shows[i+j]
+
+			includeImage := true
+			if show.IncludeImage != nil {
+				includeImage = *show.IncludeImage
+			}
+
+			includeName := true
+			if show.IncludeName != nil {
+				includeName = *show.IncludeName
+			}
+
+			imageSrc := show.ImageSrc
+			if imageSrc == "" {
+				imageSrc = fmt.Sprintf("sorozat_cat.php?kep=%d", show.ShowID)
+			}
+
+			imageHTML := fmt.Sprintf(`<img class="kategk" src="%s"/>`, imageSrc)
+			if !includeImage {
+				imageHTML = `<img class="kategk"/>`
+			}
+
+			nameHTML := fmt.Sprintf(`<div>%s</div>
+				<div class="sev"></div>`, show.ShowName)
+			if !includeName {
+				nameHTML = `<div class="sev"></div>`
+			}
+
 			sb.WriteString(fmt.Sprintf(`
 			<td style="padding: 5px;">
-				<a href="index.php?sid=%d"><img class="kategk" src="sorozat_cat.php?kep=%d"/></a>
+				<a href="index.php?sid=%d">%s</a>
 			</td>
 			<td class="sangol">
-				<div>%s</div>
-				<div class="sev"></div>
-			</td>`, show.ShowID, show.ShowID, show.ShowName))
+				%s
+			</td>`, show.ShowID, imageHTML, nameHTML))
 		}
 
 		sb.WriteString(`
@@ -411,6 +479,26 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 </html>`)
 
 	return sb.String()
+}
+
+// GenerateEmptyHTML returns a minimal HTML document with an empty body.
+func GenerateEmptyHTML() string {
+	return `<html><body></body></html>`
+}
+
+// GenerateInvalidShowTableHTML returns HTML that does not match the expected show table structure.
+func GenerateInvalidShowTableHTML() string {
+	return GenerateHTMLWithBody(`<table><tr><td>Invalid structure</td></tr></table>`)
+}
+
+// GenerateInvalidThirdPartyHTML returns HTML without third-party ID links.
+func GenerateInvalidThirdPartyHTML() string {
+	return GenerateHTMLWithBody(`<div>Invalid structure</div>`)
+}
+
+// GenerateHTMLWithBody wraps custom body content in a standard HTML shell.
+func GenerateHTMLWithBody(bodyHTML string) string {
+	return `<html><body>` + bodyHTML + `</body></html>`
 }
 
 // GenerateThirdPartyIDHTML generates a proper HTML structure for third-party ID details page

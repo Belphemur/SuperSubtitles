@@ -7,15 +7,19 @@ option go_package = "github.com/Belphemur/SuperSubtitles/api/proto/v1;v1";
 import "google/protobuf/timestamp.proto";
 
 // SuperSubtitlesService provides access to TV show and subtitle information
+// Uses server-side streaming for list/collection endpoints to improve
+// time-to-first-result and reduce memory usage.
 service SuperSubtitlesService {
-  // GetShowList retrieves all available TV shows
-  rpc GetShowList(GetShowListRequest) returns (GetShowListResponse);
+  // GetShowList streams all available TV shows
+  rpc GetShowList(GetShowListRequest) returns (stream Show);
 
-  // GetSubtitles retrieves all subtitles for a specific show
-  rpc GetSubtitles(GetSubtitlesRequest) returns (GetSubtitlesResponse);
+  // GetSubtitles streams all subtitles for a specific show
+  rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
 
-  // GetShowSubtitles retrieves shows with their subtitles and third-party IDs
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (GetShowSubtitlesResponse);
+  // GetShowSubtitles streams show information and subtitles for multiple shows.
+  // Streams ShowSubtitleItem messages which contain either show info (show + third-party IDs)
+  // or a subtitle, linked together by show_id.
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
 
   // CheckForUpdates checks if there are new subtitles available since a given content ID
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
@@ -23,8 +27,11 @@ service SuperSubtitlesService {
   // DownloadSubtitle downloads a specific subtitle file
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
 
-  // GetRecentSubtitles retrieves recently uploaded subtitles
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (GetRecentSubtitlesResponse);
+  // GetRecentSubtitles streams recently uploaded subtitles with show information.
+  // Streams ShowSubtitleItem messages: for each new show encountered, a ShowInfo
+  // item is sent first, followed by individual Subtitle items. Show info is only
+  // sent once per unique show_id within a single call.
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
 }
 
 // Show represents a TV show with basic information
@@ -72,46 +79,32 @@ message Subtitle {
   bool is_season_pack = 15;
 }
 
-// SubtitleCollection represents a collection of subtitles for a show
-message SubtitleCollection {
-  string show_name = 1;
-  repeated Subtitle subtitles = 2;
-  int64 total = 3;
-}
-
-// ShowSubtitles represents a TV show with its third-party IDs and subtitles
-message ShowSubtitles {
+// ShowInfo represents a TV show with its third-party IDs (sent once per show in a stream)
+message ShowInfo {
   Show show = 1;
   ThirdPartyIds third_party_ids = 2;
-  SubtitleCollection subtitle_collection = 3;
+}
+
+// ShowSubtitleItem is a streaming message for GetShowSubtitles/GetRecentSubtitles.
+// Each item is either show information or a subtitle, linked by show_id.
+message ShowSubtitleItem {
+  oneof item {
+    ShowInfo show_info = 1;   // Show metadata with third-party IDs
+    Subtitle subtitle = 2;    // A single subtitle belonging to a show (use show_id to link)
+  }
 }
 
 // GetShowListRequest requests the list of all available shows
 message GetShowListRequest {}
-
-// GetShowListResponse contains the list of shows
-message GetShowListResponse {
-  repeated Show shows = 1;
-}
 
 // GetSubtitlesRequest requests subtitles for a specific show
 message GetSubtitlesRequest {
   int64 show_id = 1;
 }
 
-// GetSubtitlesResponse contains the subtitle collection for a show
-message GetSubtitlesResponse {
-  SubtitleCollection subtitle_collection = 1;
-}
-
 // GetShowSubtitlesRequest requests shows with their subtitles and third-party IDs
 message GetShowSubtitlesRequest {
   repeated Show shows = 1;
-}
-
-// GetShowSubtitlesResponse contains shows with subtitles and third-party IDs
-message GetShowSubtitlesResponse {
-  repeated ShowSubtitles show_subtitles = 1;
 }
 
 // CheckForUpdatesRequest checks for new content since a given content ID
@@ -142,9 +135,4 @@ message DownloadSubtitleResponse {
 // GetRecentSubtitlesRequest requests recently uploaded subtitles
 message GetRecentSubtitlesRequest {
   int64 since_id = 1;
-}
-
-// GetRecentSubtitlesResponse contains recently uploaded subtitles
-message GetRecentSubtitlesResponse {
-  repeated ShowSubtitles show_subtitles = 1;
 }
