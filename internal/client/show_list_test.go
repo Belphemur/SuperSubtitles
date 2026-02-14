@@ -66,28 +66,45 @@ func TestClient_GetShowList(t *testing.T) {
 		t.Fatalf("Expected %d shows, got %d", expectedCount, len(shows))
 	}
 
-	// Test specific shows (order: from first endpoint then second)
-	expectedShows := []models.Show{
-		{Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
-		{Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
-		{Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
-		{Name: "Adults", ID: 12076, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
-		{Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
+	// Test specific shows - map by ID since order is not deterministic
+	expectedShows := map[int]models.Show{
+		12190: {Name: "7 Bears", ID: 12190, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12190"},
+		12347: {Name: "#1 Happy Family USA", ID: 12347, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12347"},
+		12549: {Name: "A Thousand Blows", ID: 12549, Year: 2025, ImageURL: server.URL + "/sorozat_cat.php?kep=12549"},
+		12076: {Name: "Adults", ID: 12076, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12076"},
+		12007: {Name: "Asura", ID: 12007, Year: 2024, ImageURL: server.URL + "/sorozat_cat.php?kep=12007"},
 	}
 
-	for i, expected := range expectedShows {
-		if shows[i].Name != expected.Name {
-			t.Errorf("Show %d: expected name %s, got %s", i, expected.Name, shows[i].Name)
+	// Verify each show by ID
+	seenIDs := make(map[int]bool)
+	for _, show := range shows {
+		expected, exists := expectedShows[show.ID]
+		if !exists {
+			t.Errorf("Unexpected show ID %d", show.ID)
+			continue
 		}
-		if shows[i].ID != expected.ID {
-			t.Errorf("Show %d: expected ID %d, got %d", i, expected.ID, shows[i].ID)
+		seenIDs[show.ID] = true
+
+		if show.Name != expected.Name {
+			t.Errorf("Show %d: expected name %s, got %s", show.ID, expected.Name, show.Name)
 		}
-		if shows[i].Year != expected.Year {
-			t.Errorf("Show %d: expected year %d, got %d", i, expected.Year, shows[i].Year)
+		if show.Year != expected.Year {
+			t.Errorf("Show %d: expected year %d, got %d", show.ID, expected.Year, show.Year)
 		}
-		if shows[i].ImageURL != expected.ImageURL {
-			t.Errorf("Show %d: expected image URL %s, got %s", i, expected.ImageURL, shows[i].ImageURL)
+		if show.ImageURL != expected.ImageURL {
+			t.Errorf("Show %d: expected image URL %s, got %s", show.ID, expected.ImageURL, show.ImageURL)
 		}
+	}
+
+	// Verify we got all expected shows
+	if len(seenIDs) != len(expectedShows) {
+		missing := make([]int, 0)
+		for id := range expectedShows {
+			if !seenIDs[id] {
+				missing = append(missing, id)
+			}
+		}
+		t.Errorf("Missing shows with IDs: %v", missing)
 	}
 }
 
