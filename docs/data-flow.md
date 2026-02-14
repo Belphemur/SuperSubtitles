@@ -84,27 +84,23 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 3. Filter subtitles by ID:
    - If `sinceID` is provided, only returns subtitles with `ID > sinceID` (numeric integer comparison on `Subtitle.ID`)
    - Useful for incremental updates and polling for new content
-4. Group subtitles by show ID to avoid duplicate fetches
-5. For each unique show, fetch detail page in batches of 20 to extract third-party IDs (with concurrency limit)
-6. Stream `ShowSubtitleItem` messages to the channel:
-   - For each show: first a `ShowInfo` item (show metadata + third-party IDs), then individual `Subtitle` items
-7. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
-8. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results back into `[]ShowSubtitles`
+4. Stream each filtered `Subtitle` directly to the channel as it's processed
+5. The gRPC server consumes from the channel and streams `Subtitle` messages to the client
+6. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results into `[]Subtitle`
 
 **Key Features:**
 
 - **Efficient filtering**: Only processes subtitles newer than a given ID (numeric comparison)
-- **Batched parallel processing**: Show details fetched in batches of 20 to limit concurrency
+- **Direct subtitle streaming**: Each subtitle is streamed individually with `show_id` and `show_name` for client-side grouping
 - **Reuses existing parsers**: Same `SubtitleParser` used for both individual show pages and main page
-- **Partial failure resilience**: Returns successfully processed shows even if some fail
-- **Error context**: All errors include showID and detailURL for debugging
+- **Lightweight**: No additional HTTP requests needed — all data comes from the main page parse
 
 **Implementation Files:**
 
 - `internal/parser/subtitle_parser.go` - `extractShowIDFromCategory` method extracts show ID from HTML
-- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering and parallel processing
+- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering
 - `internal/client/recent_subtitles_test.go` - 4 comprehensive tests covering filtering, empty results, and errors
-- `internal/models/subtitle.go` - `ShowID` field added to Subtitle model
+- `internal/models/subtitle.go` - `ShowID` field on Subtitle model
 
 **Example Use Cases:**
 

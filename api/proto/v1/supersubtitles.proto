@@ -27,9 +27,9 @@ service SuperSubtitlesService {
   // DownloadSubtitle downloads a specific subtitle file
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
 
-  // GetRecentSubtitles streams recently uploaded subtitles grouped by show.
-  // Streams ShowSubtitleItem messages which contain either show info or a subtitle.
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
+  // GetRecentSubtitles streams recently uploaded subtitles.
+  // Each Subtitle contains show_id and show_name for client-side grouping.
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream Subtitle);
 }
 
 // Show represents a TV show with basic information

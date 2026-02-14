@@ -22,12 +22,12 @@ type mockClient struct {
 	getShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	checkForUpdatesFunc    func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
 	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
-	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
+	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.Subtitle, error)
 
 	streamShowListFunc        func(ctx context.Context) <-chan client.StreamResult[models.Show]
 	streamSubtitlesFunc       func(ctx context.Context, showID int) <-chan client.StreamResult[models.Subtitle]
 	streamShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) <-chan client.StreamResult[models.ShowSubtitleItem]
-	streamRecentSubtitlesFunc func(ctx context.Context, sinceID int) <-chan client.StreamResult[models.ShowSubtitleItem]
+	streamRecentSubtitlesFunc func(ctx context.Context, sinceID int) <-chan client.StreamResult[models.Subtitle]
 }
 
 func (m *mockClient) GetShowList(ctx context.Context) ([]models.Show, error) {
@@ -65,11 +65,11 @@ func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, ep
 	return &models.DownloadResult{}, nil
 }
 
-func (m *mockClient) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
+func (m *mockClient) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.Subtitle, error) {
 	if m.getRecentSubtitlesFunc != nil {
 		return m.getRecentSubtitlesFunc(ctx, sinceID)
 	}
-	return []models.ShowSubtitles{}, nil
+	return []models.Subtitle{}, nil
 }
 
 func (m *mockClient) StreamShowList(ctx context.Context) <-chan client.StreamResult[models.Show] {
@@ -137,28 +137,20 @@ func (m *mockClient) StreamShowSubtitles(ctx context.Context, shows []models.Sho
 	return ch
 }
 
-func (m *mockClient) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan client.StreamResult[models.ShowSubtitleItem] {
+func (m *mockClient) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan client.StreamResult[models.Subtitle] {
 	if m.streamRecentSubtitlesFunc != nil {
 		return m.streamRecentSubtitlesFunc(ctx, sinceID)
 	}
-	ch := make(chan client.StreamResult[models.ShowSubtitleItem])
+	ch := make(chan client.StreamResult[models.Subtitle])
 	go func() {
 		defer close(ch)
-		showSubtitles, err := m.GetRecentSubtitles(ctx, sinceID)
+		subtitles, err := m.GetRecentSubtitles(ctx, sinceID)
 		if err != nil {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Err: err}
+			ch <- client.StreamResult[models.Subtitle]{Err: err}
 			return
 		}
-		for _, ss := range showSubtitles {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
-				ShowInfo: &models.ShowInfo{Show: ss.Show, ThirdPartyIds: ss.ThirdPartyIds},
-			}}
-			for _, sub := range ss.SubtitleCollection.Subtitles {
-				sub := sub
-				ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
-					Subtitle: &sub,
-				}}
-			}
+		for _, sub := range subtitles {
+			ch <- client.StreamResult[models.Subtitle]{Value: sub}
 		}
 	}()
 	return ch
@@ -527,54 +519,45 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 
 // TestGetRecentSubtitles_Success tests successful recent subtitles streaming
 func TestGetRecentSubtitles_Success(t *testing.T) {
-	mockShowSubtitles := []models.ShowSubtitles{
-		{
-			Show: models.Show{Name: "Breaking Bad", ID: 1, Year: 2008},
-			SubtitleCollection: models.SubtitleCollection{
-				ShowName: "Breaking Bad",
-				Total:    1,
-				Subtitles: []models.Subtitle{
-					{ID: 101, ShowID: 1, Language: "hun"},
-				},
-			},
-		},
+	mockSubtitles := []models.Subtitle{
+		{ID: 101, ShowID: 1, ShowName: "Breaking Bad", Language: "hun"},
+		{ID: 102, ShowID: 1, ShowName: "Breaking Bad", Language: "eng"},
 	}
 
 	mock := &mockClient{
-		getRecentSubtitlesFunc: func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
+		getRecentSubtitlesFunc: func(ctx context.Context, sinceID int) ([]models.Subtitle, error) {
 			if sinceID != 100 {
 				t.Errorf("Expected since ID 100, got %d", sinceID)
 			}
-			return mockShowSubtitles, nil
+			return mockSubtitles, nil
 		},
 	}
 
 	srv := NewServer(mock).(*server)
-	stream := newMockServerStream[pb.ShowSubtitleItem]()
+	stream := newMockServerStream[pb.Subtitle]()
 
 	err := srv.GetRecentSubtitles(&pb.GetRecentSubtitlesRequest{SinceId: 100}, stream)
 	if err != nil {
 		t.Fatalf("GetRecentSubtitles returned error: %v", err)
 	}
 
-	// Expect 2 items: 1 ShowInfo + 1 Subtitle
 	if len(stream.items) != 2 {
-		t.Fatalf("Expected 2 streamed items, got %d", len(stream.items))
+		t.Fatalf("Expected 2 subtitles streamed, got %d", len(stream.items))
 	}
 
-	showInfoItem := stream.items[0].GetShowInfo()
-	if showInfoItem == nil {
-		t.Fatal("Expected first item to be ShowInfo")
+	if stream.items[0].Id != 101 {
+		t.Errorf("Expected subtitle ID 101, got %d", stream.items[0].Id)
 	}
-	if showInfoItem.Show.Name != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", showInfoItem.Show.Name)
+	if stream.items[0].ShowId != 1 {
+		t.Errorf("Expected show ID 1, got %d", stream.items[0].ShowId)
 	}
-
-	subtitleItem := stream.items[1].GetSubtitle()
-	if subtitleItem == nil {
-		t.Fatal("Expected second item to be Subtitle")
+	if stream.items[0].ShowName != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", stream.items[0].ShowName)
 	}
-	if subtitleItem.Id != 101 {
-		t.Errorf("Expected subtitle ID 101, got %d", subtitleItem.Id)
+	if stream.items[1].Id != 102 {
+		t.Errorf("Expected subtitle ID 102, got %d", stream.items[1].Id)
+	}
+	if stream.items[1].Language != "eng" {
+		t.Errorf("Expected language 'eng', got '%s'", stream.items[1].Language)
 	}
 }

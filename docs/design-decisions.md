@@ -190,7 +190,7 @@ This document explains key architectural and design decisions made in the SuperS
 
 ## ShowSubtitleItem Streaming Model
 
-**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` and `GetRecentSubtitles` streams.
+**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` streams. `GetRecentSubtitles` streams `Subtitle` messages directly since each subtitle already contains `show_id` and `show_name`.
 
 **Rationale**:
 

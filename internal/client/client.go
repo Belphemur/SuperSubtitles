@@ -25,7 +25,7 @@ type Client interface {
 	GetShowSubtitles(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
 	DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
-	GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
+	GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.Subtitle, error)
 
 	// Streaming methods return channels that emit results as they become available.
 	// The channel is closed when all results have been sent.
@@ -33,7 +33,7 @@ type Client interface {
 	StreamShowList(ctx context.Context) <-chan StreamResult[models.Show]
 	StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[models.Subtitle]
 	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan StreamResult[models.ShowSubtitleItem]
-	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[models.ShowSubtitleItem]
+	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[models.Subtitle]
 }
 
 // client implements the Client interface
