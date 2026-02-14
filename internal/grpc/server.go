@@ -180,9 +180,11 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 	for result := range s.client.StreamRecentSubtitles(stream.Context(), int(req.SinceId)) {
 		if result.Err != nil {
 			if count == 0 {
+				// No items sent yet — return error to client
 				s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
 				return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
 			}
+			// Items already sent — log and continue to deliver partial results
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming recent subtitles")
 			continue
 		}

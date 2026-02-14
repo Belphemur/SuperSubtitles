@@ -41,6 +41,7 @@ func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.
 	for _, sid := range showOrder {
 		info := showInfoMap[sid]
 		subs := subtitlesByShow[sid]
+		// Prefer show name from subtitles as parsed data may be more specific than constructed ShowInfo
 		showName := info.Show.Name
 		if len(subs) > 0 {
 			showName = subs[0].ShowName
