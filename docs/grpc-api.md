@@ -12,14 +12,16 @@ The API is defined in [`api/proto/v1/supersubtitles.proto`](../api/proto/v1/supe
 
 ```protobuf
 service SuperSubtitlesService {
-  rpc GetShowList(GetShowListRequest) returns (GetShowListResponse);
-  rpc GetSubtitles(GetSubtitlesRequest) returns (GetSubtitlesResponse);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (GetShowSubtitlesResponse);
+  rpc GetShowList(GetShowListRequest) returns (stream Show);
+  rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (GetRecentSubtitlesResponse);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
 }
 ```
+
+Four of six RPCs use **server-side streaming**, sending items as they become available rather than buffering entire responses. This improves time-to-first-result and reduces memory usage. `CheckForUpdates` and `DownloadSubtitle` remain unary RPCs.
 
 ## Code Generation
 
@@ -49,6 +51,7 @@ The gRPC server is implemented in [`internal/grpc/server.go`](../internal/grpc/s
 - Implements `SuperSubtitlesServiceServer` interface
 - Wraps the HTTP client (`internal/client.Client`)
 - Converts between proto messages and internal models
+- Consumes from channel-based streaming client methods, sending items as they arrive
 - Provides structured logging via zerolog
 - Returns gRPC status codes for errors
 
@@ -75,12 +78,12 @@ grpcServer.Serve(listener)
 
 ## API Endpoints
 
-### 1. GetShowList
+### 1. GetShowList (server-side streaming)
 
-Retrieves all available TV shows.
+Streams all available TV shows.
 
 **Request:** Empty
-**Response:** List of shows (name, ID, year, image URL)
+**Response:** Stream of `Show` messages (name, ID, year, image URL)
 
 **Example with grpcurl:**
 
@@ -88,15 +91,15 @@ Retrieves all available TV shows.
 grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowList
 ```
 
-### 2. GetSubtitles
+### 2. GetSubtitles (server-side streaming)
 
-Retrieves all subtitles for a specific show (with automatic pagination).
+Streams all subtitles for a specific show (with automatic pagination).
 
 **Request:**
 
-- `show_id` (int32): Show ID
+- `show_id` (int64): Show ID
 
-**Response:** SubtitleCollection with show name, subtitles array, and total count
+**Response:** Stream of `Subtitle` messages
 
 **Example:**
 
@@ -105,15 +108,15 @@ grpcurl -plaintext -d '{"show_id": 1234}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetSubtitles
 ```
 
-### 3. GetShowSubtitles
+### 3. GetShowSubtitles (server-side streaming)
 
-Retrieves shows with their subtitles and third-party IDs (batch operation).
+Streams shows with their subtitles and third-party IDs (batch operation).
 
 **Request:**
 
 - `shows` (repeated Show): List of shows to fetch
 
-**Response:** List of ShowSubtitles (show + third-party IDs + subtitle collection)
+**Response:** Stream of `ShowSubtitleItem` messages. Each show produces a `show_info` item (containing `ShowInfo` with show metadata and third-party IDs) followed by `subtitle` items for that show. Items are linked by `show_id`.
 
 **Example:**
 
@@ -165,15 +168,15 @@ grpcurl -plaintext -d '{"subtitle_id": "101", "episode": 1}' \
   localhost:8080 supersubtitles.v1.SuperSubtitlesService/DownloadSubtitle
 ```
 
-### 6. GetRecentSubtitles
+### 6. GetRecentSubtitles (server-side streaming)
 
-Retrieves recently uploaded subtitles since a given subtitle ID.
+Streams recently uploaded subtitles since a given subtitle ID.
 
 **Request:**
 
 - `since_id` (int32): Subtitle ID to fetch from
 
-**Response:** List of ShowSubtitles (grouped by show)
+**Response:** Stream of `ShowSubtitleItem` messages (same format as `GetShowSubtitles` — `show_info` followed by `subtitle` items per show)
 
 **Example:**
 
@@ -235,11 +238,33 @@ enum Quality {
 ```protobuf
 message ThirdPartyIds {
   string imdb_id = 1;
-  int32 tvdb_id = 2;
-  int32 tv_maze_id = 3;
-  int32 trakt_id = 4;
+  int64 tvdb_id = 2;
+  int64 tv_maze_id = 3;
+  int64 trakt_id = 4;
 }
 ```
+
+### ShowInfo
+
+```protobuf
+message ShowInfo {
+  Show show = 1;
+  ThirdPartyIds third_party_ids = 2;
+}
+```
+
+### ShowSubtitleItem
+
+```protobuf
+message ShowSubtitleItem {
+  oneof item {
+    ShowInfo show_info = 1;
+    Subtitle subtitle = 2;
+  }
+}
+```
+
+`ShowSubtitleItem` is used by `GetShowSubtitles` and `GetRecentSubtitles` to interleave show metadata with subtitles in a single stream. For each show, a `show_info` item is sent first, followed by individual `subtitle` items. Consumers can link subtitles to their show using the `show_id` field on each `Subtitle`.
 
 ## Error Handling
 
@@ -344,8 +369,7 @@ The gRPC server includes explicit conversion functions between proto messages an
 - `convertShowToProto` / `convertShowFromProto`
 - `convertQualityToProto`
 - `convertSubtitleToProto`
-- `convertSubtitleCollectionToProto`
-- `convertShowSubtitlesToProto`
+- `convertShowSubtitleItemToProto`
 - `convertThirdPartyIdsToProto`
 
 **Rationale:**

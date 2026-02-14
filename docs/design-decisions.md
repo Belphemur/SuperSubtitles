@@ -150,6 +150,62 @@ This document explains key architectural and design decisions made in the SuperS
 - All errors wrapped with context
 - Parallel operations collect errors but return successful results
 
+## Server-Side Streaming RPCs
+
+**Decision**: Use server-side streaming for 4 of 6 gRPC RPCs (`GetShowList`, `GetSubtitles`, `GetShowSubtitles`, `GetRecentSubtitles`). Only `CheckForUpdates` and `DownloadSubtitle` remain unary.
+
+**Rationale**:
+
+- Improves time-to-first-result by sending items as they become available
+- Reduces server memory usage — no need to buffer entire response collections
+- Natural fit for list/collection endpoints that aggregate data from multiple sources
+- Enables progressive rendering on the client side
+- Unary RPCs are kept for single-value responses (update check, file download)
+
+**Implementation**:
+
+- Proto definitions use `returns (stream T)` for streaming RPCs
+- `ShowSubtitleItem` uses protobuf `oneof` to interleave show metadata and subtitles in a single stream
+- gRPC server methods consume from client streaming channels and call `stream.Send()` per item
+- Removed `GetShowListResponse`, `GetSubtitlesResponse`, `GetShowSubtitlesResponse`, `GetRecentSubtitlesResponse` wrapper messages
+
+## Channel-Based Client Streaming
+
+**Decision**: Add `StreamX` methods to the internal client that return `<-chan StreamResult[T]` channels, alongside existing `GetX` methods.
+
+**Rationale**:
+
+- Channels are Go's natural primitive for streaming data
+- `StreamResult[T]` generic type cleanly separates values from errors in the stream
+- `GetX` methods can consume from `StreamX` channels internally, avoiding code duplication
+- The gRPC server directly consumes from channels, enabling true end-to-end streaming
+- Backward compatible — `GetX` methods still return collected results for non-streaming consumers
+
+**Implementation**:
+
+- `StreamResult[T]` generic struct with `Value T` and `Err error` fields in `internal/client/client.go`
+- `StreamShowList`, `StreamSubtitles`, `StreamShowSubtitles`, `StreamRecentSubtitles` return read-only channels
+- Channels are closed when all data has been sent or on error
+- `GetX` methods collect channel results into slices/collections
+
+## ShowSubtitleItem Streaming Model
+
+**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` and `GetRecentSubtitles` streams.
+
+**Rationale**:
+
+- Allows streaming show metadata and subtitles through a single stream without separate RPCs
+- `ShowInfo` (show + third-party IDs) is sent once per show, followed by its subtitles
+- Consumers link subtitles to shows via the `show_id` field on each `Subtitle`
+- More efficient than sending complete `ShowSubtitles` objects that bundle all subtitles together
+- Internal `ShowInfo` and `ShowSubtitleItem` models in `internal/models/show_subtitles.go` mirror the proto structure
+
+**Implementation**:
+
+- Proto `ShowSubtitleItem.oneof item` contains either `ShowInfo` or `Subtitle`
+- Internal `ShowSubtitleItem` struct uses pointer fields (`*ShowInfo`, `*Subtitle`) — exactly one is non-nil
+- `convertShowSubtitleItemToProto` converter handles the oneof mapping
+
 ## Show Name Extraction via DOM Traversal
 
 **Decision**: Use direct DOM sibling traversal (`.Next()`) to find show names instead of iterating through all table cells with string matching.
