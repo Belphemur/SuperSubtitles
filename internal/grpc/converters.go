@@ -128,5 +128,5 @@ func convertShowSubtitleItemToProto(item models.ShowSubtitleItem) *pb.ShowSubtit
 			},
 		}
 	}
-	return &pb.ShowSubtitleItem{}
+	return nil
 }
