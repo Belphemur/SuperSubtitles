@@ -64,7 +64,7 @@ func TestShowParser_ParseHtml(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_EmptyHTML(t *testing.T) {
-	htmlContent := `<html><body></body></html>`
+	htmlContent := testutil.GenerateEmptyHTML()
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -79,7 +79,7 @@ func TestShowParser_ParseHtml_EmptyHTML(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_InvalidHTML(t *testing.T) {
-	htmlContent := `<html><body><table><tr><td>Invalid structure</td></tr></table></body></html>`
+	htmlContent := testutil.GenerateInvalidShowTableHTML()
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -95,25 +95,15 @@ func TestShowParser_ParseHtml_InvalidHTML(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
-	// Generate HTML with a malformed year by manually creating it
-	htmlContent := `<html><body>
-		<table>
-			<tbody>
-				<tr>
-					<td colspan="10" style="text-align: center; background-color: #DDDDDD;">Invalid Year</td>
-				</tr>
-				<tr style="background-color: #ffffff">
-					<td style="padding: 5px;">
-						<a href="index.php?sid=12345"><img class="kategk" src="sorozat_cat.php?kep=12345"/></a>
-					</td>
-					<td class="sangol">
-						<div>Test Show</div>
-						<div class="sev"></div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</body></html>`
+	// Generate HTML with a malformed year by using a custom header label
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{
+			ShowID:          12345,
+			ShowName:        "Test Show",
+			Year:            2025,
+			YearHeaderLabel: "Invalid Year",
+		},
+	})
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -134,21 +124,14 @@ func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
 
 func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
 	// Generate HTML with missing image src attribute
-	htmlContent := `<html><body>
-		<table>
-			<tbody>
-				<tr style="background-color: #ffffff">
-					<td style="padding: 5px;">
-						<a href="index.php?sid=12345"><img class="kategk"/></a>
-					</td>
-					<td class="sangol">
-						<div>Test Show</div>
-						<div class="sev"></div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</body></html>`
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{
+			ShowID:       12345,
+			ShowName:     "Test Show",
+			Year:         2025,
+			IncludeImage: testutil.BoolPtr(false),
+		},
+	})
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -165,20 +148,14 @@ func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
 
 func TestShowParser_ParseHtml_MissingName(t *testing.T) {
 	// Generate HTML with missing show name
-	htmlContent := `<html><body>
-		<table>
-			<tbody>
-				<tr style="background-color: #ffffff">
-					<td style="padding: 5px;">
-						<a href="index.php?sid=12345"><img class="kategk" src="sorozat_cat.php?kep=12345"/></a>
-					</td>
-					<td class="sangol">
-						<div class="sev"></div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</body></html>`
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{
+			ShowID:      12345,
+			ShowName:    "Test Show",
+			Year:        2025,
+			IncludeName: testutil.BoolPtr(false),
+		},
+	})
 
 	parser := NewShowParser("https://feliratok.eu")
 	shows, err := parser.ParseHtml(strings.NewReader(htmlContent))

@@ -43,7 +43,7 @@ func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_EmptyHTML(t *testing.T) {
-	htmlContent := `<html><body></body></html>`
+	htmlContent := testutil.GenerateEmptyHTML()
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))
@@ -89,7 +89,7 @@ func TestThirdPartyIdParser_ParseHtml_PartialLinks(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_InvalidHTML(t *testing.T) {
-	htmlContent := `<html><body><div>Invalid structure</div></body></html>`
+	htmlContent := testutil.GenerateInvalidThirdPartyHTML()
 
 	parser := NewThirdPartyIdParser()
 	result, err := parser.ParseHtml(strings.NewReader(htmlContent))

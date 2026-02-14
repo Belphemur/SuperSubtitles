@@ -18,11 +18,9 @@ import (
 // TestClient_GetShowList_WithGzipCompression tests that the client properly handles gzip-compressed responses
 func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
 	// HTML for waiting (varakozik) endpoint
-	waitingHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2025</td></tr>
-		<tr><td><a href="index.php?sid=12190"><img src="sorozat_cat.php?kep=12190"/></a></td><td class="sangol"><div>7 Bears</div></td></tr>
-		</tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify Accept-Encoding header includes gzip
@@ -45,7 +43,7 @@ func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
 		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "sorf=") {
 			// Return empty response for other endpoints to avoid noise
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body><table><tbody></tbody></table></body></html>"))
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -76,11 +74,9 @@ func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
 
 // TestClient_GetShowList_WithBrotliCompression tests that the client properly handles brotli-compressed responses
 func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
-	waitingHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2025</td></tr>
-		<tr><td><a href="index.php?sid=12347"><img src="sorozat_cat.php?kep=12347"/></a></td><td class="sangol"><div>#1 Happy Family USA</div></td></tr>
-		</tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify Accept-Encoding header includes br (brotli)
@@ -102,7 +98,7 @@ func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
 		}
 		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "sorf=") {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body><table><tbody></tbody></table></body></html>"))
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)
@@ -133,11 +129,9 @@ func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
 
 // TestClient_GetShowList_WithZstdCompression tests that the client properly handles zstd-compressed responses
 func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
-	waitingHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2025</td></tr>
-		<tr><td><a href="index.php?sid=12549"><img src="sorozat_cat.php?kep=12549"/></a></td><td class="sangol"><div>A Thousand Blows</div></td></tr>
-		</tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify Accept-Encoding header includes zstd
@@ -160,7 +154,7 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 		}
 		if r.URL.Path == "/index.php" && strings.Contains(r.URL.RawQuery, "sorf=") {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body><table><tbody></tbody></table></body></html>"))
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
 			return
 		}
 		w.WriteHeader(http.StatusNotFound)

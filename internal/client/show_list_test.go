@@ -8,25 +8,22 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 func TestClient_GetShowList(t *testing.T) {
 	// HTML for waiting (varakozik) endpoint
-	waitingHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2025</td></tr>
-		<tr><td><a href="index.php?sid=12190"><img src="sorozat_cat.php?kep=12190"/></a></td><td class="sangol"><div>7 Bears</div></td></tr>
-		<tr><td><a href="index.php?sid=12347"><img src="sorozat_cat.php?kep=12347"/></a></td><td class="sangol"><div>#1 Happy Family USA</div></td></tr>
-		<tr><td><a href="index.php?sid=12549"><img src="sorozat_cat.php?kep=12549"/></a></td><td class="sangol"><div>A Thousand Blows</div></td></tr>
-		</tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
+		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
+		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
+	})
 
 	// HTML for under translation (alatt) endpoint
-	underHTML := `
-		<html><body><table><tbody>
-		<tr><td colspan="10">2024</td></tr>
-		<tr><td><a href="index.php?sid=12076"><img src="sorozat_cat.php?kep=12076"/></a></td><td class="sangol"><div>Adults</div></td></tr>
-		<tr><td><a href="index.php?sid=12007"><img src="sorozat_cat.php?kep=12007"/></a></td><td class="sangol"><div>Asura</div></td></tr>
-		</tbody></table></body></html>`
+	underHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12076, ShowName: "Adults", Year: 2024},
+		{ShowID: 12007, ShowName: "Asura", Year: 2024},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
@@ -37,7 +34,7 @@ func TestClient_GetShowList(t *testing.T) {
 			_, _ = w.Write([]byte(underHTML))
 		} else if r.URL.Query().Get("sorf") == "nem-all-forditas-alatt" {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("<html><body><table></table></body></html>"))
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
 		}
 	}))
 	defer server.Close()
@@ -140,7 +137,9 @@ func TestClient_GetShowList_ServerError(t *testing.T) {
 
 func TestClient_GetShowList_PartialFailure(t *testing.T) {
 	// One endpoint succeeds, the other fails (500)
-	waitingHTML := `<html><body><table><tbody><tr><td colspan="10">2025</td></tr><tr><td><a href="index.php?sid=999"><img src="sorozat_cat.php?kep=999"/></a></td><td class="sangol"><div>Only Show</div></td></tr></tbody></table></body></html>`
+	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 999, ShowName: "Only Show", Year: 2025},
+	})
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
@@ -174,7 +173,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done() // Delay longer than timeout
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("<html></html>"))
+		_, _ = w.Write([]byte(testutil.GenerateEmptyHTML()))
 	}))
 	defer server.Close()
 
@@ -234,21 +233,9 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 
 func TestClient_GetShowList_WithProxy(t *testing.T) {
 	// Sample HTML content
-	htmlContent := `
-		<html>
-		<body>
-			<table>
-				<tr>
-					<td colspan="10">2025</td>
-				</tr>
-				<tr>
-					<td><a href="index.php?sid=12345"><img src="sorozat_cat.php?kep=12345"/></a></td>
-					<td class="sangol"><div>Test Show</div></td>
-				</tr>
-			</table>
-		</body>
-		</html>
-	`
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
+	})
 
 	// Create a test server that returns the sample HTML
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
