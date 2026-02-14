@@ -1,3 +1,13 @@
+# [1.5.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.4...v1.5.0) (2026-02-14)
+
+
+### Features
+
+* **client:** add channel-based streaming methods for reduced memory usage ([48d5313](https://github.com/Belphemur/SuperSubtitles/commit/48d531329c65b52d0b4356369ee7606ad84b2c9e))
+* **grpc:** convert RPCs to server-side streaming with proto and server changes ([3b4f68c](https://github.com/Belphemur/SuperSubtitles/commit/3b4f68c29fd664a11eae66a7b3e31be2a99be654))
+* **grpc:** stream ShowSubtitleItem for GetRecentSubtitles with show info caching ([0952546](https://github.com/Belphemur/SuperSubtitles/commit/0952546d61273d614b46023bee8f20b025031d97))
+* **grpc:** stream Subtitle directly for GetRecentSubtitles instead of ShowSubtitleItem ([678c281](https://github.com/Belphemur/SuperSubtitles/commit/678c281823c9c7f7b66496b79176b078f329c5ba))
+
 ## [1.4.4](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.3...v1.4.4) (2026-02-13)
 
 
