@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
@@ -64,7 +66,30 @@ func (m *mockClient) GetRecentSubtitles(ctx context.Context, sinceID int) ([]mod
 	return []models.ShowSubtitles{}, nil
 }
 
-// TestGetShowList_Success tests successful show list retrieval
+// mockServerStream implements grpc.ServerStreamingServer for testing streaming RPCs
+type mockServerStream[T any] struct {
+	grpc.ServerStream
+	ctx   context.Context
+	items []*T
+}
+
+func newMockServerStream[T any]() *mockServerStream[T] {
+	return &mockServerStream[T]{ctx: context.Background()}
+}
+
+func (m *mockServerStream[T]) Send(item *T) error {
+	m.items = append(m.items, item)
+	return nil
+}
+
+func (m *mockServerStream[T]) SetHeader(metadata.MD) error  { return nil }
+func (m *mockServerStream[T]) SendHeader(metadata.MD) error { return nil }
+func (m *mockServerStream[T]) SetTrailer(metadata.MD)       {}
+func (m *mockServerStream[T]) Context() context.Context      { return m.ctx }
+func (m *mockServerStream[T]) SendMsg(msg any) error         { return nil }
+func (m *mockServerStream[T]) RecvMsg(msg any) error         { return nil }
+
+// TestGetShowList_Success tests successful show list streaming
 func TestGetShowList_Success(t *testing.T) {
 	mockShows := []models.Show{
 		{Name: "Breaking Bad", ID: 1, Year: 2008, ImageURL: "http://example.com/image1.jpg"},
@@ -77,30 +102,30 @@ func TestGetShowList_Success(t *testing.T) {
 		},
 	}
 
-	srv := NewServer(mock)
-	ctx := context.Background()
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Show]()
 
-	resp, err := srv.GetShowList(ctx, &pb.GetShowListRequest{})
+	err := srv.GetShowList(&pb.GetShowListRequest{}, stream)
 	if err != nil {
 		t.Fatalf("GetShowList returned error: %v", err)
 	}
 
-	if len(resp.Shows) != 2 {
-		t.Fatalf("Expected 2 shows, got %d", len(resp.Shows))
+	if len(stream.items) != 2 {
+		t.Fatalf("Expected 2 shows streamed, got %d", len(stream.items))
 	}
 
-	if resp.Shows[0].Name != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", resp.Shows[0].Name)
+	if stream.items[0].Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", stream.items[0].Name)
 	}
-	if resp.Shows[0].Id != 1 {
-		t.Errorf("Expected show ID 1, got %d", resp.Shows[0].Id)
+	if stream.items[0].Id != 1 {
+		t.Errorf("Expected show ID 1, got %d", stream.items[0].Id)
 	}
-	if resp.Shows[1].Name != "Game of Thrones" {
-		t.Errorf("Expected show name 'Game of Thrones', got '%s'", resp.Shows[1].Name)
+	if stream.items[1].Name != "Game of Thrones" {
+		t.Errorf("Expected show name 'Game of Thrones', got '%s'", stream.items[1].Name)
 	}
 }
 
-// TestGetShowList_Error tests error handling in show list retrieval
+// TestGetShowList_Error tests error handling in show list streaming
 func TestGetShowList_Error(t *testing.T) {
 	mock := &mockClient{
 		getShowListFunc: func(ctx context.Context) ([]models.Show, error) {
@@ -108,16 +133,16 @@ func TestGetShowList_Error(t *testing.T) {
 		},
 	}
 
-	srv := NewServer(mock)
-	ctx := context.Background()
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Show]()
 
-	_, err := srv.GetShowList(ctx, &pb.GetShowListRequest{})
+	err := srv.GetShowList(&pb.GetShowListRequest{}, stream)
 	if err == nil {
 		t.Fatal("Expected error but got nil")
 	}
 }
 
-// TestGetSubtitles_Success tests successful subtitle retrieval
+// TestGetSubtitles_Success tests successful subtitle streaming
 func TestGetSubtitles_Success(t *testing.T) {
 	uploadTime := time.Now()
 	mockCollection := &models.SubtitleCollection{
@@ -153,25 +178,19 @@ func TestGetSubtitles_Success(t *testing.T) {
 		},
 	}
 
-	srv := NewServer(mock)
-	ctx := context.Background()
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Subtitle]()
 
-	resp, err := srv.GetSubtitles(ctx, &pb.GetSubtitlesRequest{ShowId: 1})
+	err := srv.GetSubtitles(&pb.GetSubtitlesRequest{ShowId: 1}, stream)
 	if err != nil {
 		t.Fatalf("GetSubtitles returned error: %v", err)
 	}
 
-	if resp.SubtitleCollection.ShowName != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", resp.SubtitleCollection.ShowName)
-	}
-	if resp.SubtitleCollection.Total != 2 {
-		t.Errorf("Expected total 2, got %d", resp.SubtitleCollection.Total)
-	}
-	if len(resp.SubtitleCollection.Subtitles) != 1 {
-		t.Fatalf("Expected 1 subtitle, got %d", len(resp.SubtitleCollection.Subtitles))
+	if len(stream.items) != 1 {
+		t.Fatalf("Expected 1 subtitle streamed, got %d", len(stream.items))
 	}
 
-	subtitle := resp.SubtitleCollection.Subtitles[0]
+	subtitle := stream.items[0]
 	if subtitle.Id != 101 {
 		t.Errorf("Expected subtitle ID 101, got %d", subtitle.Id)
 	}
@@ -186,7 +205,7 @@ func TestGetSubtitles_Success(t *testing.T) {
 	}
 }
 
-// TestGetShowSubtitles_Success tests successful show subtitles retrieval
+// TestGetShowSubtitles_Success tests successful show subtitles streaming
 func TestGetShowSubtitles_Success(t *testing.T) {
 	mockShowSubtitles := []models.ShowSubtitles{
 		{
@@ -221,8 +240,8 @@ func TestGetShowSubtitles_Success(t *testing.T) {
 		},
 	}
 
-	srv := NewServer(mock)
-	ctx := context.Background()
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.ShowSubtitleItem]()
 
 	req := &pb.GetShowSubtitlesRequest{
 		Shows: []*pb.Show{
@@ -230,24 +249,56 @@ func TestGetShowSubtitles_Success(t *testing.T) {
 		},
 	}
 
-	resp, err := srv.GetShowSubtitles(ctx, req)
+	err := srv.GetShowSubtitles(req, stream)
 	if err != nil {
 		t.Fatalf("GetShowSubtitles returned error: %v", err)
 	}
 
-	if len(resp.ShowSubtitles) != 1 {
-		t.Fatalf("Expected 1 show subtitle, got %d", len(resp.ShowSubtitles))
+	// Expect 2 items: 1 ShowInfo + 1 Subtitle
+	if len(stream.items) != 2 {
+		t.Fatalf("Expected 2 streamed items, got %d", len(stream.items))
 	}
 
-	ss := resp.ShowSubtitles[0]
-	if ss.Show.Name != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", ss.Show.Name)
+	// First item should be ShowInfo
+	showInfoItem := stream.items[0].GetShowInfo()
+	if showInfoItem == nil {
+		t.Fatal("Expected first item to be ShowInfo")
 	}
-	if ss.ThirdPartyIds.ImdbId != "tt0903747" {
-		t.Errorf("Expected IMDB ID 'tt0903747', got '%s'", ss.ThirdPartyIds.ImdbId)
+	if showInfoItem.Show.Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", showInfoItem.Show.Name)
 	}
-	if ss.ThirdPartyIds.TvdbId != 81189 {
-		t.Errorf("Expected TVDB ID 81189, got %d", ss.ThirdPartyIds.TvdbId)
+	if showInfoItem.ThirdPartyIds.ImdbId != "tt0903747" {
+		t.Errorf("Expected IMDB ID 'tt0903747', got '%s'", showInfoItem.ThirdPartyIds.ImdbId)
+	}
+	if showInfoItem.ThirdPartyIds.TvdbId != 81189 {
+		t.Errorf("Expected TVDB ID 81189, got %d", showInfoItem.ThirdPartyIds.TvdbId)
+	}
+
+	// Second item should be Subtitle
+	subtitleItem := stream.items[1].GetSubtitle()
+	if subtitleItem == nil {
+		t.Fatal("Expected second item to be Subtitle")
+	}
+	if subtitleItem.Id != 101 {
+		t.Errorf("Expected subtitle ID 101, got %d", subtitleItem.Id)
+	}
+	if subtitleItem.ShowId != 1 {
+		t.Errorf("Expected show ID 1, got %d", subtitleItem.ShowId)
+	}
+}
+
+// TestGetShowSubtitles_NoValidShows tests error when no valid shows are provided
+func TestGetShowSubtitles_NoValidShows(t *testing.T) {
+	srv := NewServer(&mockClient{}).(*server)
+	stream := newMockServerStream[pb.ShowSubtitleItem]()
+
+	req := &pb.GetShowSubtitlesRequest{
+		Shows: []*pb.Show{nil},
+	}
+
+	err := srv.GetShowSubtitles(req, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
 	}
 }
 
@@ -376,7 +427,7 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 	}
 }
 
-// TestGetRecentSubtitles_Success tests successful recent subtitles retrieval
+// TestGetRecentSubtitles_Success tests successful recent subtitles streaming
 func TestGetRecentSubtitles_Success(t *testing.T) {
 	mockShowSubtitles := []models.ShowSubtitles{
 		{
@@ -400,20 +451,32 @@ func TestGetRecentSubtitles_Success(t *testing.T) {
 		},
 	}
 
-	srv := NewServer(mock)
-	ctx := context.Background()
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.ShowSubtitleItem]()
 
-	resp, err := srv.GetRecentSubtitles(ctx, &pb.GetRecentSubtitlesRequest{SinceId: 100})
+	err := srv.GetRecentSubtitles(&pb.GetRecentSubtitlesRequest{SinceId: 100}, stream)
 	if err != nil {
 		t.Fatalf("GetRecentSubtitles returned error: %v", err)
 	}
 
-	if len(resp.ShowSubtitles) != 1 {
-		t.Fatalf("Expected 1 show subtitle, got %d", len(resp.ShowSubtitles))
+	// Expect 2 items: 1 ShowInfo + 1 Subtitle
+	if len(stream.items) != 2 {
+		t.Fatalf("Expected 2 streamed items, got %d", len(stream.items))
 	}
 
-	ss := resp.ShowSubtitles[0]
-	if ss.Show.Name != "Breaking Bad" {
-		t.Errorf("Expected show name 'Breaking Bad', got '%s'", ss.Show.Name)
+	showInfoItem := stream.items[0].GetShowInfo()
+	if showInfoItem == nil {
+		t.Fatal("Expected first item to be ShowInfo")
+	}
+	if showInfoItem.Show.Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", showInfoItem.Show.Name)
+	}
+
+	subtitleItem := stream.items[1].GetSubtitle()
+	if subtitleItem == nil {
+		t.Fatal("Expected second item to be Subtitle")
+	}
+	if subtitleItem.Id != 101 {
+		t.Errorf("Expected subtitle ID 101, got %d", subtitleItem.Id)
 	}
 }

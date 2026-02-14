@@ -24,12 +24,6 @@ jobs:
           go version
           go env
 
-      - name: Install gopls
-        run: go install golang.org/x/tools/gopls@latest
-
-      - name: Verify gopls installation
-        run: gopls version
-
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
@@ -51,7 +45,6 @@ jobs:
       - name: Setup complete
         run: |
           echo "✅ Go environment setup complete"
-          echo "✅ gopls (Go language server) installed"
           echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
           echo "✅ Application built successfully"
