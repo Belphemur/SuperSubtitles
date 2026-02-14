@@ -17,7 +17,7 @@ service SuperSubtitlesService {
   rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream Subtitle);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
 }
 ```
 
@@ -176,7 +176,7 @@ Streams recently uploaded subtitles since a given subtitle ID.
 
 - `since_id` (int32): Subtitle ID to fetch from
 
-**Response:** Stream of `Subtitle` messages. Each subtitle contains `show_id` and `show_name` for client-side grouping.
+**Response:** Stream of `ShowSubtitleItem` messages (same format as `GetShowSubtitles` — `show_info` followed by `subtitle` items per show). Show info is only sent once per unique `show_id` within a single call, so clients can discover new shows they haven't seen before.
 
 **Example:**
 
@@ -264,7 +264,7 @@ message ShowSubtitleItem {
 }
 ```
 
-`ShowSubtitleItem` is used by `GetShowSubtitles` to interleave show metadata with subtitles in a single stream. For each show, a `show_info` item is sent first, followed by individual `subtitle` items. Consumers can link subtitles to their show using the `show_id` field on each `Subtitle`.
+`ShowSubtitleItem` is used by `GetShowSubtitles` and `GetRecentSubtitles` to interleave show metadata with subtitles in a single stream. For each show, a `show_info` item is sent first (only once per unique `show_id`), followed by individual `subtitle` items. Consumers can link subtitles to their show using the `show_id` field on each `Subtitle`.
 
 ## Error Handling
 

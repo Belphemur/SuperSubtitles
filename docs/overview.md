@@ -62,7 +62,7 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │    • GetShowList(ctx) → []Show                                │
 │    • GetSubtitles(ctx, showID) → *SubtitleCollection [*]      │
 │    • GetShowSubtitles(ctx, shows) → []ShowSubtitles           │
-│    • GetRecentSubtitles(ctx, sinceID) → []Subtitle [**]       │
+│    • GetRecentSubtitles(ctx, sinceID) → []ShowSubtitles [**]  │
 │    • CheckForUpdates(ctx, contentID) → *UpdateCheckResult     │
 │    • DownloadSubtitle(ctx, url, req) → *DownloadResult        │
 │    •                                                          │

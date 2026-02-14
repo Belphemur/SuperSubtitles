@@ -190,7 +190,7 @@ This document explains key architectural and design decisions made in the SuperS
 
 ## ShowSubtitleItem Streaming Model
 
-**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` streams. `GetRecentSubtitles` streams `Subtitle` messages directly since each subtitle already contains `show_id` and `show_name`.
+**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` and `GetRecentSubtitles` streams. ShowInfo is sent once per unique `show_id` within a single call, followed by individual subtitles for that show.
 
 **Rationale**:
 
@@ -198,6 +198,7 @@ This document explains key architectural and design decisions made in the SuperS
 - `ShowInfo` (show + third-party IDs) is sent once per show, followed by its subtitles
 - Consumers link subtitles to shows via the `show_id` field on each `Subtitle`
 - More efficient than sending complete `ShowSubtitles` objects that bundle all subtitles together
+- For `GetRecentSubtitles`, show info includes third-party IDs fetched from detail pages, enabling clients to discover new shows they haven't seen before
 - Internal `ShowInfo` and `ShowSubtitleItem` models in `internal/models/show_subtitles.go` mirror the proto structure
 
 **Implementation**:

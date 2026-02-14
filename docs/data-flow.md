@@ -72,7 +72,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 ## Recent Subtitles Fetching
 
-`StreamRecentSubtitles` streams the latest subtitles from the main show page with optional ID filtering.
+`StreamRecentSubtitles` streams the latest subtitles from the main show page with optional ID filtering, including show information for each unique show.
 
 **Process:**
 
@@ -84,22 +84,26 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 3. Filter subtitles by ID:
    - If `sinceID` is provided, only returns subtitles with `ID > sinceID` (numeric integer comparison on `Subtitle.ID`)
    - Useful for incremental updates and polling for new content
-4. Stream each filtered `Subtitle` directly to the channel as it's processed
-5. The gRPC server consumes from the channel and streams `Subtitle` messages to the client
-6. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results into `[]Subtitle`
+4. For each filtered subtitle, check if ShowInfo for its `show_id` has already been sent:
+   - If not: fetch the detail page to get third-party IDs, stream a `ShowInfo` item first
+   - Uses an in-memory cache per call to avoid duplicate ShowInfo for the same show
+5. Stream each `Subtitle` as a `ShowSubtitleItem` to the channel
+6. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
+7. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results into `[]ShowSubtitles`
 
 **Key Features:**
 
 - **Efficient filtering**: Only processes subtitles newer than a given ID (numeric comparison)
-- **Direct subtitle streaming**: Each subtitle is streamed individually with `show_id` and `show_name` for client-side grouping
+- **Show info deduplication**: ShowInfo sent only once per unique `show_id` within a call using an in-memory cache
+- **Third-party ID enrichment**: Fetches detail pages to include IMDB, TVDB, TVMaze, Trakt IDs with show info
 - **Reuses existing parsers**: Same `SubtitleParser` used for both individual show pages and main page
-- **Lightweight**: No additional HTTP requests needed — all data comes from the main page parse
+- **Partial failure resilience**: If a detail page fetch fails, ShowInfo is still sent with empty third-party IDs
 
 **Implementation Files:**
 
 - `internal/parser/subtitle_parser.go` - `extractShowIDFromCategory` method extracts show ID from HTML
-- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering
-- `internal/client/recent_subtitles_test.go` - 4 comprehensive tests covering filtering, empty results, and errors
+- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering, show info caching, and detail page fetching
+- `internal/client/recent_subtitles_test.go` - 5 comprehensive tests covering filtering, empty results, errors, and show info deduplication
 - `internal/models/subtitle.go` - `ShowID` field on Subtitle model
 
 **Example Use Cases:**

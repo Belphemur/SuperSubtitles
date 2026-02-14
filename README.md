@@ -158,7 +158,7 @@ service SuperSubtitlesService {
   rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream Subtitle);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
 }
 ```
 
@@ -193,13 +193,13 @@ type Client interface {
     GetShowSubtitles(ctx context.Context, shows []Show) ([]ShowSubtitles, error)
     CheckForUpdates(ctx context.Context, contentID string) (*UpdateCheckResult, error)
     DownloadSubtitle(ctx context.Context, req DownloadRequest) (*DownloadResult, error)
-    GetRecentSubtitles(ctx context.Context, sinceID int) ([]Subtitle, error)
+    GetRecentSubtitles(ctx context.Context, sinceID int) ([]ShowSubtitles, error)
 
     // Channel-based streaming methods (used by gRPC server)
     StreamShowList(ctx context.Context) <-chan StreamResult[Show]
     StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
     StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitleItem]
-    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[Subtitle]
+    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitleItem]
 }
 ```
 

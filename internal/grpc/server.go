@@ -172,18 +172,23 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	}, nil
 }
 
-// GetRecentSubtitles streams recently uploaded subtitles
-func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.Subtitle]) error {
+// GetRecentSubtitles streams recently uploaded subtitles with show information
+func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
 	s.logger.Debug().Int64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
 	count := 0
 	for result := range s.client.StreamRecentSubtitles(stream.Context(), int(req.SinceId)) {
 		if result.Err != nil {
-			s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
-			return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
+			if count == 0 {
+				s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
+				return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
+			}
+			s.logger.Warn().Err(result.Err).Msg("Error while streaming recent subtitles")
+			continue
 		}
-		if err := stream.Send(convertSubtitleToProto(result.Value)); err != nil {
-			return status.Errorf(codes.Internal, "failed to stream recent subtitle: %v", err)
+		pbItem := convertShowSubtitleItemToProto(result.Value)
+		if err := stream.Send(pbItem); err != nil {
+			return status.Errorf(codes.Internal, "failed to stream recent subtitle item: %v", err)
 		}
 		count++
 	}

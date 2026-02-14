@@ -193,14 +193,15 @@ SuperSubtitles/
 
 ### HTML Test Fixtures
 
-**Always use `internal/testutil/html_fixtures.go` for generating HTML test data:**
+**Always use `internal/testutil/html_fixtures.go` for generating ALL HTML test data — no exceptions:**
 
-- **Never hardcode HTML strings in tests** — use the centralized generator functions instead
-- Use `GenerateSubtitleTableHTML()` for subtitle listing tests
+- **NEVER hardcode HTML strings in tests** — always use the centralized generator functions, even for empty or minimal HTML responses
+- Use `GenerateSubtitleTableHTML()` for subtitle listing tests; pass `nil` or empty slice for empty table responses
 - Use `GenerateSubtitleTableHTMLWithPagination()` for pagination tests
 - Use `GenerateShowTableHTML()` for show listing tests
-- Use `GenerateThirdPartyIDHTML()` for third-party ID extraction tests
+- Use `GenerateThirdPartyIDHTML()` for third-party ID / detail page tests; pass empty/zero values for pages with no IDs
 - Configure fixtures using option structs (`SubtitleRowOptions`, `ShowRowOptions`) for clarity
+- If a test needs HTML that no existing generator supports, **add a new generator function to `html_fixtures.go`** rather than embedding HTML in the test
 - This ensures consistency across all tests and makes HTML structure changes easy to maintain
 
 Trust these instructions. Only search the codebase if information here is incomplete or found to be in error.
