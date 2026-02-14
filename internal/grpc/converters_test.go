@@ -187,5 +187,3 @@ func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
 		t.Error("Expected nil UploadedAt for zero time, got non-nil")
 	}
 }
-
-

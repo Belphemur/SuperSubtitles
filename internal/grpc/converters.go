@@ -109,4 +109,24 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 	}
 }
 
-
+// convertShowSubtitleItemToProto converts a models.ShowSubtitleItem to a proto ShowSubtitleItem
+func convertShowSubtitleItemToProto(item models.ShowSubtitleItem) *pb.ShowSubtitleItem {
+	if item.ShowInfo != nil {
+		return &pb.ShowSubtitleItem{
+			Item: &pb.ShowSubtitleItem_ShowInfo{
+				ShowInfo: &pb.ShowInfo{
+					Show:          convertShowToProto(item.ShowInfo.Show),
+					ThirdPartyIds: convertThirdPartyIdsToProto(item.ShowInfo.ThirdPartyIds),
+				},
+			},
+		}
+	}
+	if item.Subtitle != nil {
+		return &pb.ShowSubtitleItem{
+			Item: &pb.ShowSubtitleItem_Subtitle{
+				Subtitle: convertSubtitleToProto(*item.Subtitle),
+			},
+		}
+	}
+	return &pb.ShowSubtitleItem{}
+}

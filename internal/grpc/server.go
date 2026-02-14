@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/internal/client"
@@ -33,19 +32,25 @@ func NewServer(c client.Client) pb.SuperSubtitlesServiceServer {
 func (s *server) GetShowList(req *pb.GetShowListRequest, stream grpc.ServerStreamingServer[pb.Show]) error {
 	s.logger.Debug().Msg("GetShowList called")
 
-	shows, err := s.client.GetShowList(stream.Context())
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Failed to get show list")
-		return status.Errorf(codes.Internal, "failed to get show list: %v", err)
-	}
-
-	for _, show := range shows {
-		if err := stream.Send(convertShowToProto(show)); err != nil {
+	count := 0
+	for result := range s.client.StreamShowList(stream.Context()) {
+		if result.Err != nil {
+			if count == 0 {
+				// No shows sent yet — return an error
+				s.logger.Error().Err(result.Err).Msg("Failed to get show list")
+				return status.Errorf(codes.Internal, "failed to get show list: %v", result.Err)
+			}
+			// Some shows already sent — log and continue
+			s.logger.Warn().Err(result.Err).Msg("Error while streaming shows")
+			continue
+		}
+		if err := stream.Send(convertShowToProto(result.Value)); err != nil {
 			return status.Errorf(codes.Internal, "failed to stream show: %v", err)
 		}
+		count++
 	}
 
-	s.logger.Debug().Int("count", len(shows)).Msg("GetShowList completed")
+	s.logger.Debug().Int("count", count).Msg("GetShowList completed")
 	return nil
 }
 
@@ -53,19 +58,19 @@ func (s *server) GetShowList(req *pb.GetShowListRequest, stream grpc.ServerStrea
 func (s *server) GetSubtitles(req *pb.GetSubtitlesRequest, stream grpc.ServerStreamingServer[pb.Subtitle]) error {
 	s.logger.Debug().Int64("show_id", req.ShowId).Msg("GetSubtitles called")
 
-	collection, err := s.client.GetSubtitles(stream.Context(), int(req.ShowId))
-	if err != nil {
-		s.logger.Error().Err(err).Int64("show_id", req.ShowId).Msg("Failed to get subtitles")
-		return status.Errorf(codes.Internal, "failed to get subtitles: %v", err)
-	}
-
-	for _, subtitle := range collection.Subtitles {
-		if err := stream.Send(convertSubtitleToProto(subtitle)); err != nil {
+	count := 0
+	for result := range s.client.StreamSubtitles(stream.Context(), int(req.ShowId)) {
+		if result.Err != nil {
+			s.logger.Error().Err(result.Err).Int64("show_id", req.ShowId).Msg("Failed to get subtitles")
+			return status.Errorf(codes.Internal, "failed to get subtitles: %v", result.Err)
+		}
+		if err := stream.Send(convertSubtitleToProto(result.Value)); err != nil {
 			return status.Errorf(codes.Internal, "failed to stream subtitle: %v", err)
 		}
+		count++
 	}
 
-	s.logger.Debug().Int64("show_id", req.ShowId).Int("count", len(collection.Subtitles)).Msg("GetSubtitles completed")
+	s.logger.Debug().Int64("show_id", req.ShowId).Int("count", count).Msg("GetSubtitles completed")
 	return nil
 }
 
@@ -87,17 +92,24 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 		return status.Error(codes.InvalidArgument, "no valid shows provided")
 	}
 
-	showSubtitles, err := s.client.GetShowSubtitles(stream.Context(), shows)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Failed to get show subtitles")
-		return status.Errorf(codes.Internal, "failed to get show subtitles: %v", err)
+	count := 0
+	for result := range s.client.StreamShowSubtitles(stream.Context(), shows) {
+		if result.Err != nil {
+			if count == 0 {
+				s.logger.Error().Err(result.Err).Msg("Failed to get show subtitles")
+				return status.Errorf(codes.Internal, "failed to get show subtitles: %v", result.Err)
+			}
+			s.logger.Warn().Err(result.Err).Msg("Error while streaming show subtitles")
+			continue
+		}
+		pbItem := convertShowSubtitleItemToProto(result.Value)
+		if err := stream.Send(pbItem); err != nil {
+			return status.Errorf(codes.Internal, "failed to stream show subtitle item: %v", err)
+		}
+		count++
 	}
 
-	if err := streamShowSubtitleItems(showSubtitles, stream); err != nil {
-		return err
-	}
-
-	s.logger.Debug().Int("count", len(showSubtitles)).Msg("GetShowSubtitles completed")
+	s.logger.Debug().Int("count", count).Msg("GetShowSubtitles completed")
 	return nil
 }
 
@@ -164,48 +176,23 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
 	s.logger.Debug().Int64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
-	showSubtitles, err := s.client.GetRecentSubtitles(stream.Context(), int(req.SinceId))
-	if err != nil {
-		s.logger.Error().Err(err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
-		return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", err)
-	}
-
-	if err := streamShowSubtitleItems(showSubtitles, stream); err != nil {
-		return err
-	}
-
-	s.logger.Debug().Int64("since_id", req.SinceId).Int("count", len(showSubtitles)).Msg("GetRecentSubtitles completed")
-	return nil
-}
-
-// streamShowSubtitleItems streams ShowSubtitles data as ShowSubtitleItem messages.
-// For each show, it first sends a ShowInfo item, then streams each subtitle individually.
-func streamShowSubtitleItems(showSubtitles []models.ShowSubtitles, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
-	for _, ss := range showSubtitles {
-		// Send show info first
-		showInfoItem := &pb.ShowSubtitleItem{
-			Item: &pb.ShowSubtitleItem_ShowInfo{
-				ShowInfo: &pb.ShowInfo{
-					Show:          convertShowToProto(ss.Show),
-					ThirdPartyIds: convertThirdPartyIdsToProto(ss.ThirdPartyIds),
-				},
-			},
-		}
-		if err := stream.Send(showInfoItem); err != nil {
-			return status.Errorf(codes.Internal, "failed to stream show info: %v", err)
-		}
-
-		// Then stream each subtitle
-		for _, subtitle := range ss.SubtitleCollection.Subtitles {
-			subtitleItem := &pb.ShowSubtitleItem{
-				Item: &pb.ShowSubtitleItem_Subtitle{
-					Subtitle: convertSubtitleToProto(subtitle),
-				},
+	count := 0
+	for result := range s.client.StreamRecentSubtitles(stream.Context(), int(req.SinceId)) {
+		if result.Err != nil {
+			if count == 0 {
+				s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
+				return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
 			}
-			if err := stream.Send(subtitleItem); err != nil {
-				return status.Errorf(codes.Internal, fmt.Sprintf("failed to stream subtitle for show %d: %%v", ss.Show.ID), err)
-			}
+			s.logger.Warn().Err(result.Err).Msg("Error while streaming recent subtitles")
+			continue
 		}
+		pbItem := convertShowSubtitleItemToProto(result.Value)
+		if err := stream.Send(pbItem); err != nil {
+			return status.Errorf(codes.Internal, "failed to stream recent subtitle item: %v", err)
+		}
+		count++
 	}
+
+	s.logger.Debug().Int64("since_id", req.SinceId).Int("count", count).Msg("GetRecentSubtitles completed")
 	return nil
 }
