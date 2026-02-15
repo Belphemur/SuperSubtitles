@@ -109,115 +109,109 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch chan<- StreamResult[models.ShowSubtitleItem]) []error {
 	logger := config.GetLogger()
 
-	type showResult struct {
-		showInfo  models.ShowInfo
-		subtitles []models.Subtitle
-		err       error
-	}
-
-	results := make([]showResult, len(shows))
+	var errorsMu sync.Mutex
+	var errs []error
 	var wg sync.WaitGroup
 	wg.Add(len(shows))
 
-	for i, show := range shows {
-		i, show := i, show
+	for _, show := range shows {
+		show := show
 		go func() {
 			defer wg.Done()
 
-			// Get subtitles for this show
-			subtitles, err := c.GetSubtitles(ctx, show.ID)
-			if err != nil {
-				logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to fetch subtitles for show")
-				results[i] = showResult{err: fmt.Errorf("failed to get subtitles for show %d: %w", show.ID, err)}
-				return
-			}
+			var thirdPartyIdsSent bool
 
-			// Find a valid episode ID from the subtitles (use first non-zero subtitle ID)
-			var episodeID int
-			for _, s := range subtitles.Subtitles {
-				if s.ID > 0 {
-					episodeID = s.ID
-					break
-				}
-			}
-
-			var thirdPartyIds models.ThirdPartyIds
-			if episodeID == 0 {
-				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, cannot fetch third-party IDs")
-			} else {
-				// Construct detail page URL
-				detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
-
-				// Fetch detail page HTML
-				req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
-				if err != nil {
-					logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to create detail page request")
-					results[i] = showResult{err: fmt.Errorf("failed to create detail page request for show %d: %w", show.ID, err)}
-					return
-				}
-				req.Header.Set("User-Agent", config.GetUserAgent())
-
-				resp, err := c.httpClient.Do(req)
-				if err != nil {
-					logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
-					results[i] = showResult{err: fmt.Errorf("failed to fetch detail page for show %d: %w", show.ID, err)}
-					return
-				}
-				defer resp.Body.Close()
-
-				if resp.StatusCode != http.StatusOK {
-					logger.Warn().Int("statusCode", resp.StatusCode).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Detail page returned non-OK status")
-					results[i] = showResult{err: fmt.Errorf("detail page for show %d returned status %d", show.ID, resp.StatusCode)}
+			// Stream subtitles as they arrive
+			for result := range c.StreamSubtitles(ctx, show.ID) {
+				if result.Err != nil {
+					logger.Warn().Err(result.Err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to stream subtitles for show")
+					errorsMu.Lock()
+					errs = append(errs, fmt.Errorf("failed to stream subtitles for show %d: %w", show.ID, result.Err))
+					errorsMu.Unlock()
 					return
 				}
 
-				// Parse third-party IDs from HTML
-				ids, err := c.thirdPartyParser.ParseHtml(resp.Body)
-				if err != nil {
-					logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to parse third-party IDs")
-				} else {
-					thirdPartyIds = ids
+				// If we haven't sent ShowInfo yet and we found a valid episode ID, fetch and send third-party IDs
+				if !thirdPartyIdsSent && result.Value.ID > 0 {
+					thirdPartyIds := c.fetchThirdPartyIds(ctx, show, result.Value.ID)
+
+					// Send ShowInfo immediately
+					showInfo := models.ShowInfo{
+						Show:          show,
+						ThirdPartyIds: thirdPartyIds,
+					}
+					select {
+					case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
+					case <-ctx.Done():
+						return
+					}
+					thirdPartyIdsSent = true
+					logger.Debug().Int("showID", show.ID).Str("showName", show.Name).Str("imdbId", thirdPartyIds.IMDBID).Int("tvdbId", thirdPartyIds.TVDBID).Msg("Sent ShowInfo with third-party IDs")
+				}
+
+				// Stream subtitle immediately
+				subtitle := result.Value
+				select {
+				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &subtitle}}:
+				case <-ctx.Done():
+					return
 				}
 			}
 
-			logger.Debug().Int("showID", show.ID).Str("showName", show.Name).Str("imdbId", thirdPartyIds.IMDBID).Int("tvdbId", thirdPartyIds.TVDBID).Msg("Successfully processed show")
-			results[i] = showResult{
-				showInfo: models.ShowInfo{
+			// If we never found a valid episode ID, send ShowInfo with empty third-party IDs
+			if !thirdPartyIdsSent {
+				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, sending ShowInfo with empty third-party IDs")
+				showInfo := models.ShowInfo{
 					Show:          show,
-					ThirdPartyIds: thirdPartyIds,
-				},
-				subtitles: subtitles.Subtitles,
+					ThirdPartyIds: models.ThirdPartyIds{},
+				}
+				select {
+				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
+				case <-ctx.Done():
+					return
+				}
 			}
 		}()
 	}
 
 	wg.Wait()
+	return errs
+}
 
-	// Stream results and collect errors
-	var errs []error
-	for _, result := range results {
-		if result.err != nil {
-			errs = append(errs, result.err)
-			continue
-		}
+// fetchThirdPartyIds fetches third-party IDs for a show using the given episode ID.
+// Returns empty ThirdPartyIds on error (logs warning but doesn't fail).
+func (c *client) fetchThirdPartyIds(ctx context.Context, show models.Show, episodeID int) models.ThirdPartyIds {
+	logger := config.GetLogger()
 
-		// Send ShowInfo
-		select {
-		case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &result.showInfo}}:
-		case <-ctx.Done():
-			return errs
-		}
+	// Construct detail page URL
+	detailURL := fmt.Sprintf("%s/index.php?tipus=adatlap&azon=a_%d", c.baseURL, episodeID)
 
-		// Send each subtitle
-		for _, subtitle := range result.subtitles {
-			subtitle := subtitle
-			select {
-			case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &subtitle}}:
-			case <-ctx.Done():
-				return errs
-			}
-		}
+	// Fetch detail page HTML
+	req, err := http.NewRequestWithContext(ctx, "GET", detailURL, nil)
+	if err != nil {
+		logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to create detail page request")
+		return models.ThirdPartyIds{}
+	}
+	req.Header.Set("User-Agent", config.GetUserAgent())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Failed to fetch detail page")
+		return models.ThirdPartyIds{}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Warn().Int("statusCode", resp.StatusCode).Int("showID", show.ID).Str("showName", show.Name).Str("detailURL", detailURL).Msg("Detail page returned non-OK status")
+		return models.ThirdPartyIds{}
 	}
 
-	return errs
+	// Parse third-party IDs from HTML
+	ids, err := c.thirdPartyParser.ParseHtml(resp.Body)
+	if err != nil {
+		logger.Warn().Err(err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to parse third-party IDs")
+		return models.ThirdPartyIds{}
+	}
+
+	return ids
 }
