@@ -7,15 +7,16 @@ This document describes the data flow for all major operations in SuperSubtitles
 1. `StreamShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
 2. Each response is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
 3. Results are merged and deduplicated by show ID, preserving first-occurrence order
-4. Each deduplicated show is sent to a `StreamResult[Show]` channel as it becomes available
+4. Each deduplicated show is sent to a `models.StreamResult[models.Show]` channel as it becomes available
 5. Partial failures are tolerated — if at least one endpoint succeeds, results are streamed
 6. The gRPC server consumes from the channel and streams `Show` messages to the client
-7. `GetShowList` wraps `StreamShowList`, collecting all channel results into a slice
+7. Tests use `testutil.CollectShows` helper to collect stream results into a slice
 
 **Implementation:**
 
-- `internal/client/show_list.go` - `StreamShowList` and `GetShowList` methods
+- `internal/client/show_list.go` - `StreamShowList` method
 - `internal/parser/show_parser.go` - ShowParser implementation
+- `internal/testutil/stream_helpers.go` - `CollectShows` test helper
 
 ## Subtitle Fetching
 
@@ -31,14 +32,14 @@ This document describes the data flow for all major operations in SuperSubtitles
    - Splits comma-separated release groups
    - Detects season packs by looking for special naming patterns
    - Extracts pagination info from `oldal=<page>` parameters
-3. Parsed subtitles are sent to a `StreamResult[Subtitle]` channel as they become available
+3. Parsed subtitles are sent to a `models.StreamResult[models.Subtitle]` channel as they become available
 4. If totalPages > 1, fetch remaining pages in parallel **2 pages at a time**:
    - Pages 2–3 fetched in parallel
    - Pages 4–5 fetched in parallel
    - And so on...
 5. Subtitles from each page are streamed to the channel as pages complete
 6. The gRPC server consumes from the channel and streams `Subtitle` messages to the client
-7. `GetSubtitles` wraps `StreamSubtitles`, collecting all channel results into a `SubtitleCollection`
+7. Tests use `testutil.CollectSubtitles` helper to collect stream results into a `SubtitleCollection`
 
 **Example:**
 
@@ -53,22 +54,25 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 - `internal/parser/subtitle_parser.go` - HTML table parser with pagination support
 - `internal/parser/subtitle_parser_test.go` - 23 comprehensive tests covering quality detection, release groups, season packs, pagination
-- `internal/client/subtitles.go` - `StreamSubtitles` and `GetSubtitles` methods with parallel page fetching and pagination
+- `internal/client/subtitles.go` - `StreamSubtitles` method with parallel page fetching and pagination
 - `internal/client/subtitles_test.go` - Unit tests for pagination (3 tests)
+- `internal/testutil/stream_helpers.go` - `CollectSubtitles` test helper
 
 ## Third-Party ID Extraction
 
 1. `StreamShowSubtitles` processes shows in batches of 20
-2. For each show, it fetches **all subtitles** (all pages), then loads the detail page HTML using the first valid (non-zero) subtitle ID
+2. For each show, it streams subtitles from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
 3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
 4. For each show, a `ShowSubtitleItem` with `ShowInfo` (show + third-party IDs) is sent to the channel first, followed by individual `ShowSubtitleItem` entries for each subtitle
 5. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
+6. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a map
 
 **Implementation:**
 
 - `internal/parser/third_party_parser.go` - ThirdPartyIdParser implementation
-- `internal/client/show_subtitles.go` - `StreamShowSubtitles` and `GetShowSubtitles` methods with batching
+- `internal/client/show_subtitles.go` - `StreamShowSubtitles` method with batching
 - `internal/models/show_subtitles.go` - `ShowInfo` and `ShowSubtitleItem` models
+- `internal/testutil/stream_helpers.go` - `CollectShowSubtitles` test helper
 
 ## Recent Subtitles Fetching
 
@@ -89,7 +93,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
    - Uses an in-memory cache per call to avoid duplicate ShowInfo for the same show
 5. Stream each `Subtitle` as a `ShowSubtitleItem` to the channel
 6. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
-7. `GetRecentSubtitles` wraps `StreamRecentSubtitles`, collecting channel results into `[]ShowSubtitles`
+7. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a map
 
 **Key Features:**
 
@@ -102,9 +106,10 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 **Implementation Files:**
 
 - `internal/parser/subtitle_parser.go` - `extractShowIDFromCategory` method extracts show ID from HTML
-- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` and `GetRecentSubtitles` methods with filtering, show info caching, and detail page fetching
+- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` method with filtering, show info caching, and detail page fetching
 - `internal/client/recent_subtitles_test.go` - 5 comprehensive tests covering filtering, empty results, errors, and show info deduplication
 - `internal/models/subtitle.go` - `ShowID` field on Subtitle model
+- `internal/testutil/stream_helpers.go` - `CollectShowSubtitles` test helper
 
 **Example Use Cases:**
 
