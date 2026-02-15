@@ -61,11 +61,11 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 ## Third-Party ID Extraction
 
 1. `StreamShowSubtitles` processes shows in batches of 20
-2. For each show, it streams subtitles from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
+2. For each show, it streams subtitles as they arrive from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
 3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
 4. For each show, a `ShowSubtitleItem` with `ShowInfo` (show + third-party IDs) is sent to the channel first, followed by individual `ShowSubtitleItem` entries for each subtitle
 5. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
-6. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a map
+6. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
 
 **Implementation:**
 
@@ -93,7 +93,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
    - Uses an in-memory cache per call to avoid duplicate ShowInfo for the same show
 5. Stream each `Subtitle` as a `ShowSubtitleItem` to the channel
 6. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
-7. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a map
+7. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
 
 **Key Features:**
 

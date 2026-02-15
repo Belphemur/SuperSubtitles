@@ -9,7 +9,7 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// StreamRecentSubtitles streams recently uploaded subtitles as ShowSubtitles Items.
+// StreamRecentSubtitles streams recently uploaded subtitles as ShowSubtitleItem items.
 // For each new show encountered, a ShowInfo item is sent first (with third-party IDs),
 // followed by individual Subtitle items. ShowInfo is only sent once per unique show_id
 // within a single call using an in-memory cache.
