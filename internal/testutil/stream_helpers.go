@@ -126,7 +126,7 @@ func buildShowSubtitlesResults(showInfoMap map[int]*models.ShowInfo, subtitlesBy
 		}
 
 		if len(subs) > 0 {
-			// ShowName from subtitles is more reliable than ShowInfo for display
+			// Use show name from subtitles when available
 			showName = subs[0].ShowName
 		}
 

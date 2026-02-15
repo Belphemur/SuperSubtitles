@@ -108,13 +108,13 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 						return
 					}
 					thirdPartyIdsSent = true
-					hasThirdPartyIds := thirdPartyIds.IMDBID != "" || thirdPartyIds.TVDBID != 0
+					foundThirdPartyIds := thirdPartyIds.IMDBID != "" || thirdPartyIds.TVDBID != 0
 					logger.Debug().
 						Int("showID", show.ID).
 						Str("showName", show.Name).
 						Str("imdbId", thirdPartyIds.IMDBID).
 						Int("tvdbId", thirdPartyIds.TVDBID).
-						Bool("hasThirdPartyIds", hasThirdPartyIds).
+						Bool("foundThirdPartyIds", foundThirdPartyIds).
 						Msg("Sent ShowInfo")
 				}
 
