@@ -78,9 +78,23 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 					errorsMu.Unlock()
 					return
 				}
+				// Log error and skip subtitle if ID is invalid
+				if result.Value.ID <= 0 {
+					logger.Error().
+						Int("showID", show.ID).
+						Str("showName", show.Name).
+						Int("subtitleID", result.Value.ID).
+						Str("subtitleName", result.Value.Name).
+						Int("season", result.Value.Season).
+						Int("episode", result.Value.Episode).
+						Str("language", result.Value.Language).
+						Str("filename", result.Value.Filename).
+						Msg("Received subtitle with invalid ID, discarding")
+					continue
+				}
 
 				// If we haven't sent ShowInfo yet and we found a valid episode ID, fetch and send third-party IDs
-				if !thirdPartyIdsSent && result.Value.ID > 0 {
+				if !thirdPartyIdsSent {
 					thirdPartyIds := c.fetchThirdPartyIds(ctx, show, result.Value.ID)
 
 					// Send ShowInfo immediately
