@@ -32,6 +32,7 @@ func CollectShowSubtitles(ctx context.Context, stream <-chan models.StreamResult
 	// Collect streamed items and group by show
 	showInfoMap := make(map[int]*models.ShowInfo)
 	subtitlesByShow := make(map[int][]models.Subtitle)
+	showOrderMap := make(map[int]bool) // Track which shows are already in showOrder
 	var showOrder []int
 
 	for {
@@ -48,14 +49,18 @@ func CollectShowSubtitles(ctx context.Context, stream <-chan models.StreamResult
 			if item.Value.ShowInfo != nil {
 				sid := item.Value.ShowInfo.Show.ID
 				showInfoMap[sid] = item.Value.ShowInfo
-				showOrder = append(showOrder, sid)
+				if !showOrderMap[sid] {
+					showOrder = append(showOrder, sid)
+					showOrderMap[sid] = true
+				}
 			}
 			if item.Value.Subtitle != nil {
 				sid := item.Value.Subtitle.ShowID
 				subtitlesByShow[sid] = append(subtitlesByShow[sid], *item.Value.Subtitle)
 				// Ensure showOrder includes shows that appear only in subtitles
-				if _, ok := showInfoMap[sid]; !ok {
+				if !showOrderMap[sid] {
 					showOrder = append(showOrder, sid)
+					showOrderMap[sid] = true
 				}
 			}
 		case <-ctx.Done():
