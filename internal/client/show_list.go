@@ -12,29 +12,10 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// GetShowList retrieves the list of shows from the SuperSubtitles website
-func (c *client) GetShowList(ctx context.Context) ([]models.Show, error) {
-	var shows []models.Show
-	var firstErr error
-	for result := range c.StreamShowList(ctx) {
-		if result.Err != nil {
-			if firstErr == nil {
-				firstErr = result.Err
-			}
-			continue
-		}
-		shows = append(shows, result.Value)
-	}
-	if len(shows) == 0 && firstErr != nil {
-		return nil, firstErr
-	}
-	return shows, nil
-}
-
 // StreamShowList streams shows as they become available from multiple endpoints.
 // Shows are deduplicated by ID on the fly. The channel is closed when all endpoints have been processed.
-func (c *client) StreamShowList(ctx context.Context) <-chan StreamResult[models.Show] {
-	ch := make(chan StreamResult[models.Show])
+func (c *client) StreamShowList(ctx context.Context) <-chan models.StreamResult[models.Show] {
+	ch := make(chan models.StreamResult[models.Show])
 
 	go func() {
 		defer close(ch)
@@ -109,7 +90,7 @@ func (c *client) StreamShowList(ctx context.Context) <-chan StreamResult[models.
 						continue
 					}
 					select {
-					case ch <- StreamResult[models.Show]{Value: s}:
+					case ch <- models.StreamResult[models.Show]{Value: s}:
 						atomic.AddInt64(&sentShows, 1)
 					case <-ctx.Done():
 						return
@@ -128,7 +109,7 @@ func (c *client) StreamShowList(ctx context.Context) <-chan StreamResult[models.
 
 		if atomic.LoadInt64(&sentShows) == 0 && len(errs) == len(endpoints) {
 			select {
-			case ch <- StreamResult[models.Show]{Err: fmt.Errorf("all show list endpoints failed: %v", errors.Join(errs...))}:
+			case ch <- models.StreamResult[models.Show]{Err: fmt.Errorf("all show list endpoints failed: %v", errors.Join(errs...))}:
 			case <-ctx.Done():
 			}
 		} else if len(errs) > 0 {

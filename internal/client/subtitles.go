@@ -11,23 +11,10 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// GetSubtitles fetches subtitles for a given show ID from HTML pages with pagination support
-// Fetches multiple pages in parallel (2 at a time) and aggregates results
-func (c *client) GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error) {
-	var subtitles []models.Subtitle
-	for result := range c.StreamSubtitles(ctx, showID) {
-		if result.Err != nil {
-			return nil, result.Err
-		}
-		subtitles = append(subtitles, result.Value)
-	}
-	return buildSubtitleCollection(subtitles), nil
-}
-
 // StreamSubtitles streams subtitles for a given show ID as they are parsed from each page.
 // The channel is closed when all pages have been processed.
-func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[models.Subtitle] {
-	ch := make(chan StreamResult[models.Subtitle])
+func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
+	ch := make(chan models.StreamResult[models.Subtitle])
 
 	go func() {
 		defer close(ch)
@@ -39,27 +26,27 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan StreamR
 
 		req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to create request for first page: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to create request for first page: %w", err)})
 			return
 		}
 		req.Header.Set("User-Agent", config.GetUserAgent())
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to fetch first page: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to fetch first page: %w", err)})
 			return
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			sendResult(ctx, ch, StreamResult[models.Subtitle]{Err: fmt.Errorf("first page returned status %d", resp.StatusCode)})
+			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: fmt.Errorf("first page returned status %d", resp.StatusCode)})
 			return
 		}
 
 		// Parse first page with pagination info
 		firstPageResult, err := c.subtitleParser.ParseHtmlWithPagination(resp.Body)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to parse first page: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: fmt.Errorf("failed to parse first page: %w", err)})
 			return
 		}
 
@@ -73,7 +60,7 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan StreamR
 		// Stream first page subtitles immediately
 		for _, subtitle := range firstPageResult.Subtitles {
 			select {
-			case ch <- StreamResult[models.Subtitle]{Value: subtitle}:
+			case ch <- models.StreamResult[models.Subtitle]{Value: subtitle}:
 			case <-ctx.Done():
 				return
 			}
@@ -162,7 +149,7 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan StreamR
 				} else {
 					for _, subtitle := range result.subtitles {
 						select {
-						case ch <- StreamResult[models.Subtitle]{Value: subtitle}:
+						case ch <- models.StreamResult[models.Subtitle]{Value: subtitle}:
 						case <-ctx.Done():
 							return
 						}
@@ -185,23 +172,9 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan StreamR
 }
 
 // sendResult sends a result to the channel, respecting context cancellation
-func sendResult[T any](ctx context.Context, ch chan<- StreamResult[T], result StreamResult[T]) {
+func sendResult[T any](ctx context.Context, ch chan<- models.StreamResult[T], result models.StreamResult[T]) {
 	select {
 	case ch <- result:
 	case <-ctx.Done():
-	}
-}
-
-// buildSubtitleCollection constructs a SubtitleCollection from subtitles
-func buildSubtitleCollection(subtitles []models.Subtitle) *models.SubtitleCollection {
-	showName := ""
-	if len(subtitles) > 0 {
-		showName = subtitles[0].ShowName
-	}
-
-	return &models.SubtitleCollection{
-		ShowName:  showName,
-		Subtitles: subtitles,
-		Total:     len(subtitles),
 	}
 }

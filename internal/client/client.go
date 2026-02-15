@@ -12,28 +12,18 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/services"
 )
 
-// StreamResult holds either a value or an error from a streaming operation
-type StreamResult[T any] struct {
-	Value T
-	Err   error
-}
-
 // Client defines the interface for querying the SuperSubtitles website
 type Client interface {
-	GetShowList(ctx context.Context) ([]models.Show, error)
-	GetSubtitles(ctx context.Context, showID int) (*models.SubtitleCollection, error)
-	GetShowSubtitles(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
 	CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
 	DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
-	GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 
 	// Streaming methods return channels that emit results as they become available.
 	// The channel is closed when all results have been sent.
 	// Errors are sent as StreamResult with a non-nil Err field.
-	StreamShowList(ctx context.Context) <-chan StreamResult[models.Show]
-	StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[models.Subtitle]
-	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan StreamResult[models.ShowSubtitleItem]
-	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[models.ShowSubtitleItem]
+	StreamShowList(ctx context.Context) <-chan models.StreamResult[models.Show]
+	StreamSubtitles(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle]
+	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem]
+	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitleItem]
 }
 
 // client implements the Client interface

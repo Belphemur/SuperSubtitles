@@ -50,7 +50,7 @@ func TestClient_GetShowList(t *testing.T) {
 
 	// Call GetShowList
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call succeeds
 	if err != nil {
@@ -123,7 +123,7 @@ func TestClient_GetShowList_ServerError(t *testing.T) {
 
 	// Call GetShowList
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call fails with an error
 	if err == nil {
@@ -155,7 +155,7 @@ func TestClient_GetShowList_PartialFailure(t *testing.T) {
 	testConfig := &config.Config{SuperSubtitleDomain: server.URL, ClientTimeout: "5s"}
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	if err != nil { // Should not fail completely when one endpoint succeeds
 		t.Fatalf("Expected no error with partial success, got: %v", err)
@@ -188,7 +188,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 
 	// Call GetShowList
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call fails with timeout error
 	if err == nil {
@@ -219,7 +219,7 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 
 	// Call GetShowList
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call succeeds but returns empty results
 	if err != nil {
@@ -256,7 +256,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 
 	// Call GetShowList
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call succeeds (proxy configuration should not break the request)
 	if err != nil {

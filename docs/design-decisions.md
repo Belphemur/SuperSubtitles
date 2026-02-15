@@ -169,24 +169,46 @@ This document explains key architectural and design decisions made in the SuperS
 - gRPC server methods consume from client streaming channels and call `stream.Send()` per item
 - Removed `GetShowListResponse`, `GetSubtitlesResponse`, `GetShowSubtitlesResponse`, `GetRecentSubtitlesResponse` wrapper messages
 
-## Channel-Based Client Streaming
+## Streaming-First Client Architecture
 
-**Decision**: Add `StreamX` methods to the internal client that return `<-chan StreamResult[T]` channels, alongside existing `GetX` methods.
+**Decision**: The client exposes **only** streaming methods for list/collection operations. Non-streaming `GetX` methods have been removed from the client interface. Test helpers in `internal/testutil` provide collection utilities for tests.
 
 **Rationale**:
 
 - Channels are Go's natural primitive for streaming data
-- `StreamResult[T]` generic type cleanly separates values from errors in the stream
-- `GetX` methods can consume from `StreamX` channels internally, avoiding code duplication
-- The gRPC server directly consumes from channels, enabling true end-to-end streaming
-- Backward compatible — `GetX` methods still return collected results for non-streaming consumers
+- Eliminates dual API surface (streaming + non-streaming)
+- Forces consumers to handle streaming properly from the start
+- Reduces memory usage — no intermediate buffering of full collections
+- Simplifies client interface and reduces code duplication
+- Tests use `testutil` helpers (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`) to consume streams when needed
+- Production gRPC server consumes streams directly without buffering
 
 **Implementation**:
 
-- `StreamResult[T]` generic struct with `Value T` and `Err error` fields in `internal/client/client.go`
-- `StreamShowList`, `StreamSubtitles`, `StreamShowSubtitles`, `StreamRecentSubtitles` return read-only channels
+- `StreamResult[T]` generic struct with `Value T` and `Err error` fields in `internal/models/stream_result.go`
+- Moved from client package to models package to avoid circular dependencies
+- Client interface exposes only: `StreamShowList`, `StreamSubtitles`, `StreamShowSubtitles`, `StreamRecentSubtitles`, `CheckForUpdates`, `DownloadSubtitle`
+- All streaming methods return read-only `<-chan models.StreamResult[T]` channels
 - Channels are closed when all data has been sent or on error
-- `GetX` methods collect channel results into slices/collections
+- `internal/testutil/stream_helpers.go` provides test-only collection helpers
+
+## StreamResult in Models Package
+
+**Decision**: `StreamResult[T]` is defined in `internal/models` rather than `internal/client`.
+
+**Rationale**:
+
+- Avoids circular dependency: `testutil` needs to reference `StreamResult`, but also needs `models` (which `client` depends on)
+- Makes `StreamResult` a core domain type alongside other model types
+- Allows other packages to use `StreamResult` without depending on `client`
+- Clean separation: models define data structures, client implements streaming
+
+**Implementation**:
+
+- `models.StreamResult[T]` in `internal/models/stream_result.go`
+- Client methods return `<-chan models.StreamResult[T]`
+- Testutil helpers accept `<-chan models.StreamResult[T]`
+- gRPC server mocks use `models.StreamResult[T]`
 
 ## ShowSubtitleItem Streaming Model
 
