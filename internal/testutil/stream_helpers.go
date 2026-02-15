@@ -35,6 +35,14 @@ func CollectShowSubtitles(ctx context.Context, stream <-chan models.StreamResult
 	showOrderMap := make(map[int]bool) // Track which shows are already in showOrder
 	var showOrder []int
 
+	// Helper to ensure a show ID is in showOrder exactly once
+	ensureShowInOrder := func(sid int) {
+		if !showOrderMap[sid] {
+			showOrder = append(showOrder, sid)
+			showOrderMap[sid] = true
+		}
+	}
+
 	for {
 		select {
 		case item, ok := <-stream:
@@ -49,19 +57,13 @@ func CollectShowSubtitles(ctx context.Context, stream <-chan models.StreamResult
 			if item.Value.ShowInfo != nil {
 				sid := item.Value.ShowInfo.Show.ID
 				showInfoMap[sid] = item.Value.ShowInfo
-				if !showOrderMap[sid] {
-					showOrder = append(showOrder, sid)
-					showOrderMap[sid] = true
-				}
+				ensureShowInOrder(sid)
 			}
 			if item.Value.Subtitle != nil {
 				sid := item.Value.Subtitle.ShowID
 				subtitlesByShow[sid] = append(subtitlesByShow[sid], *item.Value.Subtitle)
 				// Ensure showOrder includes shows that appear only in subtitles
-				if !showOrderMap[sid] {
-					showOrder = append(showOrder, sid)
-					showOrderMap[sid] = true
-				}
+				ensureShowInOrder(sid)
 			}
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -125,6 +127,7 @@ func buildShowSubtitlesResults(showInfoMap map[int]*models.ShowInfo, subtitlesBy
 
 		if len(subs) > 0 {
 			// Prefer the show name from subtitles when available
+			// Safe to access subs[0] because len(subs) > 0 is checked above
 			showName = subs[0].ShowName
 		}
 
