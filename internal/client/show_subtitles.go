@@ -11,63 +11,11 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// GetShowSubtitles retrieves third-party IDs and subtitle collections for multiple shows in parallel
-// Processes shows in batches of 20 to avoid overwhelming the server
-func (c *client) GetShowSubtitles(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error) {
-	logger := config.GetLogger()
-	// Collect streamed items and group by show
-	showInfoMap := make(map[int]*models.ShowInfo)
-	subtitlesByShow := make(map[int][]models.Subtitle)
-	var showOrder []int
-
-	for item := range c.StreamShowSubtitles(ctx, shows) {
-		if item.Err != nil {
-			// Log but continue — partial success
-			logger.Warn().Err(item.Err).Msg("Error in show subtitle stream")
-			continue
-		}
-		if item.Value.ShowInfo != nil {
-			sid := item.Value.ShowInfo.Show.ID
-			showInfoMap[sid] = item.Value.ShowInfo
-			showOrder = append(showOrder, sid)
-		}
-		if item.Value.Subtitle != nil {
-			subtitlesByShow[item.Value.Subtitle.ShowID] = append(subtitlesByShow[item.Value.Subtitle.ShowID], *item.Value.Subtitle)
-		}
-	}
-
-	if len(showInfoMap) == 0 {
-		return nil, fmt.Errorf("all shows failed processing")
-	}
-
-	// Build ShowSubtitles results in order
-	var results []models.ShowSubtitles
-	for _, sid := range showOrder {
-		info := showInfoMap[sid]
-		subs := subtitlesByShow[sid]
-		showName := info.Show.Name
-		if len(subs) > 0 {
-			showName = subs[0].ShowName
-		}
-		results = append(results, models.ShowSubtitles{
-			Show:          info.Show,
-			ThirdPartyIds: info.ThirdPartyIds,
-			SubtitleCollection: models.SubtitleCollection{
-				ShowName:  showName,
-				Subtitles: subs,
-				Total:     len(subs),
-			},
-		})
-	}
-
-	return results, nil
-}
-
 // StreamShowSubtitles streams ShowSubtitleItems (ShowInfo and Subtitle) for multiple shows.
 // For each show, it first sends a ShowInfo item, then streams each subtitle.
 // Shows are processed in batches of 20 to limit concurrency.
-func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan StreamResult[models.ShowSubtitleItem] {
-	ch := make(chan StreamResult[models.ShowSubtitleItem])
+func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem] {
+	ch := make(chan models.StreamResult[models.ShowSubtitleItem])
 
 	go func() {
 		defer close(ch)
@@ -93,7 +41,7 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 		}
 
 		if successCount == 0 && len(allErrors) > 0 {
-			sendResult(ctx, ch, StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("all shows failed processing: %v", errors.Join(allErrors...))})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("all shows failed processing: %v", errors.Join(allErrors...))})
 		} else if len(allErrors) > 0 {
 			logger.Warn().Err(errors.Join(allErrors...)).Int("successfulShows", successCount).Int("totalShows", len(shows)).Msg("Partial success processing shows")
 		} else {
@@ -106,7 +54,7 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 
 // streamShowBatch processes a batch of shows concurrently, streaming results to the channel.
 // Returns a list of errors for shows that failed.
-func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch chan<- StreamResult[models.ShowSubtitleItem]) []error {
+func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch chan<- models.StreamResult[models.ShowSubtitleItem]) []error {
 	logger := config.GetLogger()
 
 	var errorsMu sync.Mutex
@@ -141,7 +89,7 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 						ThirdPartyIds: thirdPartyIds,
 					}
 					select {
-					case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
+					case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
 					case <-ctx.Done():
 						return
 					}
@@ -152,7 +100,7 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 				// Stream subtitle immediately
 				subtitle := result.Value
 				select {
-				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &subtitle}}:
+				case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &subtitle}}:
 				case <-ctx.Done():
 					return
 				}
@@ -166,7 +114,7 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 					ThirdPartyIds: models.ThirdPartyIds{},
 				}
 				select {
-				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
+				case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
 				case <-ctx.Done():
 					return
 				}

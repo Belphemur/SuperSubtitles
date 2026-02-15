@@ -9,64 +9,12 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// GetRecentSubtitles fetches recent subtitles from the main show page, filtered by subtitle ID.
-// Returns results grouped by show with third-party IDs.
-func (c *client) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
-	logger := config.GetLogger()
-	// Collect streamed items and group by show
-	showInfoMap := make(map[int]*models.ShowInfo)
-	subtitlesByShow := make(map[int][]models.Subtitle)
-	var showOrder []int
-
-	for item := range c.StreamRecentSubtitles(ctx, sinceID) {
-		if item.Err != nil {
-			return nil, item.Err
-		}
-		if item.Value.ShowInfo != nil {
-			sid := item.Value.ShowInfo.Show.ID
-			showInfoMap[sid] = item.Value.ShowInfo
-			showOrder = append(showOrder, sid)
-		}
-		if item.Value.Subtitle != nil {
-			subtitlesByShow[item.Value.Subtitle.ShowID] = append(subtitlesByShow[item.Value.Subtitle.ShowID], *item.Value.Subtitle)
-		}
-	}
-
-	if len(showInfoMap) == 0 && len(subtitlesByShow) == 0 {
-		return []models.ShowSubtitles{}, nil
-	}
-
-	// Build ShowSubtitles results in order
-	var results []models.ShowSubtitles
-	for _, sid := range showOrder {
-		info := showInfoMap[sid]
-		subs := subtitlesByShow[sid]
-		// Prefer show name from subtitles as parsed data may be more specific than constructed ShowInfo
-		showName := info.Show.Name
-		if len(subs) > 0 {
-			showName = subs[0].ShowName
-		}
-		results = append(results, models.ShowSubtitles{
-			Show:          info.Show,
-			ThirdPartyIds: info.ThirdPartyIds,
-			SubtitleCollection: models.SubtitleCollection{
-				ShowName:  showName,
-				Subtitles: subs,
-				Total:     len(subs),
-			},
-		})
-	}
-
-	logger.Info().Int("showCount", len(results)).Msg("GetRecentSubtitles completed")
-	return results, nil
-}
-
-// StreamRecentSubtitles streams recently uploaded subtitles as ShowSubtitleItems.
+// StreamRecentSubtitles streams recently uploaded subtitles as ShowSubtitles Items.
 // For each new show encountered, a ShowInfo item is sent first (with third-party IDs),
 // followed by individual Subtitle items. ShowInfo is only sent once per unique show_id
 // within a single call using an in-memory cache.
-func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[models.ShowSubtitleItem] {
-	ch := make(chan StreamResult[models.ShowSubtitleItem])
+func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitleItem] {
+	ch := make(chan models.StreamResult[models.ShowSubtitleItem])
 
 	go func() {
 		defer close(ch)
@@ -78,27 +26,27 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 
 		req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to create request: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to create request: %w", err)})
 			return
 		}
 		req.Header.Set("User-Agent", config.GetUserAgent())
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to fetch main page: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to fetch main page: %w", err)})
 			return
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			sendResult(ctx, ch, StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("main page returned status %d", resp.StatusCode)})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("main page returned status %d", resp.StatusCode)})
 			return
 		}
 
 		// Parse the HTML to extract subtitles
 		subtitles, err := c.subtitleParser.ParseHtml(resp.Body)
 		if err != nil {
-			sendResult(ctx, ch, StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to parse main page: %w", err)})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("failed to parse main page: %w", err)})
 			return
 		}
 
@@ -126,7 +74,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			if !sentShowInfo[showID] {
 				showInfo := c.fetchShowInfoForRecent(ctx, subtitle)
 				select {
-				case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
+				case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
 					sentShowInfo[showID] = true
 				case <-ctx.Done():
 					return
@@ -136,7 +84,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			// Send the subtitle
 			sub := subtitle
 			select {
-			case ch <- StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &sub}}:
+			case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &sub}}:
 				count++
 			case <-ctx.Done():
 				return

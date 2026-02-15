@@ -51,9 +51,43 @@ html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 
 - **No external test frameworks**: All tests use the Go standard library `testing` package with `httptest` for HTTP mocking
 - **Programmatic fixtures**: HTML fixtures generated via `testutil` package instead of hardcoded strings
+- **Stream collection helpers**: `testutil` provides helpers to consume streams in tests (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`)
+- **Streaming-first testing**: Tests consume from client streaming methods and use testutil helpers to collect results
 - **Parallel page fetching**: Tests verify pagination with 2-page parallel batches
 - **Integration test guards**: `client_integration_test.go` checks for `CI` / `SKIP_INTEGRATION_TESTS` env vars to skip live requests
 - **Benchmark coverage**: Performance tests for critical paths (ZIP extraction)
+
+## Stream Collection Helpers (`internal/testutil/stream_helpers.go`)
+
+Since the client exposes only streaming methods, tests need helpers to consume streams and collect results. These helpers are **test-only** and should never be used in production code.
+
+**Available Helpers:**
+
+| Function                    | Purpose                                                          | Returns                      |
+| --------------------------- | ---------------------------------------------------------------- | ---------------------------- |
+| `CollectShows`              | Consumes a `Show` stream and returns a slice                     | `([]models.Show, error)`     |
+| `CollectSubtitles`          | Consumes a `Subtitle` stream and returns a `SubtitleCollection`  | `(*SubtitleCollection, err)` |
+| `CollectShowSubtitles`      | Consumes a `ShowSubtitleItem` stream and groups by show          | `([]ShowSubtitles, error)`   |
+
+**Example Usage:**
+
+```go
+// Instead of: shows, err := client.GetShowList(ctx)
+shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
+
+// Instead of: subs, err := client.GetSubtitles(ctx, showID)
+subs, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, showID))
+
+// Instead of: results, err := client.GetShowSubtitles(ctx, shows)
+results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ctx, shows))
+```
+
+**Why Test-Only?**
+
+- Production code (gRPC server) consumes streams directly without buffering
+- Collecting entire streams negates the benefits of streaming (memory usage, time-to-first-result)
+- Tests need deterministic full results for assertions
+- Keeps the distinction clear between test and production code
 
 ## Test Coverage
 

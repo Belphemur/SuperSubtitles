@@ -57,10 +57,10 @@ func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	if err != nil {
-		t.Fatalf("GetShowList failed: %v", err)
+		t.Fatalf("StreamShowList failed: %v", err)
 	}
 
 	if len(shows) != 1 {
@@ -112,10 +112,10 @@ func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	if err != nil {
-		t.Fatalf("GetShowList failed: %v", err)
+		t.Fatalf("StreamShowList failed: %v", err)
 	}
 
 	if len(shows) != 1 {
@@ -168,10 +168,10 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	if err != nil {
-		t.Fatalf("GetShowList failed: %v", err)
+		t.Fatalf("StreamShowList failed: %v", err)
 	}
 
 	if len(shows) != 1 {
@@ -223,10 +223,10 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
+	subtitles, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 12345))
 
 	if err != nil {
-		t.Fatalf("GetSubtitles failed: %v", err)
+		t.Fatalf("StreamSubtitles failed: %v", err)
 	}
 
 	if subtitles.Total != 1 {
@@ -286,10 +286,10 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
+	subtitles, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 12345))
 
 	if err != nil {
-		t.Fatalf("GetSubtitles failed: %v", err)
+		t.Fatalf("StreamSubtitles failed: %v", err)
 	}
 
 	if subtitles.Total != 1 {
@@ -350,10 +350,10 @@ func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
 
 	client := NewClient(testConfig)
 	ctx := context.Background()
-	subtitles, err := client.GetSubtitles(ctx, 12345)
+	subtitles, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 12345))
 
 	if err != nil {
-		t.Fatalf("GetSubtitles failed: %v", err)
+		t.Fatalf("StreamSubtitles failed: %v", err)
 	}
 
 	if subtitles.Total != 1 {

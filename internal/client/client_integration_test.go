@@ -9,6 +9,7 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/internal/testutil"
 )
 
 // TestClient_GetShowList_Integration is an integration test that calls the real SuperSubtitles website
@@ -35,7 +36,7 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 
 	// Call GetShowList with the real website
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 
 	// Test that the call succeeds
 	if err != nil {
@@ -97,14 +98,14 @@ func TestClient_GetSubtitles_Integration(t *testing.T) {
 	// Create the client
 	client := NewClient(testConfig)
 
-	// Call GetSubtitles with a known show ID
+	// Call StreamSubtitles with a known show ID
 	ctx := context.Background()
 	showID := 3217
-	subtitles, err := client.GetSubtitles(ctx, showID)
+	subtitles, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, showID))
 
 	// Test that the call succeeds
 	if err != nil {
-		t.Fatalf("Integration test failed: GetSubtitles returned error: %v", err)
+		t.Fatalf("Integration test failed: StreamSubtitles returned error: %v", err)
 	}
 
 	// Basic smoke test: ensure we got a subtitle collection
@@ -199,7 +200,7 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 
 	// First get a list of shows to pick from
 	ctx := context.Background()
-	shows, err := client.GetShowList(ctx)
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
 	if err != nil {
 		t.Fatalf("Integration test failed: GetShowList returned error: %v", err)
 	}
@@ -212,12 +213,12 @@ func TestClient_GetShowSubtitles_Integration(t *testing.T) {
 	testShow := shows[0]
 	t.Logf("Testing GetShowSubtitles with show: ID=%d, Name=%s", testShow.ID, testShow.Name)
 
-	// Call GetShowSubtitles with the test show
-	showSubtitlesList, err := client.GetShowSubtitles(ctx, []models.Show{testShow})
+	// Call StreamShowSubtitles with the test show
+	showSubtitlesList, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ctx, []models.Show{testShow}))
 
 	// Test that the call succeeds
 	if err != nil {
-		t.Fatalf("Integration test failed: GetShowSubtitles returned error: %v", err)
+		t.Fatalf("Integration test failed: StreamShowSubtitles returned error: %v", err)
 	}
 
 	// Basic smoke test: ensure we got results
@@ -324,7 +325,7 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 
 	// Call GetRecentSubtitles without filter (get all recent subtitles)
 	ctx := context.Background()
-	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 0))
 
 	// Test that the call succeeds
 	if err != nil {
@@ -467,7 +468,7 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 
 	// First, get all recent subtitles to find a valid ID to use as filter
 	t.Log("Fetching all recent subtitles to determine filter ID...")
-	allShowSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	allShowSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 0))
 	if err != nil {
 		t.Fatalf("Failed to fetch recent subtitles: %v", err)
 	}
@@ -492,7 +493,7 @@ func TestClient_GetRecentSubtitles_WithFilter_Integration(t *testing.T) {
 	t.Logf("========================================\n")
 
 	// Now fetch with filter
-	filteredShowSubtitles, err := client.GetRecentSubtitles(ctx, filterID)
+	filteredShowSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, filterID))
 	if err != nil {
 		t.Fatalf("Integration test failed: GetRecentSubtitles with filter returned error: %v", err)
 	}

@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/internal/client"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
@@ -24,10 +23,10 @@ type mockClient struct {
 	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 
-	streamShowListFunc        func(ctx context.Context) <-chan client.StreamResult[models.Show]
-	streamSubtitlesFunc       func(ctx context.Context, showID int) <-chan client.StreamResult[models.Subtitle]
-	streamShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) <-chan client.StreamResult[models.ShowSubtitleItem]
-	streamRecentSubtitlesFunc func(ctx context.Context, sinceID int) <-chan client.StreamResult[models.ShowSubtitleItem]
+	streamShowListFunc        func(ctx context.Context) <-chan models.StreamResult[models.Show]
+	streamSubtitlesFunc       func(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle]
+	streamShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem]
+	streamRecentSubtitlesFunc func(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitleItem]
 }
 
 func (m *mockClient) GetShowList(ctx context.Context) ([]models.Show, error) {
@@ -72,63 +71,63 @@ func (m *mockClient) GetRecentSubtitles(ctx context.Context, sinceID int) ([]mod
 	return []models.ShowSubtitles{}, nil
 }
 
-func (m *mockClient) StreamShowList(ctx context.Context) <-chan client.StreamResult[models.Show] {
+func (m *mockClient) StreamShowList(ctx context.Context) <-chan models.StreamResult[models.Show] {
 	if m.streamShowListFunc != nil {
 		return m.streamShowListFunc(ctx)
 	}
-	ch := make(chan client.StreamResult[models.Show])
+	ch := make(chan models.StreamResult[models.Show])
 	go func() {
 		defer close(ch)
 		shows, err := m.GetShowList(ctx)
 		if err != nil {
-			ch <- client.StreamResult[models.Show]{Err: err}
+			ch <- models.StreamResult[models.Show]{Err: err}
 			return
 		}
 		for _, show := range shows {
-			ch <- client.StreamResult[models.Show]{Value: show}
+			ch <- models.StreamResult[models.Show]{Value: show}
 		}
 	}()
 	return ch
 }
 
-func (m *mockClient) StreamSubtitles(ctx context.Context, showID int) <-chan client.StreamResult[models.Subtitle] {
+func (m *mockClient) StreamSubtitles(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
 	if m.streamSubtitlesFunc != nil {
 		return m.streamSubtitlesFunc(ctx, showID)
 	}
-	ch := make(chan client.StreamResult[models.Subtitle])
+	ch := make(chan models.StreamResult[models.Subtitle])
 	go func() {
 		defer close(ch)
 		collection, err := m.GetSubtitles(ctx, showID)
 		if err != nil {
-			ch <- client.StreamResult[models.Subtitle]{Err: err}
+			ch <- models.StreamResult[models.Subtitle]{Err: err}
 			return
 		}
 		for _, subtitle := range collection.Subtitles {
-			ch <- client.StreamResult[models.Subtitle]{Value: subtitle}
+			ch <- models.StreamResult[models.Subtitle]{Value: subtitle}
 		}
 	}()
 	return ch
 }
 
-func (m *mockClient) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan client.StreamResult[models.ShowSubtitleItem] {
+func (m *mockClient) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem] {
 	if m.streamShowSubtitlesFunc != nil {
 		return m.streamShowSubtitlesFunc(ctx, shows)
 	}
-	ch := make(chan client.StreamResult[models.ShowSubtitleItem])
+	ch := make(chan models.StreamResult[models.ShowSubtitleItem])
 	go func() {
 		defer close(ch)
 		showSubtitles, err := m.GetShowSubtitles(ctx, shows)
 		if err != nil {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Err: err}
+			ch <- models.StreamResult[models.ShowSubtitleItem]{Err: err}
 			return
 		}
 		for _, ss := range showSubtitles {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
+			ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
 				ShowInfo: &models.ShowInfo{Show: ss.Show, ThirdPartyIds: ss.ThirdPartyIds},
 			}}
 			for _, sub := range ss.SubtitleCollection.Subtitles {
 				sub := sub
-				ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
+				ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
 					Subtitle: &sub,
 				}}
 			}
@@ -137,25 +136,25 @@ func (m *mockClient) StreamShowSubtitles(ctx context.Context, shows []models.Sho
 	return ch
 }
 
-func (m *mockClient) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan client.StreamResult[models.ShowSubtitleItem] {
+func (m *mockClient) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitleItem] {
 	if m.streamRecentSubtitlesFunc != nil {
 		return m.streamRecentSubtitlesFunc(ctx, sinceID)
 	}
-	ch := make(chan client.StreamResult[models.ShowSubtitleItem])
+	ch := make(chan models.StreamResult[models.ShowSubtitleItem])
 	go func() {
 		defer close(ch)
 		showSubtitles, err := m.GetRecentSubtitles(ctx, sinceID)
 		if err != nil {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Err: err}
+			ch <- models.StreamResult[models.ShowSubtitleItem]{Err: err}
 			return
 		}
 		for _, ss := range showSubtitles {
-			ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
+			ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
 				ShowInfo: &models.ShowInfo{Show: ss.Show, ThirdPartyIds: ss.ThirdPartyIds},
 			}}
 			for _, sub := range ss.SubtitleCollection.Subtitles {
 				sub := sub
-				ch <- client.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
+				ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{
 					Subtitle: &sub,
 				}}
 			}
