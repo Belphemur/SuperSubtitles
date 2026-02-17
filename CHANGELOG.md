@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.5.1...v1.6.0) (2026-02-17)
+
+
+### Features
+
+* **grpc:** add standard gRPC health check support ([#34](https://github.com/Belphemur/SuperSubtitles/issues/34)) ([97ce131](https://github.com/Belphemur/SuperSubtitles/commit/97ce131522ec1f11d50b287c4ba80c3f6daa2318)), closes [#36](https://github.com/Belphemur/SuperSubtitles/issues/36)
+
 ## [1.5.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.5.0...v1.5.1) (2026-02-17)
 
 
