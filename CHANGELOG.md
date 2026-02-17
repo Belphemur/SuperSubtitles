@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.5.0...v1.5.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* **client:** client methods to use streaming results ([c2045dc](https://github.com/Belphemur/SuperSubtitles/commit/c2045dcc6597921131a4a90313db39e023333f8e))
+* **subtitle:** discard invalid subtitles with ID <=  0 ([708d0de](https://github.com/Belphemur/SuperSubtitles/commit/708d0de19d3dd5269c849cb7de04f95977638d0a))
+
 # [1.5.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.4.4...v1.5.0) (2026-02-14)
 
 
