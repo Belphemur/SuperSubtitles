@@ -163,22 +163,50 @@ SuperSubtitles/
 
 ## Documentation Requirements
 
-**All new features and changes to existing features must be documented:**
+**CRITICAL: All code changes MUST include corresponding documentation updates. This is non-negotiable.**
+
+**Documentation is mandatory for:**
+
+- **Any new feature** - Add to data-flow.md, grpc-api.md (if gRPC), and design-decisions.md as applicable
+- **Changes to existing features** - Update the relevant documentation files
+- **API modifications** - Always update grpc-api.md with new endpoints, parameters, or response changes
+- **Configuration changes** - Update deployment.md with new config fields or environment variables
+- **Architectural decisions** - Document the "why" in design-decisions.md
+- **Testing patterns** - Update testing.md when introducing new test approaches
+- **Deployment changes** - Update deployment.md with Dockerfile, CI/CD, or infrastructure changes
+
+**Documentation workflow:**
+
+1. **Before coding:** Read existing documentation to understand current architecture and patterns
+2. **While coding:** Note which documentation files need updates based on your changes
+3. **After coding:** Update ALL relevant documentation files before considering the task complete
+4. **Never commit** code changes without corresponding documentation updates
+
+**Documentation structure:**
 
 - **Always check repository memories first** - Review existing memories at the start of each task to understand patterns, conventions, and previously documented features
 - Architecture documentation is split into focused files in `docs/`:
   - Start with [docs/architecture.md](../docs/architecture.md) (index) to find the right document
   - [docs/overview.md](../docs/overview.md) - High-level architecture and component relationships
-  - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API documentation with examples
-  - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features
+  - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API documentation with examples (UPDATE whenever proto or server changes)
+  - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features (UPDATE for any new operations)
   - [docs/testing.md](../docs/testing.md) - Testing infrastructure and patterns
-  - [docs/design-decisions.md](../docs/design-decisions.md) - Architectural decisions with rationale
-  - [docs/deployment.md](../docs/deployment.md) - Configuration, CI/CD, dependencies
+  - [docs/design-decisions.md](../docs/design-decisions.md) - Architectural decisions with rationale (UPDATE for design choices)
+  - [docs/deployment.md](../docs/deployment.md) - Configuration, CI/CD, dependencies, Docker (UPDATE for deployment changes)
 - Update the appropriate focused documentation file(s) when making changes
 - For new features, update data-flow.md with the operation flow and design-decisions.md with any architectural choices
 - Include test coverage information in testing.md if adding new test patterns
 - Always check existing documentation and repository memories before starting work
 - Store new memories about code structure and features using the `store_memory` tool, including which files implement them
+
+**Documentation checklist (verify before committing):**
+
+- [ ] grpc-api.md updated if any gRPC service, endpoint, or message changed
+- [ ] deployment.md updated if configuration, Docker, or CI/CD changed
+- [ ] data-flow.md updated if new operations or flows added
+- [ ] design-decisions.md updated if architectural choices made
+- [ ] testing.md updated if new test patterns introduced
+- [ ] All code examples in documentation are accurate and tested
 
 ## Testing Requirements
 

@@ -119,6 +119,126 @@ Images are pushed to: `ghcr.io/belphemur/supersubtitles:latest` and `ghcr.io/bel
 
 Located at `build/Dockerfile`, used by GoReleaser for multi-platform builds.
 
+**Key features:**
+
+- Multi-stage build for minimal image size
+- Non-root user for security
+- Standard gRPC health check support via `grpc_health_probe`
+- Health check runs every 30 seconds with 10-second timeout
+
+### Health Checks
+
+The Docker image includes built-in health checking using the standard gRPC health checking protocol:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD ["/bin/grpc_health_probe", "-addr=:8080"]
+```
+
+**Health check parameters:**
+
+- **Interval**: 30 seconds between checks
+- **Timeout**: 10 seconds per check
+- **Start period**: 5 seconds grace period on container startup
+- **Retries**: 3 consecutive failures before marking unhealthy
+
+**Manual health check:**
+
+```bash
+docker exec <container-id> /bin/grpc_health_probe -addr=:8080
+```
+
+**View health status:**
+
+```bash
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+### Running with Docker
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/belphemur/supersubtitles:latest
+
+# Run with default configuration
+docker run -p 8080:8080 ghcr.io/belphemur/supersubtitles:latest
+
+# Run with custom configuration
+docker run -p 8080:8080 \
+  -e APP_SERVER_ADDRESS=0.0.0.0 \
+  -e LOG_LEVEL=debug \
+  ghcr.io/belphemur/supersubtitles:latest
+
+# Run with volume-mounted config
+docker run -p 8080:8080 \
+  -v $(pwd)/config.yaml:/app/config/config.yaml \
+  ghcr.io/belphemur/supersubtitles:latest
+```
+
+### Kubernetes Deployment
+
+Example deployment with liveness and readiness probes:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supersubtitles
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: supersubtitles
+  template:
+    metadata:
+      labels:
+        app: supersubtitles
+    spec:
+      containers:
+      - name: supersubtitles
+        image: ghcr.io/belphemur/supersubtitles:latest
+        ports:
+        - containerPort: 8080
+          name: grpc
+        env:
+        - name: APP_SERVER_ADDRESS
+          value: "0.0.0.0"
+        - name: LOG_LEVEL
+          value: "info"
+        livenessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supersubtitles
+spec:
+  selector:
+    app: supersubtitles
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: grpc
+  type: ClusterIP
+```
+
 ## Local Development
 
 ### Prerequisites

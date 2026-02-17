@@ -23,6 +23,29 @@ service SuperSubtitlesService {
 
 Four of six RPCs use **server-side streaming**, sending items as they become available rather than buffering entire responses. This improves time-to-first-result and reduces memory usage. `CheckForUpdates` and `DownloadSubtitle` remain unary RPCs.
 
+### Health Check Service
+
+The server also implements the standard gRPC health checking protocol (`grpc.health.v1.Health`). This enables:
+
+- Docker container health checks using `grpc_health_probe`
+- Kubernetes liveness/readiness probes
+- Load balancer health monitoring
+- Service mesh integration
+
+**Check overall server health:**
+
+```bash
+grpc_health_probe -addr=localhost:8080
+```
+
+**Check specific service health:**
+
+```bash
+grpc_health_probe -addr=localhost:8080 -service=supersubtitles.v1.SuperSubtitlesService
+```
+
+The health service reports `SERVING` for both the overall server (`""` service) and the `supersubtitles.v1.SuperSubtitlesService` specifically.
+
 ## Code Generation
 
 Proto files are compiled to Go code using `go generate`:
@@ -60,9 +83,16 @@ The gRPC server is implemented in [`internal/grpc/server.go`](../internal/grpc/s
 The server is started in [`cmd/proxy/main.go`](../cmd/proxy/main.go):
 
 ```go
-// Create gRPC server with reflection
+// Create gRPC server with reflection and health check
 grpcServer := grpc.NewServer()
 pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClient))
+
+// Register health check service
+healthServer := health.NewServer()
+grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+healthServer.SetServingStatus("supersubtitles.v1.SuperSubtitlesService", grpc_health_v1.HealthCheckResponse_SERVING)
+healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
 reflection.Register(grpcServer)
 
 // Listen and serve
@@ -74,6 +104,7 @@ grpcServer.Serve(listener)
 
 - Graceful shutdown on SIGTERM/SIGINT
 - gRPC reflection enabled (for grpcurl, Postman, etc.)
+- Standard gRPC health checking protocol
 - Configurable address and port via config
 
 ## API Endpoints
@@ -176,6 +207,35 @@ Streams recently uploaded subtitles since a given subtitle ID.
 
 - `since_id` (int32): Subtitle ID to fetch from
 
+
+### 7. Health Check
+
+Checks the health status of the server using the standard gRPC health checking protocol.
+
+**Request:**
+
+- `service` (string): Service name to check (empty string for overall server health)
+
+**Response:**
+
+- `status` (enum): `SERVING`, `NOT_SERVING`, `UNKNOWN`, or `SERVICE_UNKNOWN`
+
+**Example:**
+
+```bash
+# Check overall server health
+grpc_health_probe -addr=localhost:8080
+
+# Check specific service health
+grpc_health_probe -addr=localhost:8080 -service=supersubtitles.v1.SuperSubtitlesService
+
+# Using grpcurl
+grpcurl -plaintext localhost:8080 grpc.health.v1.Health/Check
+
+# Check specific service with grpcurl
+grpcurl -plaintext -d '{"service": "supersubtitles.v1.SuperSubtitlesService"}' \
+  localhost:8080 grpc.health.v1.Health/Check
+```
 **Response:** Stream of `ShowSubtitleItem` messages (same format as `GetShowSubtitles` — `show_info` followed by `subtitle` items per show). Show info is only sent once per unique `show_id` within a single call, so clients can discover new shows they haven't seen before.
 
 **Example:**
