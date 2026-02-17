@@ -121,10 +121,11 @@ Located at `build/Dockerfile`, used by GoReleaser for multi-platform builds.
 
 **Key features:**
 
-- Multi-stage build for minimal image size
+- Multi-stage build for minimal image size (download stage separate from runtime)
 - Non-root user for security
 - Standard gRPC health check support via `grpc_health_probe`
 - Health check runs every 30 seconds with 10-second timeout
+- Only essential runtime dependencies in final image (ca-certificates)
 
 ### Health Checks
 

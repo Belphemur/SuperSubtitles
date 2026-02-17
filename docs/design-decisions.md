@@ -266,5 +266,7 @@ This document explains key architectural and design decisions made in the SuperS
 
 - `cmd/proxy/main.go` registers the `grpc.health.v1.Health` service
 - Reports `SERVING` status for both overall server (`""`) and `supersubtitles.v1.SuperSubtitlesService`
-- Docker HEALTHCHECK uses `grpc_health_probe` binary (downloaded at build time)
+- Docker HEALTHCHECK uses `grpc_health_probe` binary (downloaded in separate build stage)
+- Multi-stage Dockerfile: download stage fetches `grpc_health_probe`, runtime stage only includes the binary
 - Health check runs every 30s with 10s timeout, 5s start period, 3 retries
+- Final image excludes build tools (wget) for minimal size
