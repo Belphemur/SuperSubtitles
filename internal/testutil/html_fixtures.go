@@ -109,7 +109,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
                         <div><span style="color: rgb(0, 128, 0); font-size: 12px;"><b>%s</b> </span></div>`, row.Status)
 		}
 
-		sb.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">
 			<td align="left">
 				<a href="index.php?sid=%d"> <img class="kategk" src="img/sorozat_cat/%d.jpg"></a>
@@ -155,7 +155,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 			row.DownloadAction, row.DownloadFilename, row.SubtitleID,
 			bgColor,
 			row.SubtitleID,
-		))
+		)
 	}
 
 	sb.WriteString(`	</tbody>
@@ -231,7 +231,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
                         <div><span style="color: rgb(0, 128, 0); font-size: 12px;"><b>%s</b> </span></div>`, row.Status)
 		}
 
-		sb.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">
 			<td align="left">
 				<a href="index.php?sid=%d"> <img class="kategk" src="img/sorozat_cat/%d.jpg"></a>
@@ -277,7 +277,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 			row.DownloadAction, row.DownloadFilename, row.SubtitleID,
 			bgColor,
 			row.SubtitleID,
-		))
+		)
 	}
 
 	sb.WriteString(`	</tbody>
@@ -316,12 +316,12 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 			if show.YearHeaderLabel != "" {
 				yearLabel = show.YearHeaderLabel
 			}
-			sb.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&sb, `
 		<tr>
 			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
 				%s
 			</td>
-		</tr>`, yearLabel))
+		</tr>`, yearLabel)
 		}
 
 		// Alternate background colors if not specified
@@ -360,7 +360,7 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 			nameHTML = `<div class="sev"></div>`
 		}
 
-		sb.WriteString(fmt.Sprintf(`
+		fmt.Fprintf(&sb, `
 		<tr style="background-color: %s">
 			<td style="padding: 5px;">
 				<a href="index.php?sid=%d">%s</a>
@@ -368,7 +368,7 @@ func GenerateShowTableHTML(shows []ShowRowOptions) string {
 			<td class="sangol">
 				%s
 			</td>
-		</tr>`, bgColor, show.ShowID, imageHTML, nameHTML))
+		</tr>`, bgColor, show.ShowID, imageHTML, nameHTML)
 
 		rowIndex++
 	}
@@ -408,12 +408,12 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 			if shows[i].YearHeaderLabel != "" {
 				yearLabel = shows[i].YearHeaderLabel
 			}
-			sb.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&sb, `
 		<tr>
 			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
 				%s
 			</td>
-		</tr>`, yearLabel))
+		</tr>`, yearLabel)
 		}
 
 		// Determine row background color
@@ -426,8 +426,8 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf(`
-		<tr style="background-color: %s">`, bgColor))
+		fmt.Fprintf(&sb, `
+		<tr style="background-color: %s">`, bgColor)
 
 		// Add shows for this row (up to columnsPerRow)
 		for j := 0; j < columnsPerRow && i+j < len(shows); j++ {
@@ -459,13 +459,13 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 				nameHTML = `<div class="sev"></div>`
 			}
 
-			sb.WriteString(fmt.Sprintf(`
+			fmt.Fprintf(&sb, `
 			<td style="padding: 5px;">
 				<a href="index.php?sid=%d">%s</a>
 			</td>
 			<td class="sangol">
 				%s
-			</td>`, show.ShowID, imageHTML, nameHTML))
+			</td>`, show.ShowID, imageHTML, nameHTML)
 		}
 
 		sb.WriteString(`
@@ -529,20 +529,20 @@ func GenerateThirdPartyIDHTML(imdbID string, tvdbID, tvmazeID, traktID int) stri
 `)
 
 	if imdbID != "" {
-		sb.WriteString(fmt.Sprintf(`				<a href="http://www.imdb.com/title/%s/" target="_blank" alt="iMDB" ><img src="img/adatlap/imdb.png" alt="iMDB" /></a><input type="hidden" id="imdb_adatlap" value="%s" />
-`, imdbID, imdbID))
+		fmt.Fprintf(&sb, `				<a href="http://www.imdb.com/title/%s/" target="_blank" alt="iMDB" ><img src="img/adatlap/imdb.png" alt="iMDB" /></a><input type="hidden" id="imdb_adatlap" value="%s" />
+`, imdbID, imdbID)
 	}
 	if tvdbID != 0 {
-		sb.WriteString(fmt.Sprintf(`				<a href="http://thetvdb.com/?tab=series&id=%d" target="_blank" alt="TheTVDB"><img src="img/adatlap/tvdb.png" alt="TheTVDB"/></a>
-`, tvdbID))
+		fmt.Fprintf(&sb, `				<a href="http://thetvdb.com/?tab=series&id=%d" target="_blank" alt="TheTVDB"><img src="img/adatlap/tvdb.png" alt="TheTVDB"/></a>
+`, tvdbID)
 	}
 	if tvmazeID != 0 {
-		sb.WriteString(fmt.Sprintf(`				<a href="http://www.tvmaze.com/shows/%d" target="_blank" alt="TVMaze"><img src="img/adatlap/tvmaze.png" alt="TVMaze"/></a>
-`, tvmazeID))
+		fmt.Fprintf(&sb, `				<a href="http://www.tvmaze.com/shows/%d" target="_blank" alt="TVMaze"><img src="img/adatlap/tvmaze.png" alt="TVMaze"/></a>
+`, tvmazeID)
 	}
 	if traktID != 0 {
-		sb.WriteString(fmt.Sprintf(`				<a href="http://trakt.tv/search/tvdb?utf8=%%E2%%9C%%93&query=%d" target="_blank" alt="trakt" ><img src="img/adatlap/trakt.png?v=20250411" alt="trakt" /></a>
-`, traktID))
+		fmt.Fprintf(&sb, `				<a href="http://trakt.tv/search/tvdb?utf8=%%E2%%9C%%93&query=%d" target="_blank" alt="trakt" ><img src="img/adatlap/trakt.png?v=20250411" alt="trakt" /></a>
+`, traktID)
 	}
 
 	sb.WriteString(`			</div>
@@ -568,8 +568,8 @@ func GeneratePaginationHTML(currentPage, totalPages int, useOldalParam bool) str
 	}
 
 	for i := currentPage + 1; i <= totalPages; i++ {
-		sb.WriteString(fmt.Sprintf(`		<a href="/index.php?%s=%d">%d</a>
-`, pageParam, i, i))
+		fmt.Fprintf(&sb, `		<a href="/index.php?%s=%d">%d</a>
+`, pageParam, i, i)
 	}
 
 	sb.WriteString(`	</div>`)
