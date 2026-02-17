@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
 	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
@@ -35,6 +37,12 @@ func main() {
 
 	// Register the SuperSubtitles service
 	pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClient))
+
+	// Register health check service
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("supersubtitles.v1.SuperSubtitlesService", grpc_health_v1.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING) // Overall server health
 
 	// Register reflection service for tools like grpcurl
 	reflection.Register(grpcServer)
