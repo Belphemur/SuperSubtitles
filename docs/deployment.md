@@ -122,6 +122,7 @@ Located at `build/Dockerfile`, used by GoReleaser for multi-platform builds.
 **Key features:**
 
 - Multi-stage build for minimal image size (download stage separate from runtime)
+- SHA256 checksum verification for downloaded `grpc_health_probe` binary (supply chain security)
 - Non-root user for security
 - Standard gRPC health check support via `grpc_health_probe`
 - Health check runs every 30 seconds with 10-second timeout

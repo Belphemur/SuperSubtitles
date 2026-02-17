@@ -6,7 +6,7 @@ ARG GRPC_HEALTH_PROBE_VERSION=v0.4.45
 
 RUN apk add --no-cache wget
 
-# Download grpc_health_probe for health checks
+# Download grpc_health_probe for health checks with checksum verification
 RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
     ARCH="amd64"; \
     elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
@@ -14,7 +14,24 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
     else \
     echo "Unsupported platform: $TARGETPLATFORM" && exit 1; \
     fi && \
-    wget -qO/tmp/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${ARCH} && \
+    BINARY_NAME="grpc_health_probe-linux-${ARCH}" && \
+    # Download checksums file \
+    wget -qO/tmp/checksums.txt https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/checksums.txt && \
+    # Download binary \
+    wget -qO/tmp/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/${BINARY_NAME} && \
+    # Verify checksum \
+    cd /tmp && \
+    grep "${BINARY_NAME}" checksums.txt | awk '{print $1}' > expected_checksum.txt && \
+    sha256sum grpc_health_probe | awk '{print $1}' > actual_checksum.txt && \
+    EXPECTED=$(cat expected_checksum.txt) && \
+    ACTUAL=$(cat actual_checksum.txt) && \
+    if [ "$EXPECTED" != "$ACTUAL" ]; then \
+        echo "Checksum verification failed!" && \
+        echo "Expected: $EXPECTED" && \
+        echo "Actual: $ACTUAL" && \
+        exit 1; \
+    fi && \
+    echo "Checksum verification passed: $ACTUAL" && \
     chmod +x /tmp/grpc_health_probe
 
 # Runtime stage - minimal final image
