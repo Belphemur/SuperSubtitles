@@ -59,9 +59,9 @@ func TestClient_GetShowSubtitles(t *testing.T) {
 		{Name: "Test Show", ID: 12345, Year: 2023, ImageURL: server.URL + "/image.jpg"},
 	}
 
-	// Call GetShowSubtitles
+	// Call StreamShowSubtitles and collect results
 	ctx := context.Background()
-	showSubtitles, err := client.GetShowSubtitles(ctx, shows)
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ctx, shows))
 
 	// Test that the call succeeds
 	if err != nil {

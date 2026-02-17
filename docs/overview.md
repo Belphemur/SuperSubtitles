@@ -114,7 +114,10 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │  Show, Subtitle, SubtitleCollection, SuperSubtitleResponse,   │
 │  ShowSubtitles, ShowInfo, ShowSubtitleItem, ThirdPartyIds,    │
 │  Quality (enum), UpdateCheckResponse, UpdateCheckResult,      │
-│  DownloadRequest, DownloadResult                              │
+│  DownloadRequest, DownloadResult, StreamResult[T]             │
+│                                                               │
+│  StreamResult[T] is the generic streaming result type used    │
+│  by all client streaming methods and gRPC streaming handlers. │
 └───────────────────────────────────────────────────────────────┘
                     │
                     ▼

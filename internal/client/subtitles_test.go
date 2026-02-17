@@ -84,7 +84,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := client.GetSubtitles(ctx, 3217)
+	result, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 3217))
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -148,7 +148,7 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := client.GetSubtitles(ctx, 1234)
+	result, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 1234))
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -182,7 +182,7 @@ func TestClient_GetSubtitles_NetworkError(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	result, err := client.GetSubtitles(ctx, 5555)
+	result, err := testutil.CollectSubtitles(ctx, client.StreamSubtitles(ctx, 5555))
 
 	if err == nil {
 		t.Fatal("Expected error, got nil")

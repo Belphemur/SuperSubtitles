@@ -57,7 +57,7 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 	ctx := context.Background()
 
 	// Test without filter (all subtitles)
-	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 0))
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with filter (only subtitles with ID > 1770600000)
-	showSubtitles, err := client.GetRecentSubtitles(ctx, 1770600000)
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 1770600000))
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	showSubtitles, err := client.GetRecentSubtitles(ctx, 0)
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 0))
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
 	client := NewClient(testConfig)
 	ctx := context.Background()
 
-	_, err := client.GetRecentSubtitles(ctx, 0)
+	_, err := testutil.CollectShowSubtitles(ctx, client.StreamRecentSubtitles(ctx, 0))
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}

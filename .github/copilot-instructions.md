@@ -128,10 +128,11 @@ SuperSubtitles/
 - **Configuration:** Loaded via `viper` from `config/config.yaml` or `./config.yaml`. Env vars prefixed with `APP_`. Log level also settable via `LOG_LEVEL` env var.
 - **Logging:** Uses `rs/zerolog` with a console writer. Access via `config.GetLogger()`. Structured logging with chained `.Str()`, `.Int()`, `.Msg()` calls. Do not create new logger instances.
 - **Error handling:** Custom error types (e.g., `ErrNotFound`) with `Is()` method for `errors.Is()` support. Wrap errors with `fmt.Errorf("...: %w", err)`. Partial failures return data with logged warnings rather than failing entirely.
+- **Streaming-first architecture:** All client list/collection methods use channel-based streaming (`StreamShowList`, `StreamSubtitles`, `StreamShowSubtitles`, `StreamRecentSubtitles`). Non-streaming methods have been removed. Use `internal/testutil` stream helpers (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`) in tests only — production code should consume streams directly.
 - **gRPC streaming:** Prefer server-side streaming RPCs (`returns (stream ...)`) over unary RPCs for list/collection endpoints. Streaming improves time-to-first-result and reduces memory usage by sending items as they become available instead of buffering entire responses.
-- **Concurrency:** `sync.WaitGroup` for parallel HTTP fetches. Batch processing with a batch size of 20 in `GetShowSubtitles`.
+- **Concurrency:** `sync.WaitGroup` for parallel HTTP fetches. Batch processing with a batch size of 20 in `StreamShowSubtitles`.
 - **HTML parsing:** Uses `PuerkitoBio/goquery` (jQuery-like selectors). Parsers implement the generic `Parser[T]` or `SingleResultParser[T]` interfaces from `internal/parser/interfaces.go`.
-- **Testing:** Standard `testing` package only (no testify). Unit tests use `httptest.NewServer` for HTTP mocking. Test functions follow `TestTypeName_MethodName` naming. Integration tests check for `CI` / `SKIP_INTEGRATION_TESTS` env vars. **Important:** `SuperSubtitleResponse` is a `map[string]SuperSubtitle` — never rely on iteration order in tests; use map lookups by key fields instead.
+- **Testing:** Standard `testing` package only (no testify). Unit tests use `httptest.NewServer` for HTTP mocking. Test functions follow `TestTypeName_MethodName` naming. Integration tests check for `CI` / `SKIP_INTEGRATION_TESTS` env vars. **Important:** `SuperSubtitleResponse` is a `map[string]SuperSubtitle` — never rely on iteration order in tests; use map lookups by key fields instead. Use `testutil` stream collection helpers for consuming client streams in tests.
 
 ## CI/CD Pipeline
 
@@ -155,10 +156,10 @@ SuperSubtitles/
 - **Add a new model:** Create a file in `internal/models/`. Use JSON struct tags.
 - **Add a new parser:** Implement `Parser[T]` or `SingleResultParser[T]` from `internal/parser/interfaces.go`. Use goquery.
 - **Add a new service:** Define an interface and implementation in `internal/services/`.
-- **Add HTTP functionality:** Extend the `Client` interface in `internal/client/client.go` and add the implementation.
+- **Add HTTP functionality:** Extend the `Client` interface in `internal/client/client.go` and add the implementation. Prefer streaming methods (`Stream*`) over buffered methods for collections.
 - **Modify proto definitions:** Edit `api/proto/v1/supersubtitles.proto` and run `go generate ./api/proto/v1` to regenerate Go code.
-- **Add gRPC endpoint:** Add the RPC method to the proto service, regenerate code, and implement in `internal/grpc/server.go`.
-- **Test pattern:** Create `*_test.go` in the same package. Use inline HTML/JSON fixtures and `httptest` servers.
+- **Add gRPC endpoint:** Add the RPC method to the proto service, regenerate code, and implement in `internal/grpc/server.go`. Use streaming RPCs for list/collection operations.
+- **Test pattern:** Create `*_test.go` in the same package. Use inline HTML/JSON fixtures and `httptest` servers. Use `testutil` stream helpers (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`) to consume client streams.
 
 ## Documentation Requirements
 
