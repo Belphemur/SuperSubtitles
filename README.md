@@ -184,18 +184,16 @@ grpcurl -plaintext -d '{"subtitle_id": "101", "episode": 3}' \
 
 ### Internal Client Interface
 
-The gRPC server wraps the internal `Client` interface, which provides both batch and streaming methods:
+The gRPC server wraps the internal `Client` interface, which uses a streaming-first architecture for all list/collection operations:
 
 ```go
 type Client interface {
-    GetShowList(ctx context.Context) ([]Show, error)
-    GetSubtitles(ctx context.Context, showID int) (*SubtitleCollection, error)
-    GetShowSubtitles(ctx context.Context, shows []Show) ([]ShowSubtitles, error)
     CheckForUpdates(ctx context.Context, contentID string) (*UpdateCheckResult, error)
-    DownloadSubtitle(ctx context.Context, req DownloadRequest) (*DownloadResult, error)
-    GetRecentSubtitles(ctx context.Context, sinceID int) ([]ShowSubtitles, error)
+    DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*DownloadResult, error)
 
-    // Channel-based streaming methods (used by gRPC server)
+    // Streaming methods return channels that emit results as they become available.
+    // The channel is closed when all results have been sent.
+    // Errors are sent as StreamResult with a non-nil Err field.
     StreamShowList(ctx context.Context) <-chan StreamResult[Show]
     StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
     StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitleItem]
@@ -207,14 +205,14 @@ type Client interface {
 
 | Package                                     | Purpose                          |
 | ------------------------------------------- | -------------------------------- |
-| `google.golang.org/grpc` v1.78.0            | gRPC framework                   |
+| `google.golang.org/grpc` v1.79.1            | gRPC framework                   |
 | `google.golang.org/protobuf` v1.36.11       | Protocol Buffers runtime         |
 | `github.com/PuerkitoBio/goquery` v1.11.0    | jQuery-like HTML parsing         |
 | `github.com/rs/zerolog` v1.34.0             | Structured console/JSON logging  |
 | `github.com/spf13/viper` v1.21.0            | Configuration management         |
 | `github.com/hashicorp/golang-lru/v2` v2.0.7 | LRU cache for subtitle downloads |
 | `github.com/andybalholm/brotli` v1.2.0      | Brotli compression support       |
-| `github.com/klauspost/compress` v1.18.3     | Zstd compression support         |
+| `github.com/klauspost/compress` v1.18.4     | Zstd compression support         |
 
 ## CI/CD
 
