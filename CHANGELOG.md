@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.0...v1.6.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* **docker:** set proper server address and port ([3bbdc1d](https://github.com/Belphemur/SuperSubtitles/commit/3bbdc1d056c179afe252f38e7a43a9d10077b7d3))
+
 # [1.6.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.5.1...v1.6.0) (2026-02-17)
 
 
