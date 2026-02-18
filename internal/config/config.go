@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -69,6 +70,7 @@ func LoadConfig() (*Config, error) {
 	// Environment variable support
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("APP")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Add specific environment variable for log level
 	_ = viper.BindEnv("log_level", "LOG_LEVEL")
