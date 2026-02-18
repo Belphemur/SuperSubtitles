@@ -26,10 +26,10 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
     EXPECTED=$(cat expected_checksum.txt) && \
     ACTUAL=$(cat actual_checksum.txt) && \
     if [ "$EXPECTED" != "$ACTUAL" ]; then \
-        echo "Checksum verification failed!" && \
-        echo "Expected: $EXPECTED" && \
-        echo "Actual: $ACTUAL" && \
-        exit 1; \
+    echo "Checksum verification failed!" && \
+    echo "Expected: $EXPECTED" && \
+    echo "Actual: $ACTUAL" && \
+    exit 1; \
     fi && \
     echo "Checksum verification passed: $ACTUAL" && \
     chmod +x /tmp/grpc_health_probe
@@ -44,6 +44,9 @@ WORKDIR /app
 ARG USER=default
 ARG TARGETPLATFORM
 ENV HOME=/app/
+
+ENV APP_SERVER_ADDRESS="0.0.0.0"
+ENV APP_SERVER_PORT="8080"
 
 RUN apk add --no-cache ca-certificates
 
