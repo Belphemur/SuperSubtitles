@@ -2,19 +2,19 @@
 
 ## Configuration
 
-Configuration is loaded from `config/config.yaml` using Viper. Environment variables are supported with `APP_` prefix.
+Configuration is loaded from `config/config.yaml` using Viper. Environment variables are supported with `APP_` prefix, with nested keys mapped by replacing `.` with `_` (for example, `server.address` → `APP_SERVER_ADDRESS`).
 
 ### Configuration Fields
 
-| Field                     | Description                           | Default                                                                            | Env Var                       |
-| ------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------- |
-| `proxy_connection_string` | HTTP proxy URL (optional)             | `""`                                                                               | `APP_PROXY_CONNECTION_STRING` |
-| `super_subtitle_domain`   | Base URL for feliratok.eu             | `https://feliratok.eu`                                                             | `APP_SUPER_SUBTITLE_DOMAIN`   |
-| `client_timeout`          | HTTP client timeout (Go duration)     | `30s`                                                                              | `APP_CLIENT_TIMEOUT`          |
-| `user_agent`              | User-Agent header for HTTP requests   | `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0` | `APP_USER_AGENT`              |
-| `server.port`             | Server listening port                 | `8080`                                                                             | `APP_SERVER_PORT`             |
-| `server.address`          | Server listening address              | `localhost`                                                                        | `APP_SERVER_ADDRESS`          |
-| `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             | `LOG_LEVEL` (direct bind)     |
+| Field                     | Description                           | Default                                                                            | Env Var                        |
+| ------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------ |
+| `proxy_connection_string` | HTTP proxy URL (optional)             | `""`                                                                               | `APP_PROXY_CONNECTION_STRING`  |
+| `super_subtitle_domain`   | Base URL for feliratok.eu             | `https://feliratok.eu`                                                             | `APP_SUPER_SUBTITLE_DOMAIN`    |
+| `client_timeout`          | HTTP client timeout (Go duration)     | `30s`                                                                              | `APP_CLIENT_TIMEOUT`           |
+| `user_agent`              | User-Agent header for HTTP requests   | `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0` | `APP_USER_AGENT`               |
+| `server.port`             | Server listening port                 | `8080`                                                                             | `APP_SERVER_PORT`              |
+| `server.address`          | Server listening address              | `localhost`                                                                        | `APP_SERVER_ADDRESS`           |
+| `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             | `APP_LOG_LEVEL` or `LOG_LEVEL` |
 
 ### Example Configuration
 
@@ -35,6 +35,9 @@ server:
 ```bash
 # Override log level
 export LOG_LEVEL=debug
+
+# Override server address
+export APP_SERVER_ADDRESS=0.0.0.0
 
 # Override domain
 export APP_SUPER_SUBTITLE_DOMAIN=https://feliratok.eu
@@ -197,35 +200,35 @@ spec:
         app: supersubtitles
     spec:
       containers:
-      - name: supersubtitles
-        image: ghcr.io/belphemur/supersubtitles:latest
-        ports:
-        - containerPort: 8080
-          name: grpc
-        env:
-        - name: APP_SERVER_ADDRESS
-          value: "0.0.0.0"
-        - name: LOG_LEVEL
-          value: "info"
-        livenessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:8080"]
-          initialDelaySeconds: 5
-          periodSeconds: 30
-          timeoutSeconds: 10
-        readinessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:8080"]
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 5
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
+        - name: supersubtitles
+          image: ghcr.io/belphemur/supersubtitles:latest
+          ports:
+            - containerPort: 8080
+              name: grpc
+          env:
+            - name: APP_SERVER_ADDRESS
+              value: "0.0.0.0"
+            - name: LOG_LEVEL
+              value: "info"
+          livenessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service
@@ -235,9 +238,9 @@ spec:
   selector:
     app: supersubtitles
   ports:
-  - port: 8080
-    targetPort: 8080
-    name: grpc
+    - port: 8080
+      targetPort: 8080
+      name: grpc
   type: ClusterIP
 ```
 
