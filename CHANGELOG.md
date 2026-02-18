@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.1...v1.6.2) (2026-02-18)
+
+
+### Bug Fixes
+
+* use proper environment variables. ([d9277c7](https://github.com/Belphemur/SuperSubtitles/commit/d9277c738a7d10ca73288c83550fb595102a874f))
+
 ## [1.6.1](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.0...v1.6.1) (2026-02-18)
 
 
