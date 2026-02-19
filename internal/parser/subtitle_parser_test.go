@@ -455,6 +455,16 @@ func TestExtractEpisodeTitle(t *testing.T) {
 			input:    "Show - 1x01 - Perfect Episode Name",
 			expected: "Perfect Episode Name",
 		},
+		{
+			name:     "No SxEE pattern with trailing dash",
+			input:    "Show Name - (Release Info)",
+			expected: "Show Name",
+		},
+		{
+			name:     "No SxEE pattern with trailing period",
+			input:    "Show Name. (Release Info)",
+			expected: "Show Name",
+		},
 	}
 
 	for _, tt := range tests {
