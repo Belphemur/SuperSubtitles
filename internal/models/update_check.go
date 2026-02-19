@@ -16,7 +16,6 @@ type UpdateCheckResponse struct {
 // UnmarshalJSON implements custom JSON unmarshaling for UpdateCheckResponse
 // to handle both string and integer values for film and sorozat fields
 func (u *UpdateCheckResponse) UnmarshalJSON(data []byte) error {
-	type alias UpdateCheckResponse
 	aux := struct {
 		Film    interface{} `json:"film"`
 		Sorozat interface{} `json:"sorozat"`
