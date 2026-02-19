@@ -461,7 +461,6 @@ func TestExtractEpisodeTitle(t *testing.T) {
 	}
 }
 
-
 func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 	// Test that show ID is correctly extracted from the main page HTML
 	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
