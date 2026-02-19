@@ -10,8 +10,8 @@ import (
 )
 
 func TestClient_CheckForUpdates(t *testing.T) {
-	// Sample JSON response for update check
-	jsonResponse := `{"film":2,"sorozat":5}`
+	// Sample JSON response for update check - API returns string values
+	jsonResponse := `{"film":"15","sorozat":"5"}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -49,8 +49,8 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	}
 
 	// Test the counts
-	if result.FilmCount != 2 {
-		t.Errorf("Expected FilmCount 2, got %d", result.FilmCount)
+	if result.FilmCount != 15 {
+		t.Errorf("Expected FilmCount 15, got %d", result.FilmCount)
 	}
 	if result.SeriesCount != 5 {
 		t.Errorf("Expected SeriesCount 5, got %d", result.SeriesCount)
@@ -61,8 +61,8 @@ func TestClient_CheckForUpdates(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
-	// Sample JSON response for no updates
-	jsonResponse := `{"film":0,"sorozat":0}`
+	// Sample JSON response for no updates - API returns string values
+	jsonResponse := `{"film":"0","sorozat":"0"}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
