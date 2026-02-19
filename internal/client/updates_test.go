@@ -10,8 +10,8 @@ import (
 )
 
 func TestClient_CheckForUpdates(t *testing.T) {
-	// Sample JSON response for update check
-	jsonResponse := `{"film":2,"sorozat":5}`
+	// Sample JSON response for update check - API returns string values
+	jsonResponse := `{"film":"15","sorozat":"5"}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 
 	// Call CheckForUpdates
 	ctx := context.Background()
-	result, err := client.CheckForUpdates(ctx, "1760700519")
+	result, err := client.CheckForUpdates(ctx, 1760700519)
 
 	// Test that the call succeeds
 	if err != nil {
@@ -49,8 +49,8 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	}
 
 	// Test the counts
-	if result.FilmCount != 2 {
-		t.Errorf("Expected FilmCount 2, got %d", result.FilmCount)
+	if result.FilmCount != 15 {
+		t.Errorf("Expected FilmCount 15, got %d", result.FilmCount)
 	}
 	if result.SeriesCount != 5 {
 		t.Errorf("Expected SeriesCount 5, got %d", result.SeriesCount)
@@ -60,57 +60,9 @@ func TestClient_CheckForUpdates(t *testing.T) {
 	}
 }
 
-func TestClient_CheckForUpdates_WithPrefix(t *testing.T) {
-	// Sample JSON response for update check
-	jsonResponse := `{"film":0,"sorozat":1}`
-
-	// Create a test server that returns the sample JSON for update check
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(jsonResponse))
-	}))
-	defer server.Close()
-
-	// Create a test config
-	testConfig := &config.Config{
-		SuperSubtitleDomain: server.URL,
-		ClientTimeout:       "10s",
-	}
-
-	// Create the client
-	client := NewClient(testConfig)
-
-	// Call CheckForUpdates with "a_" prefix (should be trimmed)
-	ctx := context.Background()
-	result, err := client.CheckForUpdates(ctx, "a_1760700519")
-
-	// Test that the call succeeds
-	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
-	}
-
-	// Test that we got the expected result
-	if result == nil {
-		t.Fatal("Expected result, got nil")
-		return
-	}
-
-	// Test the counts
-	if result.FilmCount != 0 {
-		t.Errorf("Expected FilmCount 0, got %d", result.FilmCount)
-	}
-	if result.SeriesCount != 1 {
-		t.Errorf("Expected SeriesCount 1, got %d", result.SeriesCount)
-	}
-	if !result.HasUpdates {
-		t.Error("Expected HasUpdates to be true")
-	}
-}
-
 func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
-	// Sample JSON response for no updates
-	jsonResponse := `{"film":0,"sorozat":0}`
+	// Sample JSON response for no updates - API returns string values
+	jsonResponse := `{"film":"0","sorozat":"0"}`
 
 	// Create a test server that returns the sample JSON for update check
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +83,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 
 	// Call CheckForUpdates
 	ctx := context.Background()
-	result, err := client.CheckForUpdates(ctx, "1760700519")
+	result, err := client.CheckForUpdates(ctx, 1760700519)
 
 	// Test that the call succeeds
 	if err != nil {
@@ -174,7 +126,7 @@ func TestClient_CheckForUpdates_ServerError(t *testing.T) {
 
 	// Call CheckForUpdates
 	ctx := context.Background()
-	result, err := client.CheckForUpdates(ctx, "1760700519")
+	result, err := client.CheckForUpdates(ctx, 1760700519)
 
 	// Test that the call fails with an error
 	if err == nil {
@@ -205,7 +157,7 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 
 	// Call CheckForUpdates
 	ctx := context.Background()
-	result, err := client.CheckForUpdates(ctx, "1760700519")
+	result, err := client.CheckForUpdates(ctx, 1760700519)
 
 	// Test that the call fails with JSON decode error
 	if err == nil {
@@ -214,5 +166,101 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 
 	if result != nil {
 		t.Errorf("Expected nil result, got %v", result)
+	}
+}
+
+func TestClient_CheckForUpdates_StringValues(t *testing.T) {
+	// Test API returning string values for film and sorozat instead of integers
+	jsonResponse := `{"film":"3","sorozat":"7"}`
+
+	// Create a test server that returns string values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(jsonResponse))
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, 1771493497)
+
+	// Test that the call succeeds even with string values
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Test that we got the expected result
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+		return
+	}
+
+	// Test the counts were properly converted
+	if result.FilmCount != 3 {
+		t.Errorf("Expected FilmCount 3, got %d", result.FilmCount)
+	}
+	if result.SeriesCount != 7 {
+		t.Errorf("Expected SeriesCount 7, got %d", result.SeriesCount)
+	}
+	if !result.HasUpdates {
+		t.Error("Expected HasUpdates to be true")
+	}
+}
+
+func TestClient_CheckForUpdates_MixedTypes(t *testing.T) {
+	// Test API returning mixed types (int and string)
+	jsonResponse := `{"film":2,"sorozat":"4"}`
+
+	// Create a test server that returns mixed types
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(jsonResponse))
+	}))
+	defer server.Close()
+
+	// Create a test config
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	// Create the client
+	client := NewClient(testConfig)
+
+	// Call CheckForUpdates
+	ctx := context.Background()
+	result, err := client.CheckForUpdates(ctx, 1771493497)
+
+	// Test that the call succeeds with mixed types
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// Test that we got the expected result
+	if result == nil {
+		t.Fatal("Expected result, got nil")
+		return
+	}
+
+	// Test the counts
+	if result.FilmCount != 2 {
+		t.Errorf("Expected FilmCount 2, got %d", result.FilmCount)
+	}
+	if result.SeriesCount != 4 {
+		t.Errorf("Expected SeriesCount 4, got %d", result.SeriesCount)
+	}
+	if !result.HasUpdates {
+		t.Error("Expected HasUpdates to be true")
 	}
 }

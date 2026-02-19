@@ -115,16 +115,16 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 
 // CheckForUpdates implements SuperSubtitlesServiceServer.CheckForUpdates
 func (s *server) CheckForUpdates(ctx context.Context, req *pb.CheckForUpdatesRequest) (*pb.CheckForUpdatesResponse, error) {
-	s.logger.Debug().Str("content_id", req.ContentId).Msg("CheckForUpdates called")
+	s.logger.Debug().Int64("content_id", req.ContentId).Msg("CheckForUpdates called")
 
 	result, err := s.client.CheckForUpdates(ctx, req.ContentId)
 	if err != nil {
-		s.logger.Error().Err(err).Str("content_id", req.ContentId).Msg("Failed to check for updates")
+		s.logger.Error().Err(err).Int64("content_id", req.ContentId).Msg("Failed to check for updates")
 		return nil, status.Errorf(codes.Internal, "failed to check for updates: %v", err)
 	}
 
 	s.logger.Debug().
-		Str("content_id", req.ContentId).
+		Int64("content_id", req.ContentId).
 		Int("film_count", result.FilmCount).
 		Int("series_count", result.SeriesCount).
 		Bool("has_updates", result.HasUpdates).
