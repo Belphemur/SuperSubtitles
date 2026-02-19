@@ -94,10 +94,11 @@ results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ct
 ### Parser Tests
 
 - `internal/parser/show_parser_test.go` - Show listing parser tests
-- `internal/parser/subtitle_parser_test.go` - 24+ comprehensive tests covering:
+- `internal/parser/subtitle_parser_test.go` - 28+ comprehensive tests covering:
   - Quality detection (360p-2160p)
   - Release group parsing
   - Season pack detection
+  - Episode title extraction (with handling for regular episodes and season packs)
   - Pagination
   - Show ID extraction
   - Language conversion
