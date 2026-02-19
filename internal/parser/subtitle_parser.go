@@ -675,7 +675,7 @@ func extractEpisodeTitle(description string) string {
 
 	// If no season/episode pattern found, return the whole string (without parentheses),
 	// but trim any trailing punctuation/dashes to avoid titles like "Show Name -".
-return strings.TrimRight(withoutParens, ".- ")
+	return strings.TrimRight(withoutParens, ".- ")
 }
 
 // extractPaginationInfo extracts current page and total pages from the document
