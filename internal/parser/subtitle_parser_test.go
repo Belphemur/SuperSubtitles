@@ -43,7 +43,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.Language != "hu" {
 		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
 	}
-	// The name should be only the episode title
+	// The name should be only the episode title, extracted from the eredeti (original) title
+	// which contains the pattern "Show - SxEE - Episode Title (Release Info)"
 	expectedName := "A Hundred Thousand Angels"
 	if subtitle.Name != expectedName {
 		t.Errorf("Expected name %q, got %q", expectedName, subtitle.Name)
@@ -402,6 +403,11 @@ func TestExtractEpisodeTitle(t *testing.T) {
 		{
 			name:     "Outlander episode",
 			input:    "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			expected: "A Hundred Thousand Angels",
+		},
+		{
+			name:     "Outlander episode with duplicate SxEE",
+			input:    "Outlander - Az idegen - 7x16 Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
 			expected: "A Hundred Thousand Angels",
 		},
 		{
