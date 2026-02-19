@@ -1,3 +1,11 @@
+## [1.6.3](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.2...v1.6.3) (2026-02-19)
+
+
+### Bug Fixes
+
+* **parser:** extract only episode title for subtitle names ([fdce830](https://github.com/Belphemur/SuperSubtitles/commit/fdce830244f30867701239f9abdc66004428617a))
+* **parser:** improve episode title extraction logic ([f22cdb1](https://github.com/Belphemur/SuperSubtitles/commit/f22cdb1cb665b8725959dc3c4eda172fe01495aa))
+
 ## [1.6.2](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.1...v1.6.2) (2026-02-18)
 
 
