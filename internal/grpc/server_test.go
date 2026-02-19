@@ -419,7 +419,7 @@ func TestCheckForUpdates_Success(t *testing.T) {
 	srv := NewServer(mock)
 	ctx := context.Background()
 
-	resp, err := srv.CheckForUpdates(ctx, &pb.CheckForUpdatesRequest{ContentId: "12345"})
+	resp, err := srv.CheckForUpdates(ctx, &pb.CheckForUpdatesRequest{ContentId: 12345})
 	if err != nil {
 		t.Fatalf("CheckForUpdates returned error: %v", err)
 	}
