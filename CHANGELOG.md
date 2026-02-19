@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.3...v1.6.4) (2026-02-19)
+
+
+### Bug Fixes
+
+* **parser:** trim trailing punctuation in episode titles without SxEE pattern ([422e17b](https://github.com/Belphemur/SuperSubtitles/commit/422e17ba3aac631caab40954c9126dfca27a344a))
+
 ## [1.6.3](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.2...v1.6.3) (2026-02-19)
 
 
