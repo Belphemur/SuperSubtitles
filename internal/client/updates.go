@@ -5,26 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
 // CheckForUpdates checks if there are any updates available since a specific content ID
-func (c *client) CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error) {
+func (c *client) CheckForUpdates(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error) {
 	logger := config.GetLogger()
 
-	// Clean the content ID - remove "a_" prefix if present
-	cleanContentID := contentID
-	if strings.HasPrefix(contentID, "a_") {
-		cleanContentID = strings.TrimPrefix(contentID, "a_")
-	}
+	// Convert int64 to string for the API
+	contentIDStr := fmt.Sprintf("%d", contentID)
 
-	logger.Info().Str("contentID", contentID).Str("cleanContentID", cleanContentID).Msg("Checking for updates since content ID")
+	logger.Info().Int64("contentID", contentID).Str("contentIDStr", contentIDStr).Msg("Checking for updates since content ID")
 
 	// Construct the URL for checking updates
-	endpoint := fmt.Sprintf("%s/index.php?action=recheck&azon=%s", c.baseURL, cleanContentID)
+	endpoint := fmt.Sprintf("%s/index.php?action=recheck&azon=%s", c.baseURL, contentIDStr)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {

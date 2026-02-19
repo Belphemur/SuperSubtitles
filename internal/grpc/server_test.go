@@ -19,7 +19,7 @@ type mockClient struct {
 	getShowListFunc        func(ctx context.Context) ([]models.Show, error)
 	getSubtitlesFunc       func(ctx context.Context, showID int) (*models.SubtitleCollection, error)
 	getShowSubtitlesFunc   func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error)
-	checkForUpdatesFunc    func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
+	checkForUpdatesFunc    func(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error)
 	downloadSubtitleFunc   func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 	getRecentSubtitlesFunc func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error)
 
@@ -50,7 +50,7 @@ func (m *mockClient) GetShowSubtitles(ctx context.Context, shows []models.Show) 
 	return []models.ShowSubtitles{}, nil
 }
 
-func (m *mockClient) CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error) {
+func (m *mockClient) CheckForUpdates(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error) {
 	if m.checkForUpdatesFunc != nil {
 		return m.checkForUpdatesFunc(ctx, contentID)
 	}
@@ -408,9 +408,9 @@ func TestCheckForUpdates_Success(t *testing.T) {
 	}
 
 	mock := &mockClient{
-		checkForUpdatesFunc: func(ctx context.Context, contentID string) (*models.UpdateCheckResult, error) {
-			if contentID != "12345" {
-				t.Errorf("Expected content ID '12345', got '%s'", contentID)
+		checkForUpdatesFunc: func(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error) {
+			if contentID != 12345 {
+				t.Errorf("Expected content ID 12345, got %d", contentID)
 			}
 			return mockResult, nil
 		},

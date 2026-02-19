@@ -14,7 +14,7 @@ import (
 
 // Client defines the interface for querying the SuperSubtitles website
 type Client interface {
-	CheckForUpdates(ctx context.Context, contentID string) (*models.UpdateCheckResult, error)
+	CheckForUpdates(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error)
 	DownloadSubtitle(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error)
 
 	// Streaming methods return channels that emit results as they become available.
