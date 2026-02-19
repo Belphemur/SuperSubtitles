@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.4...v1.6.5) (2026-02-19)
+
+
+### Bug Fixes
+
+* **parser:** deduplicate release groups case-insensitively ([7cf66c0](https://github.com/Belphemur/SuperSubtitles/commit/7cf66c0e45ecc19217cfdb7a4e8325dccec920d7))
+
 ## [1.6.4](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.3...v1.6.4) (2026-02-19)
 
 
