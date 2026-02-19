@@ -1,3 +1,16 @@
+# [1.7.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.5...v1.7.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* **client:** handle string values in update check JSON response ([43ebb4d](https://github.com/Belphemur/SuperSubtitles/commit/43ebb4d52dfa834f9e22cd8114b28c07347da8d6))
+
+
+### Features
+
+* change CheckForUpdates content ID parameter from string to int64 ([edf426c](https://github.com/Belphemur/SuperSubtitles/commit/edf426cb869101182d569ae2545551f3a0dfa28f))
+* change CheckForUpdatesRequest.content_id from string to int64 ([f11af7d](https://github.com/Belphemur/SuperSubtitles/commit/f11af7d82b72a5e3b03492c9cbcdd80c1460cdd0))
+
 ## [1.6.5](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.4...v1.6.5) (2026-02-19)
 
 
