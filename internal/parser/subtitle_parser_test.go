@@ -536,3 +536,53 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 		t.Errorf("Expected ID %d, got %d", 1770577432, subtitle2.ID)
 	}
 }
+
+func TestSubtitleParser_ParseReleaseInfo_CaseInsensitiveGroupDeduplication(t *testing.T) {
+	parser := NewSubtitleParser("https://feliratok.eu")
+
+	tests := []struct {
+		name              string
+		releaseInfo       string
+		expectedGroups    []string
+		expectedQualities []models.Quality
+	}{
+		{
+			name:              "Duplicate release groups with different cases",
+			releaseInfo:       "WEB.720p-FLUX, WEB.1080p-flux, WEB.2160p-Flux",
+			expectedGroups:    []string{"FLUX"}, // Only the first occurrence is kept
+			expectedQualities: []models.Quality{models.Quality720p, models.Quality1080p, models.Quality2160p},
+		},
+		{
+			name:              "Mixed case release groups",
+			releaseInfo:       "WEB.720p-EDITH, WEB.1080p-edith, WEB.1080p-CraB",
+			expectedGroups:    []string{"EDITH", "CraB"},
+			expectedQualities: []models.Quality{models.Quality720p, models.Quality1080p},
+		},
+		{
+			name:              "Single release group",
+			releaseInfo:       "WEB.720p-FLUX",
+			expectedGroups:    []string{"FLUX"},
+			expectedQualities: []models.Quality{models.Quality720p},
+		},
+		{
+			name:              "No duplicate groups",
+			releaseInfo:       "WEB.720p-FLUX, WEB.1080p-SuccessfulCrab",
+			expectedGroups:    []string{"FLUX", "SuccessfulCrab"},
+			expectedQualities: []models.Quality{models.Quality720p, models.Quality1080p},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			qualities, groups := parser.parseReleaseInfo(tt.releaseInfo)
+
+			if !reflect.DeepEqual(groups, tt.expectedGroups) {
+				t.Errorf("Expected release groups %v, got %v", tt.expectedGroups, groups)
+			}
+
+			if !reflect.DeepEqual(qualities, tt.expectedQualities) {
+				t.Errorf("Expected qualities %v, got %v", tt.expectedQualities, qualities)
+			}
+		})
+	}
+}

@@ -421,6 +421,7 @@ func (p *SubtitleParser) extractReleaseInfo(description string) string {
 
 // parseReleaseInfo extracts qualities and multiple release groups from release info string
 // Example: "AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab"
+// Release groups are deduplicated case-insensitively (e.g., "FLUX" and "flux" are treated as the same)
 func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []models.Quality, releaseGroups []string) {
 	if releaseInfo == "" {
 		return nil, nil
@@ -429,6 +430,7 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []model
 	releaseGroups = make([]string, 0)
 	qualities = make([]models.Quality, 0)
 	seenQualities := make(map[models.Quality]struct{})
+	seenGroups := make(map[string]struct{}) // Track groups case-insensitively (key is lowercase)
 
 	// Split by comma to get individual releases
 	releases := strings.Split(releaseInfo, ",")
@@ -443,7 +445,12 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []model
 		if idx := strings.LastIndex(release, "-"); idx != -1 {
 			group := strings.TrimSpace(release[idx+1:])
 			if group != "" {
-				releaseGroups = append(releaseGroups, group)
+				// Check if this group (case-insensitive) has been seen before
+				groupLower := strings.ToLower(group)
+				if _, exists := seenGroups[groupLower]; !exists {
+					releaseGroups = append(releaseGroups, group)
+					seenGroups[groupLower] = struct{}{}
+				}
 			}
 		}
 		// Detect quality from each release, keep unique qualities
