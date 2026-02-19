@@ -31,6 +31,7 @@ This document describes the data flow for all major operations in SuperSubtitles
    - Detects all qualities from release string
    - Splits comma-separated release groups
    - Detects season packs by looking for special naming patterns
+   - **Extracts episode title**: For regular episodes (with SxEE pattern), extracts only the episode title portion from the description; for season packs, returns empty string
    - Extracts pagination info from `oldal=<page>` parameters
 3. Parsed subtitles are sent to a `models.StreamResult[models.Subtitle]` channel as they become available
 4. If totalPages > 1, fetch remaining pages in parallel **2 pages at a time**:

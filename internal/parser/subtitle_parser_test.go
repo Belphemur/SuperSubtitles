@@ -43,8 +43,8 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 	if subtitle.Language != "hu" {
 		t.Errorf("Expected language %q, got %q", "hu", subtitle.Language)
 	}
-	// The name should have parenthetical content removed
-	expectedName := "Outlander - 7x16 - A Hundred Thousand Angels"
+	// The name should be only the episode title
+	expectedName := "A Hundred Thousand Angels"
 	if subtitle.Name != expectedName {
 		t.Errorf("Expected name %q, got %q", expectedName, subtitle.Name)
 	}
@@ -388,6 +388,74 @@ func TestRemoveParentheticalContent(t *testing.T) {
 			result := removeParentheticalContent(tt.input)
 			if result != tt.expected {
 				t.Errorf("removeParentheticalContent(%q) = %q, expected %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExtractEpisodeTitle(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Outlander episode",
+			input:    "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)",
+			expected: "A Hundred Thousand Angels",
+		},
+		{
+			name:     "The Copenhagen Test",
+			input:    "The Copenhagen Test - 1x04 - Obsidian (WEB.720p-SYLiX, AMZN.WEB-DL.720p-Kitsune)",
+			expected: "Obsidian",
+		},
+		{
+			name:     "Episode with multiple dashes in title",
+			input:    "Show - 2x05 - Title With - Many - Dashes (Release)",
+			expected: "Title With - Many - Dashes",
+		},
+		{
+			name:     "Episode with parentheses in title",
+			input:    "Show - 1x01 - Episode (Part 1) (Release Info)",
+			expected: "Episode",
+		},
+		{
+			name:     "Season pack",
+			input:    "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			expected: "",
+		},
+		{
+			name:     "No dashes, just text",
+			input:    "Simple Episode (Release)",
+			expected: "Simple Episode",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only parentheses",
+			input:    "(Release Info)",
+			expected: "",
+		},
+		{
+			name:     "Ends with dash",
+			input:    "Show - 1x01 - (Release Info)",
+			expected: "",
+		},
+		{
+			name:     "No parentheses",
+			input:    "Show - 1x01 - Perfect Episode Name",
+			expected: "Perfect Episode Name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractEpisodeTitle(tt.input)
+			if result != tt.expected {
+				t.Errorf("extractEpisodeTitle(%q) = %q, expected %q", tt.input, result, tt.expected)
 			}
 		})
 	}

@@ -274,13 +274,13 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	// Extract filename from download link
 	filename := p.extractFilenameFromDownloadLink(downloadLink)
 
-	// Clean the subtitle name by removing parenthetical content
-	cleanedName := removeParentheticalContent(description)
+	// Extract only the episode title from description
+	episodeTitle := extractEpisodeTitle(description)
 
 	return &models.Subtitle{
 		ID:            subtitleID,
 		ShowID:        showID,
-		Name:          cleanedName,
+		Name:          episodeTitle,
 		ShowName:      showName,
 		Language:      languageISO,
 		Season:        season,
@@ -627,6 +627,55 @@ func removeParentheticalContent(text string) string {
 	result = strings.TrimSpace(result)
 
 	return result
+}
+
+// extractEpisodeTitle extracts only the episode title from a subtitle description
+// Example: "Outlander - Az idegen - 7x16 Outlander - 7x16 - A Hundred Thousand Angels (AMZN...)" -> "A Hundred Thousand Angels"
+// Example: "Billy the Kid (Season 2) (WEB...)" -> "" (season packs have no episode title)
+// Example: "Show - 2x05 - Title With - Many - Dashes (Release)" -> "Title With - Many - Dashes"
+func extractEpisodeTitle(description string) string {
+	if description == "" {
+		return ""
+	}
+
+	// Check if this is a season pack (contains "(Season X)")
+	if seasonPackRegex.MatchString(description) {
+		// Season packs don't have episode titles, only season info
+		return ""
+	}
+
+	// First, remove content within parentheses
+	withoutParens := parenthesesRegex.ReplaceAllString(description, "")
+	withoutParens = strings.TrimSpace(withoutParens)
+
+	if withoutParens == "" {
+		return ""
+	}
+
+	// Check for season/episode pattern (SxEE like 7x16, 1x01, etc)
+	allMatches := episodeRegex.FindAllStringIndex(withoutParens, -1)
+	if len(allMatches) > 0 {
+		// Use the last match, as it's most likely to precede the episode title
+		matches := allMatches[len(allMatches)-1]
+
+		// Found season/episode pattern at position [start, end)
+		// Look for the dash that comes after the SxEE pattern
+		afterSxEE := withoutParens[matches[1]:]
+		dashIdx := strings.Index(afterSxEE, "-")
+		if dashIdx == -1 {
+			// No dash after SxEE, return everything after SxEE
+			episodeTitle := strings.TrimSpace(afterSxEE)
+			return episodeTitle
+		}
+
+		// Take everything after the first dash following SxEE
+		episodeTitle := strings.TrimSpace(afterSxEE[dashIdx+1:])
+		return episodeTitle
+	}
+
+	// If no season/episode pattern found, return the whole string (without parentheses)
+	// This handles edge cases without season/episode info
+	return withoutParens
 }
 
 // extractPaginationInfo extracts current page and total pages from the document
