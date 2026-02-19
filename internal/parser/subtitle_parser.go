@@ -653,8 +653,11 @@ func extractEpisodeTitle(description string) string {
 	}
 
 	// Check for season/episode pattern (SxEE like 7x16, 1x01, etc)
-	matches := episodeRegex.FindStringIndex(withoutParens)
-	if matches != nil {
+	allMatches := episodeRegex.FindAllStringIndex(withoutParens, -1)
+	if len(allMatches) > 0 {
+		// Use the last match, as it's most likely to precede the episode title
+		matches := allMatches[len(allMatches)-1]
+
 		// Found season/episode pattern at position [start, end)
 		// Look for the dash that comes after the SxEE pattern
 		afterSxEE := withoutParens[matches[1]:]
