@@ -49,7 +49,7 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 	}
 
 	// Log some basic information about what we received
-	t.Logf("Successfully fetched %d shows from SuperSubtitles website", len(shows))
+	t.Logf("Successfully fetched %d total shows from SuperSubtitles website", len(shows))
 
 	// Verify that shows have basic required fields
 	for i, show := range shows {

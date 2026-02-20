@@ -204,3 +204,39 @@ func (p *ShowParser) extractShowNameFromGoquery(link *goquery.Selection) string 
 	logger.Debug().Str("name", name).Msg("Successfully extracted show name")
 	return name
 }
+
+// ExtractLastPage extracts the last page number from the pagination HTML.
+// Returns 1 if there is no pagination (single page).
+func (p *ShowParser) ExtractLastPage(body io.Reader) int {
+	logger := config.GetLogger()
+
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		logger.Debug().Err(err).Msg("Failed to parse HTML for pagination")
+		return 1
+	}
+
+	lastPage := 1
+
+	// The pagination div contains links like: <a href="/index.php?oldal=42&sorf=...">42</a>
+	// We find all pagination links with "oldal=" and track the highest page number.
+	doc.Find("div.pagination a").Each(func(i int, s *goquery.Selection) {
+		href, exists := s.Attr("href")
+		if !exists {
+			return
+		}
+
+		if !strings.Contains(href, "oldal=") {
+			return
+		}
+
+		// Extract page number from text content (skip ">" navigation links)
+		text := strings.TrimSpace(s.Text())
+		if page, err := strconv.Atoi(text); err == nil && page > lastPage {
+			lastPage = page
+		}
+	})
+
+	logger.Debug().Int("lastPage", lastPage).Msg("Extracted last page from pagination")
+	return lastPage
+}
