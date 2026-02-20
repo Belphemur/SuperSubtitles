@@ -49,7 +49,7 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 	}
 
 	// Log some basic information about what we received
-	t.Logf("Successfully fetched %d shows from SuperSubtitles website", len(shows))
+	t.Logf("Successfully fetched %d total shows from SuperSubtitles website", len(shows))
 
 	// Verify that shows have basic required fields
 	for i, show := range shows {
@@ -74,6 +74,8 @@ func TestClient_GetShowList_Integration(t *testing.T) {
 	if len(shows) < 10 {
 		t.Logf("Warning: Only got %d shows, which seems low for a real website response", len(shows))
 	}
+
+	t.Logf("Total number of shows fetched: %d", len(shows))
 }
 
 // TestClient_GetSubtitles_Integration is an integration test that calls the real SuperSubtitles website
