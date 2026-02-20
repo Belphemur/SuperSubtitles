@@ -5,17 +5,32 @@ This document describes the data flow for all major operations in SuperSubtitles
 ## Show List Fetching
 
 1. `StreamShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
-2. Each response is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
-3. Results are merged and deduplicated by show ID, preserving first-occurrence order
-4. Each deduplicated show is sent to a `models.StreamResult[models.Show]` channel as it becomes available
-5. Partial failures are tolerated — if at least one endpoint succeeds, results are streamed
-6. The gRPC server consumes from the channel and streams `Show` messages to the client
-7. Tests use `testutil.CollectShows` helper to collect stream results into a slice
+2. Each endpoint is handled by `fetchEndpointPages`, which fetches page 1 first
+3. Page 1 HTML is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
+4. `ShowParser.ExtractLastPage` inspects the pagination HTML (`div.pagination` links with `oldal=N` parameters) to discover the total page count
+5. If more than 1 page exists, remaining pages (2..lastPage) are fetched in **parallel batches of 10** (`pageBatchSize`). Each batch waits for completion before starting the next
+6. Results from all pages are merged and deduplicated by show ID using a `sync.Map`, preserving first-occurrence order
+7. Each deduplicated show is sent to a `models.StreamResult[models.Show]` channel as it becomes available
+8. Partial failures are tolerated — if at least one endpoint succeeds, results are streamed; individual page failures within an endpoint log warnings but don't fail the endpoint
+9. The gRPC server consumes from the channel and streams `Show` messages to the client
+10. Tests use `testutil.CollectShows` helper to collect stream results into a slice
+
+**Pagination Example:**
+
+For the `nem-all-forditas-alatt` endpoint with 42 pages:
+
+- Request 1: Page 1 (discovers 42 total pages)
+- Request 2–11: Pages 2–11 in parallel (batch 1)
+- Request 12–21: Pages 12–21 in parallel (batch 2)
+- Request 22–31: Pages 22–31 in parallel (batch 3)
+- Request 32–41: Pages 32–41 in parallel (batch 4)
+- Request 42: Page 42 (batch 5)
+- **Total:** 42 requests completed in ~6 rounds instead of 42 sequential requests
 
 **Implementation:**
 
-- `internal/client/show_list.go` - `StreamShowList` method
-- `internal/parser/show_parser.go` - ShowParser implementation
+- `internal/client/show_list.go` - `StreamShowList`, `fetchEndpointPages`, `fetchPage`, `streamShowsFromBody` methods
+- `internal/parser/show_parser.go` - `ShowParser` with `ParseHtml` and `ExtractLastPage` methods
 - `internal/testutil/stream_helpers.go` - `CollectShows` test helper
 
 ## Subtitle Fetching

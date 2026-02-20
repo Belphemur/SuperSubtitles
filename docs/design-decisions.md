@@ -123,15 +123,22 @@ This document explains key architectural and design decisions made in the SuperS
 
 ## Parallel Pagination
 
-**Decision**: Fetch subtitle pages in parallel batches of 2 rather than sequentially.
+**Decision**: Fetch paginated content in parallel batches rather than sequentially. Batch sizes differ by context:
+
+- **Subtitle pages**: Batch size of 2 (~3x faster for shows with many subtitle pages)
+- **Show list pages**: Batch size of 10 (show list endpoints like `nem-all-forditas-alatt` can have 40+ pages)
 
 **Rationale**:
 
-- ~3x faster for shows with many subtitle pages
+- Dramatically faster for endpoints with many pages (42 pages in ~6 rounds instead of 42 sequential requests)
 - Balances speed with server load
-- Batch size of 2 is conservative and respectful
+- First page always fetched alone to discover total pages via `ExtractLastPage` (show lists) or `extractPaginationInfo` (subtitles)
+- Show list uses a larger batch size because individual show pages are lightweight HTML responses
 
-**Implementation**: Pages 2-3 fetched together, then 4-5, etc. First page always fetched alone to determine total pages.
+**Implementation**:
+
+- **Subtitles**: Pages 2-3 fetched together, then 4-5, etc. (`internal/client/subtitles.go`)
+- **Show lists**: Pages 2-11 fetched together, then 12-21, etc. (`internal/client/show_list.go` with `pageBatchSize = 10`). `ShowParser.ExtractLastPage` parses `div.pagination` links to determine the highest page number from `oldal=` URL parameters.
 
 ## Error Handling Strategy
 
