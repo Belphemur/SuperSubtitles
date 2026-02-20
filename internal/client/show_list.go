@@ -12,11 +12,19 @@ import (
 
 	"github.com/Belphemur/SuperSubtitles/internal/config"
 	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/parser"
 )
 
 // pageBatchSize controls how many pages are fetched in parallel at once.
 const pageBatchSize = 10
+
+// streamState holds the shared state used across goroutines when streaming shows.
+type streamState struct {
+	seen           *sync.Map
+	sentShows      *int64
+	errsMu         *sync.Mutex
+	endpointErrors *[]error
+	ch             chan<- models.StreamResult[models.Show]
+}
 
 // StreamShowList streams shows as they become available from multiple endpoints.
 // Shows are deduplicated by ID on the fly. The channel is closed when all endpoints have been processed.
@@ -37,13 +45,18 @@ func (c *client) StreamShowList(ctx context.Context) <-chan models.StreamResult[
 			fmt.Sprintf("%s/index.php?sorf=nem-all-forditas-alatt", c.baseURL),
 		}
 
-		// Thread-safe map to track seen show IDs
 		var seen sync.Map
-
-		// Track if we sent any shows and endpoint errors
 		var sentShows int64
 		var errsMu sync.Mutex
 		var endpointErrors []error
+
+		state := &streamState{
+			seen:           &seen,
+			sentShows:      &sentShows,
+			errsMu:         &errsMu,
+			endpointErrors: &endpointErrors,
+			ch:             ch,
+		}
 
 		// Run all fetches in parallel and stream results as they arrive
 		var wg sync.WaitGroup
@@ -53,7 +66,7 @@ func (c *client) StreamShowList(ctx context.Context) <-chan models.StreamResult[
 			ep := ep
 			go func() {
 				defer wg.Done()
-				c.fetchEndpointPages(ctx, ep, &seen, &sentShows, &errsMu, &endpointErrors, ch)
+				c.fetchEndpointPages(ctx, ep, state)
 			}()
 		}
 
@@ -82,22 +95,14 @@ func (c *client) StreamShowList(ctx context.Context) <-chan models.StreamResult[
 
 // fetchEndpointPages fetches page 1 of the endpoint, discovers the total page count from
 // the pagination HTML, then fetches remaining pages in parallel batches.
-func (c *client) fetchEndpointPages(
-	ctx context.Context,
-	endpoint string,
-	seen *sync.Map,
-	sentShows *int64,
-	errsMu *sync.Mutex,
-	endpointErrors *[]error,
-	ch chan<- models.StreamResult[models.Show],
-) {
+func (c *client) fetchEndpointPages(ctx context.Context, endpoint string, state *streamState) {
 	logger := config.GetLogger()
 
 	// Helper to record an endpoint-level error
 	recordError := func(err error) {
-		errsMu.Lock()
-		*endpointErrors = append(*endpointErrors, err)
-		errsMu.Unlock()
+		state.errsMu.Lock()
+		*state.endpointErrors = append(*state.endpointErrors, err)
+		state.errsMu.Unlock()
 	}
 
 	// --- Fetch page 1 ---
@@ -108,13 +113,10 @@ func (c *client) fetchEndpointPages(
 		return
 	}
 
-	c.streamShowsFromBody(ctx, bodyBytes, seen, sentShows, ch)
+	c.streamShowsFromBody(ctx, bodyBytes, state)
 
 	// --- Discover total pages ---
-	lastPage := 1
-	if showParser, ok := c.parser.(*parser.ShowParser); ok {
-		lastPage = showParser.ExtractLastPage(bytes.NewReader(bodyBytes))
-	}
+	lastPage := c.showParser.ExtractLastPage(bytes.NewReader(bodyBytes))
 
 	if lastPage <= 1 {
 		logger.Debug().Str("endpoint", endpoint).Msg("Single page endpoint, done")
@@ -144,7 +146,7 @@ func (c *client) fetchEndpointPages(
 					return
 				}
 
-				c.streamShowsFromBody(ctx, pageBody, seen, sentShows, ch)
+				c.streamShowsFromBody(ctx, pageBody, state)
 			}()
 		}
 
@@ -186,25 +188,19 @@ func (c *client) fetchPage(ctx context.Context, url string) ([]byte, error) {
 
 // streamShowsFromBody parses shows from HTML bytes and sends them to the channel,
 // deduplicating by show ID.
-func (c *client) streamShowsFromBody(
-	ctx context.Context,
-	bodyBytes []byte,
-	seen *sync.Map,
-	sentShows *int64,
-	ch chan<- models.StreamResult[models.Show],
-) {
-	shows, err := c.parser.ParseHtml(bytes.NewReader(bodyBytes))
+func (c *client) streamShowsFromBody(ctx context.Context, bodyBytes []byte, state *streamState) {
+	shows, err := c.showParser.ParseHtml(bytes.NewReader(bodyBytes))
 	if err != nil {
 		return
 	}
 
 	for _, s := range shows {
-		if _, exists := seen.LoadOrStore(s.ID, struct{}{}); exists {
+		if _, exists := state.seen.LoadOrStore(s.ID, struct{}{}); exists {
 			continue
 		}
 		select {
-		case ch <- models.StreamResult[models.Show]{Value: s}:
-			atomic.AddInt64(sentShows, 1)
+		case state.ch <- models.StreamResult[models.Show]{Value: s}:
+			atomic.AddInt64(state.sentShows, 1)
 		case <-ctx.Done():
 			return
 		}

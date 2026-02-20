@@ -30,7 +30,7 @@ type Client interface {
 type client struct {
 	httpClient         *http.Client
 	baseURL            string
-	parser             parser.Parser[models.Show]
+	showParser         parser.PaginatedParser[models.Show]
 	thirdPartyParser   parser.SingleResultParser[models.ThirdPartyIds]
 	subtitleDownloader services.SubtitleDownloader
 	subtitleParser     *parser.SubtitleParser
@@ -74,7 +74,7 @@ func NewClient(cfg *config.Config) Client {
 	return &client{
 		httpClient:         httpClient,
 		baseURL:            cfg.SuperSubtitleDomain,
-		parser:             parser.NewShowParser(cfg.SuperSubtitleDomain),
+		showParser:         parser.NewShowParser(cfg.SuperSubtitleDomain),
 		thirdPartyParser:   parser.NewThirdPartyIdParser(),
 		subtitleDownloader: services.NewSubtitleDownloader(httpClient),
 		subtitleParser:     parser.NewSubtitleParser(cfg.SuperSubtitleDomain),
