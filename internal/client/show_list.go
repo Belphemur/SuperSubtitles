@@ -191,6 +191,8 @@ func (c *client) fetchPage(ctx context.Context, url string) ([]byte, error) {
 func (c *client) streamShowsFromBody(ctx context.Context, bodyBytes []byte, state *streamState) {
 	shows, err := c.showParser.ParseHtml(bytes.NewReader(bodyBytes))
 	if err != nil {
+		logger := config.GetLogger()
+		logger.Warn().Err(err).Msg("Failed to parse shows from page body")
 		return
 	}
 
