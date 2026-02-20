@@ -1,3 +1,16 @@
+# [1.8.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.7.0...v1.8.0) (2026-02-20)
+
+
+### Bug Fixes
+
+* **client:** log warning when show parsing fails in streamShowsFromBody ([ca7d2ab](https://github.com/Belphemur/SuperSubtitles/commit/ca7d2abff8263860b584c54fe03a3ec37e8f6d71))
+
+
+### Features
+
+* **client:** parallel pagination for show list endpoints ([719ab3c](https://github.com/Belphemur/SuperSubtitles/commit/719ab3c3a1e5478a7e90cb524a060debf68063cf))
+* **parser:** add ExtractLastPage for show list pagination ([364a862](https://github.com/Belphemur/SuperSubtitles/commit/364a862574cbe3e0beecfbc2cecc8862d94b87a3))
+
 # [1.7.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.6.5...v1.7.0) (2026-02-19)
 
 
