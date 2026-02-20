@@ -268,3 +268,76 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 		t.Fatalf("Expected 1 show, got %d", len(shows))
 	}
 }
+
+func TestClient_GetShowList_WithPagination(t *testing.T) {
+	// The "nem-all-forditas-alatt" endpoint has 3 pages.
+	// Page 1 contains pagination showing totalPages=3, pages 2-3 have different shows.
+	page1HTML := testutil.GenerateShowTableHTMLWithPagination([]testutil.ShowRowOptions{
+		{ShowID: 100, ShowName: "Show 100", Year: 2025},
+		{ShowID: 101, ShowName: "Show 101", Year: 2025},
+	}, 1, 3, true) // currentPage=1, totalPages=3
+
+	page2HTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 102, ShowName: "Show 102", Year: 2025},
+		{ShowID: 103, ShowName: "Show 103", Year: 2025},
+	})
+
+	page3HTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 104, ShowName: "Show 104", Year: 2025},
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sorf := r.URL.Query().Get("sorf")
+		oldal := r.URL.Query().Get("oldal")
+
+		if sorf == "nem-all-forditas-alatt" {
+			w.WriteHeader(http.StatusOK)
+			switch oldal {
+			case "2":
+				_, _ = w.Write([]byte(page2HTML))
+			case "3":
+				_, _ = w.Write([]byte(page3HTML))
+			default:
+				// Page 1 (no oldal param)
+				_, _ = w.Write([]byte(page1HTML))
+			}
+		} else {
+			// Other endpoints return empty (no pagination)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(testutil.GenerateShowTableHTML(nil)))
+		}
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+
+	client := NewClient(testConfig)
+	ctx := context.Background()
+	shows, err := testutil.CollectShows(ctx, client.StreamShowList(ctx))
+
+	if err != nil {
+		t.Fatalf("Expected no error with pagination, got: %v", err)
+	}
+
+	// Should get shows from all 3 pages
+	if len(shows) != 5 {
+		t.Fatalf("Expected 5 shows from 3 pages, got %d", len(shows))
+	}
+
+	// Verify all shows are present
+	expectedShowIDs := map[int]bool{100: false, 101: false, 102: false, 103: false, 104: false}
+	for _, show := range shows {
+		if _, exists := expectedShowIDs[show.ID]; exists {
+			expectedShowIDs[show.ID] = true
+		}
+	}
+
+	for id, found := range expectedShowIDs {
+		if !found {
+			t.Errorf("Missing show with ID %d", id)
+		}
+	}
+}
