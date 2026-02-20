@@ -481,6 +481,99 @@ func GenerateShowTableHTMLMultiColumn(shows []ShowRowOptions, columnsPerRow int)
 	return sb.String()
 }
 
+// GenerateShowTableHTMLWithPagination generates proper HTML with show listings and pagination
+// based on the real feliratok.eu website structure
+func GenerateShowTableHTMLWithPagination(shows []ShowRowOptions, currentPage, totalPages int, useOldalParam bool) string {
+	var sb strings.Builder
+
+	sb.WriteString(`<html>
+<body>
+<table>
+	<tbody>
+`)
+
+	currentYear := 0
+	rowIndex := 0
+
+	for _, show := range shows {
+		// Add year header if year changed
+		if show.Year != currentYear {
+			currentYear = show.Year
+			yearLabel := fmt.Sprintf("%d", show.Year)
+			if show.YearHeaderLabel != "" {
+				yearLabel = show.YearHeaderLabel
+			}
+			fmt.Fprintf(&sb, `
+		<tr>
+			<td colspan="10" style="text-align: center; background-color: #DDDDDD; font-size: 12pt; color:#0000CC; border-top: 2px solid #9B9B9B;">
+				%s
+			</td>
+		</tr>`, yearLabel)
+		}
+
+		// Alternate background colors if not specified
+		bgColor := show.BackgroundColor
+		if bgColor == "" {
+			if rowIndex%2 == 0 {
+				bgColor = "#ffffff"
+			} else {
+				bgColor = "#ecf6fc"
+			}
+		}
+
+		includeImage := true
+		if show.IncludeImage != nil {
+			includeImage = *show.IncludeImage
+		}
+
+		includeName := true
+		if show.IncludeName != nil {
+			includeName = *show.IncludeName
+		}
+
+		imageSrc := show.ImageSrc
+		if imageSrc == "" {
+			imageSrc = fmt.Sprintf("sorozat_cat.php?kep=%d", show.ShowID)
+		}
+
+		imageHTML := fmt.Sprintf(`<img class="kategk" src="%s"/>`, imageSrc)
+		if !includeImage {
+			imageHTML = `<img class="kategk"/>`
+		}
+
+		nameHTML := fmt.Sprintf(`<div>%s</div>
+				<div class="sev"></div>`, show.ShowName)
+		if !includeName {
+			nameHTML = `<div class="sev"></div>`
+		}
+
+		fmt.Fprintf(&sb, `
+		<tr style="background-color: %s">
+			<td style="padding: 5px;">
+				<a href="index.php?sid=%d">%s</a>
+			</td>
+			<td class="sangol">
+				%s
+			</td>
+		</tr>`, bgColor, show.ShowID, imageHTML, nameHTML)
+
+		rowIndex++
+	}
+
+	sb.WriteString(`	</tbody>
+</table>
+`)
+
+	// Add pagination before closing body tag
+	sb.WriteString(GeneratePaginationHTML(currentPage, totalPages, useOldalParam))
+
+	sb.WriteString(`
+</body>
+</html>`)
+
+	return sb.String()
+}
+
 // GenerateEmptyHTML returns a minimal HTML document with an empty body.
 func GenerateEmptyHTML() string {
 	return `<html><body></body></html>`
@@ -554,25 +647,43 @@ func GenerateThirdPartyIDHTML(imdbID string, tvdbID, tvmazeID, traktID int) stri
 	return sb.String()
 }
 
-// GeneratePaginationHTML generates HTML with pagination elements
+// GeneratePaginationHTML generates HTML with pagination elements matching the
+// real feliratok.eu structure: div.pagination with <span class="current"> for
+// the current page and <a href="...oldal=N&sorf=..."> links for other pages.
 func GeneratePaginationHTML(currentPage, totalPages int, useOldalParam bool) string {
+	if totalPages <= 1 {
+		return ""
+	}
+
 	var sb strings.Builder
 
-	sb.WriteString(`<div class="pagination">
-		<span class="current">` + fmt.Sprintf("%d", currentPage) + `</span>
-`)
-
 	pageParam := "page"
+	sorfParam := "sorf=nem-all-forditas-alatt"
 	if useOldalParam {
 		pageParam = "oldal"
 	}
 
-	for i := currentPage + 1; i <= totalPages; i++ {
-		fmt.Fprintf(&sb, `		<a href="/index.php?%s=%d">%d</a>
-`, pageParam, i, i)
+	sb.WriteString(`<div class="tableTitle">
+	<div class="pagination">
+`)
+
+	// Generate realistic pagination: show first few pages, ..., last few pages
+	// Similar to the real site: 1 2 3 4 5 6 7 ... 41 42 >
+	for i := 1; i <= totalPages; i++ {
+		if i == currentPage {
+			fmt.Fprintf(&sb, `<span class="current">%d</span>`, i)
+		} else {
+			fmt.Fprintf(&sb, `<a href="/index.php?%s=%d&%s">%d</a>`, pageParam, i, sorfParam, i)
+		}
 	}
 
-	sb.WriteString(`	</div>`)
+	// Add ">" next page link if not on last page
+	if currentPage < totalPages {
+		fmt.Fprintf(&sb, `<a href="/index.php?%s=%d&%s">></a>`, pageParam, currentPage+1, sorfParam)
+	}
+
+	sb.WriteString(`	</div>
+</div>`)
 
 	return sb.String()
 }

@@ -310,3 +310,59 @@ func TestShowParser_extractImageURL(t *testing.T) {
 		}
 	}
 }
+
+func TestShowParser_ExtractLastPage_WithPagination(t *testing.T) {
+	parser := NewShowParser("https://feliratok.eu")
+
+	htmlContent := testutil.GenerateShowTableHTMLWithPagination([]testutil.ShowRowOptions{
+		{ShowID: 100, ShowName: "Test Show", Year: 2025},
+	}, 1, 42, true) // currentPage=1, totalPages=42
+
+	lastPage := parser.ExtractLastPage(strings.NewReader(htmlContent))
+
+	if lastPage != 42 {
+		t.Errorf("Expected last page 42, got %d", lastPage)
+	}
+}
+
+func TestShowParser_ExtractLastPage_MiddlePage(t *testing.T) {
+	parser := NewShowParser("https://feliratok.eu")
+
+	// Viewing page 5 of 42 — should still extract 42 as the last page
+	htmlContent := testutil.GenerateShowTableHTMLWithPagination([]testutil.ShowRowOptions{
+		{ShowID: 100, ShowName: "Test Show", Year: 2025},
+	}, 5, 42, true)
+
+	lastPage := parser.ExtractLastPage(strings.NewReader(htmlContent))
+
+	if lastPage != 42 {
+		t.Errorf("Expected last page 42, got %d", lastPage)
+	}
+}
+
+func TestShowParser_ExtractLastPage_SinglePage(t *testing.T) {
+	parser := NewShowParser("https://feliratok.eu")
+
+	// No pagination at all
+	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
+		{ShowID: 100, ShowName: "Test Show", Year: 2025},
+	})
+
+	lastPage := parser.ExtractLastPage(strings.NewReader(htmlContent))
+
+	if lastPage != 1 {
+		t.Errorf("Expected last page 1 for single page, got %d", lastPage)
+	}
+}
+
+func TestShowParser_ExtractLastPage_EmptyHTML(t *testing.T) {
+	parser := NewShowParser("https://feliratok.eu")
+
+	htmlContent := testutil.GenerateEmptyHTML()
+
+	lastPage := parser.ExtractLastPage(strings.NewReader(htmlContent))
+
+	if lastPage != 1 {
+		t.Errorf("Expected last page 1 for empty HTML, got %d", lastPage)
+	}
+}
