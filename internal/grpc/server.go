@@ -74,8 +74,8 @@ func (s *server) GetSubtitles(req *pb.GetSubtitlesRequest, stream grpc.ServerStr
 	return nil
 }
 
-// GetShowSubtitles streams show information and subtitles for multiple shows
-func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
+// GetShowSubtitles streams complete show subtitle collections for multiple shows
+func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitlesCollection]) error {
 	s.logger.Debug().Int("show_count", len(req.Shows)).Msg("GetShowSubtitles called")
 
 	// Filter out nil entries and convert proto shows to models
@@ -102,9 +102,9 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming show subtitles")
 			continue
 		}
-		pbItem := convertShowSubtitleItemToProto(result.Value)
+		pbItem := convertShowSubtitlesToProto(result.Value)
 		if err := stream.Send(pbItem); err != nil {
-			return status.Errorf(codes.Internal, "failed to stream show subtitle item: %v", err)
+			return status.Errorf(codes.Internal, "failed to stream show subtitles collection: %v", err)
 		}
 		count++
 	}
@@ -173,7 +173,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 }
 
 // GetRecentSubtitles streams recently uploaded subtitles with show information
-func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
+func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitlesCollection]) error {
 	s.logger.Debug().Int64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
 	count := 0
@@ -188,9 +188,10 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming recent subtitles")
 			continue
 		}
-		pbItem := convertShowSubtitleItemToProto(result.Value)
+
+		pbItem := convertShowSubtitlesToProto(result.Value)
 		if err := stream.Send(pbItem); err != nil {
-			return status.Errorf(codes.Internal, "failed to stream recent subtitle item: %v", err)
+			return status.Errorf(codes.Internal, "failed to stream recent subtitles collection: %v", err)
 		}
 		count++
 	}

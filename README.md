@@ -155,10 +155,10 @@ SuperSubtitles exposes a gRPC API with 6 main operations. For complete API docum
 service SuperSubtitlesService {
   rpc GetShowList(GetShowListRequest) returns (stream Show);
   rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitlesCollection);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitlesCollection);
 }
 ```
 
@@ -196,8 +196,8 @@ type Client interface {
     // Errors are sent as StreamResult with a non-nil Err field.
     StreamShowList(ctx context.Context) <-chan StreamResult[Show]
     StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
-    StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitleItem]
-    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitleItem]
+    StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitles]
+    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitles]
 }
 ```
 
