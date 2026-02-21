@@ -1,3 +1,21 @@
+# [2.0.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.8.0...v2.0.0) (2026-02-21)
+
+
+### Features
+
+* **services:** change GetRecentSubtitles to stream ShowSubtitlesCollection and remove ShowSubtitleItem ([45b8a84](https://github.com/Belphemur/SuperSubtitles/commit/45b8a84bcfac06ca6b4394c4877d10cdb610773e))
+* **services:** refactor GetShowSubtitles and StreamRecentSubtitles to stream complete ShowSubtitles collections ([b08fbc3](https://github.com/Belphemur/SuperSubtitles/commit/b08fbc3862c8a12743b38e1eece21309e45730ca))
+
+
+### BREAKING CHANGES
+
+* **services:** GetRecentSubtitles now returns stream ShowSubtitlesCollection instead of stream ShowSubtitleItem. The ShowSubtitleItem proto message and models.ShowInfo/ShowSubtitleItem Go types have been removed.
+
+Co-authored-by: Belphemur <197810+Belphemur@users.noreply.github.com>
+* **services:** GetShowSubtitles now returns stream ShowSubtitlesCollection instead of stream ShowSubtitleItem. Client StreamShowSubtitles and StreamRecentSubtitles now return ShowSubtitles (accumulated per show) instead of individual ShowSubtitleItem messages.
+
+Co-authored-by: Belphemur <197810+Belphemur@users.noreply.github.com>
+
 # [1.8.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.7.0...v1.8.0) (2026-02-20)
 
 
