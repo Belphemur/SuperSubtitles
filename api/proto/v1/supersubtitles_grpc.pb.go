@@ -47,10 +47,9 @@ type SuperSubtitlesServiceClient interface {
 	// DownloadSubtitle downloads a specific subtitle file
 	DownloadSubtitle(ctx context.Context, in *DownloadSubtitleRequest, opts ...grpc.CallOption) (*DownloadSubtitleResponse, error)
 	// GetRecentSubtitles streams recently uploaded subtitles with show information.
-	// Streams ShowSubtitleItem messages: for each new show encountered, a ShowInfo
-	// item is sent first, followed by individual Subtitle items. Show info is only
-	// sent once per unique show_id within a single call.
-	GetRecentSubtitles(ctx context.Context, in *GetRecentSubtitlesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ShowSubtitleItem], error)
+	// Streams ShowSubtitlesCollection messages: each message contains a show's
+	// complete information and all its recent subtitles.
+	GetRecentSubtitles(ctx context.Context, in *GetRecentSubtitlesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ShowSubtitlesCollection], error)
 }
 
 type superSubtitlesServiceClient struct {
@@ -138,13 +137,13 @@ func (c *superSubtitlesServiceClient) DownloadSubtitle(ctx context.Context, in *
 	return out, nil
 }
 
-func (c *superSubtitlesServiceClient) GetRecentSubtitles(ctx context.Context, in *GetRecentSubtitlesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ShowSubtitleItem], error) {
+func (c *superSubtitlesServiceClient) GetRecentSubtitles(ctx context.Context, in *GetRecentSubtitlesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ShowSubtitlesCollection], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &SuperSubtitlesService_ServiceDesc.Streams[3], SuperSubtitlesService_GetRecentSubtitles_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[GetRecentSubtitlesRequest, ShowSubtitleItem]{ClientStream: stream}
+	x := &grpc.GenericClientStream[GetRecentSubtitlesRequest, ShowSubtitlesCollection]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -155,7 +154,7 @@ func (c *superSubtitlesServiceClient) GetRecentSubtitles(ctx context.Context, in
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SuperSubtitlesService_GetRecentSubtitlesClient = grpc.ServerStreamingClient[ShowSubtitleItem]
+type SuperSubtitlesService_GetRecentSubtitlesClient = grpc.ServerStreamingClient[ShowSubtitlesCollection]
 
 // SuperSubtitlesServiceServer is the server API for SuperSubtitlesService service.
 // All implementations must embed UnimplementedSuperSubtitlesServiceServer
@@ -177,10 +176,9 @@ type SuperSubtitlesServiceServer interface {
 	// DownloadSubtitle downloads a specific subtitle file
 	DownloadSubtitle(context.Context, *DownloadSubtitleRequest) (*DownloadSubtitleResponse, error)
 	// GetRecentSubtitles streams recently uploaded subtitles with show information.
-	// Streams ShowSubtitleItem messages: for each new show encountered, a ShowInfo
-	// item is sent first, followed by individual Subtitle items. Show info is only
-	// sent once per unique show_id within a single call.
-	GetRecentSubtitles(*GetRecentSubtitlesRequest, grpc.ServerStreamingServer[ShowSubtitleItem]) error
+	// Streams ShowSubtitlesCollection messages: each message contains a show's
+	// complete information and all its recent subtitles.
+	GetRecentSubtitles(*GetRecentSubtitlesRequest, grpc.ServerStreamingServer[ShowSubtitlesCollection]) error
 	mustEmbedUnimplementedSuperSubtitlesServiceServer()
 }
 
@@ -206,7 +204,7 @@ func (UnimplementedSuperSubtitlesServiceServer) CheckForUpdates(context.Context,
 func (UnimplementedSuperSubtitlesServiceServer) DownloadSubtitle(context.Context, *DownloadSubtitleRequest) (*DownloadSubtitleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DownloadSubtitle not implemented")
 }
-func (UnimplementedSuperSubtitlesServiceServer) GetRecentSubtitles(*GetRecentSubtitlesRequest, grpc.ServerStreamingServer[ShowSubtitleItem]) error {
+func (UnimplementedSuperSubtitlesServiceServer) GetRecentSubtitles(*GetRecentSubtitlesRequest, grpc.ServerStreamingServer[ShowSubtitlesCollection]) error {
 	return status.Error(codes.Unimplemented, "method GetRecentSubtitles not implemented")
 }
 func (UnimplementedSuperSubtitlesServiceServer) mustEmbedUnimplementedSuperSubtitlesServiceServer() {}
@@ -304,11 +302,11 @@ func _SuperSubtitlesService_GetRecentSubtitles_Handler(srv interface{}, stream g
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(SuperSubtitlesServiceServer).GetRecentSubtitles(m, &grpc.GenericServerStream[GetRecentSubtitlesRequest, ShowSubtitleItem]{ServerStream: stream})
+	return srv.(SuperSubtitlesServiceServer).GetRecentSubtitles(m, &grpc.GenericServerStream[GetRecentSubtitlesRequest, ShowSubtitlesCollection]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type SuperSubtitlesService_GetRecentSubtitlesServer = grpc.ServerStreamingServer[ShowSubtitleItem]
+type SuperSubtitlesService_GetRecentSubtitlesServer = grpc.ServerStreamingServer[ShowSubtitlesCollection]
 
 // SuperSubtitlesService_ServiceDesc is the grpc.ServiceDesc for SuperSubtitlesService service.
 // It's only intended for direct use with grpc.RegisterService,

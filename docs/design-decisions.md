@@ -172,7 +172,7 @@ This document explains key architectural and design decisions made in the SuperS
 **Implementation**:
 
 - Proto definitions use `returns (stream T)` for streaming RPCs
-- `ShowSubtitleItem` uses protobuf `oneof` to interleave show metadata and subtitles in a single stream
+- `ShowSubtitlesCollection` bundles show metadata (with third-party IDs) and all subtitles per show into a single streamed message
 - gRPC server methods consume from client streaming channels and call `stream.Send()` per item
 - Removed `GetShowListResponse`, `GetSubtitlesResponse`, `GetShowSubtitlesResponse`, `GetRecentSubtitlesResponse` wrapper messages
 
@@ -217,24 +217,23 @@ This document explains key architectural and design decisions made in the SuperS
 - Testutil helpers accept `<-chan models.StreamResult[T]`
 - gRPC server mocks use `models.StreamResult[T]`
 
-## ShowSubtitleItem Streaming Model
+## ShowSubtitlesCollection Streaming Model
 
-**Decision**: Use a `oneof`-based `ShowSubtitleItem` message to interleave show info and subtitles in `GetShowSubtitles` and `GetRecentSubtitles` streams. ShowInfo is sent once per unique `show_id` within a single call, followed by individual subtitles for that show.
+**Decision**: Use a `ShowSubtitlesCollection` message to stream complete show data (show info + all subtitles) in `GetShowSubtitles` and `GetRecentSubtitles`. Each streamed message contains one show's metadata (with third-party IDs) and all its subtitles.
 
 **Rationale**:
 
-- Allows streaming show metadata and subtitles through a single stream without separate RPCs
-- `ShowInfo` (show + third-party IDs) is sent once per show, followed by its subtitles
-- Consumers link subtitles to shows via the `show_id` field on each `Subtitle`
-- More efficient than sending complete `ShowSubtitles` objects that bundle all subtitles together
-- For `GetRecentSubtitles`, show info includes third-party IDs fetched from detail pages, enabling clients to discover new shows they haven't seen before
-- Internal `ShowInfo` and `ShowSubtitleItem` models in `internal/models/show_subtitles.go` mirror the proto structure
+- Simplifies client consumption — each message is self-contained with a show and all its subtitles
+- No need for clients to reconstruct show-subtitle groupings from interleaved messages
+- For `GetRecentSubtitles`, show info includes third-party IDs fetched from detail pages, enabling clients to discover new shows
+- Client accumulates subtitles per show before sending, trading slightly more memory for simpler semantics
+- Internal `ShowSubtitles` model in `internal/models/show_subtitles.go` maps directly to the proto structure
 
 **Implementation**:
 
-- Proto `ShowSubtitleItem.oneof item` contains either `ShowInfo` or `Subtitle`
-- Internal `ShowSubtitleItem` struct uses pointer fields (`*ShowInfo`, `*Subtitle`) — exactly one is non-nil
-- `convertShowSubtitleItemToProto` converter handles the oneof mapping
+- Proto `ShowSubtitlesCollection` contains `ShowInfo show_info` and `repeated Subtitle subtitles`
+- Client `StreamShowSubtitles` and `StreamRecentSubtitles` both return `<-chan models.StreamResult[models.ShowSubtitles]`
+- `convertShowSubtitlesToProto` converter maps `models.ShowSubtitles` to proto `ShowSubtitlesCollection`
 
 ## Show Name Extraction via DOM Traversal
 

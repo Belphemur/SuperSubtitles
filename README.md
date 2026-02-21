@@ -197,7 +197,7 @@ type Client interface {
     StreamShowList(ctx context.Context) <-chan StreamResult[Show]
     StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
     StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitles]
-    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitleItem]
+    StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitles]
 }
 ```
 

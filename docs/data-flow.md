@@ -77,22 +77,22 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 ## Third-Party ID Extraction
 
 1. `StreamShowSubtitles` processes shows in batches of 20
-2. For each show, it streams subtitles as they arrive from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
+2. For each show, it accumulates all subtitles from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
 3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
-4. For each show, a `ShowSubtitleItem` with `ShowInfo` (show + third-party IDs) is sent to the channel first, followed by individual `ShowSubtitleItem` entries for each subtitle
-5. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
+4. For each show, a complete `ShowSubtitles` (containing show info, third-party IDs, and all subtitles) is sent to the channel
+5. The gRPC server converts each `ShowSubtitles` to a `ShowSubtitlesCollection` proto message and streams it to the client
 6. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
 
 **Implementation:**
 
 - `internal/parser/third_party_parser.go` - ThirdPartyIdParser implementation
-- `internal/client/show_subtitles.go` - `StreamShowSubtitles` method with batching
-- `internal/models/show_subtitles.go` - `ShowInfo` and `ShowSubtitleItem` models
+- `internal/client/show_subtitles.go` - `StreamShowSubtitles` method with batching and per-show accumulation
+- `internal/models/show_subtitles.go` - `ShowSubtitles` and `ShowInfo` models
 - `internal/testutil/stream_helpers.go` - `CollectShowSubtitles` test helper
 
 ## Recent Subtitles Fetching
 
-`StreamRecentSubtitles` streams the latest subtitles from the main show page with optional ID filtering, including show information for each unique show.
+`StreamRecentSubtitles` streams the latest subtitles from the main show page with optional ID filtering, grouped by show.
 
 **Process:**
 
@@ -104,12 +104,11 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 3. Filter subtitles by ID:
    - If `sinceID` is provided, only returns subtitles with `ID > sinceID` (numeric integer comparison on `Subtitle.ID`)
    - Useful for incremental updates and polling for new content
-4. For each filtered subtitle, check if ShowInfo for its `show_id` has already been sent:
-   - If not: fetch the detail page to get third-party IDs, stream a `ShowInfo` item first
-   - Uses an in-memory cache per call to avoid duplicate ShowInfo for the same show
-5. Stream each `Subtitle` as a `ShowSubtitleItem` to the channel
-6. The gRPC server consumes from the channel and streams `ShowSubtitleItem` messages to the client
-7. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
+4. Group filtered subtitles by show, preserving encounter order
+5. For each show, fetch the detail page to get third-party IDs using the first valid subtitle ID
+6. Stream a complete `ShowSubtitles` (show info + all subtitles) for each show
+7. The gRPC server converts each `ShowSubtitles` to a `ShowSubtitlesCollection` proto message and streams it to the client
+8. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
 
 **Key Features:**
 

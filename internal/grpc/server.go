@@ -173,7 +173,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 }
 
 // GetRecentSubtitles streams recently uploaded subtitles with show information
-func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitleItem]) error {
+func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream grpc.ServerStreamingServer[pb.ShowSubtitlesCollection]) error {
 	s.logger.Debug().Int64("since_id", req.SinceId).Msg("GetRecentSubtitles called")
 
 	count := 0
@@ -189,32 +189,11 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 			continue
 		}
 
-		// Send ShowInfo first
-		showInfoItem := &pb.ShowSubtitleItem{
-			Item: &pb.ShowSubtitleItem_ShowInfo{
-				ShowInfo: &pb.ShowInfo{
-					Show:          convertShowToProto(result.Value.Show),
-					ThirdPartyIds: convertThirdPartyIdsToProto(result.Value.ThirdPartyIds),
-				},
-			},
-		}
-		if err := stream.Send(showInfoItem); err != nil {
-			return status.Errorf(codes.Internal, "failed to stream recent subtitle item: %v", err)
+		pbItem := convertShowSubtitlesToProto(result.Value)
+		if err := stream.Send(pbItem); err != nil {
+			return status.Errorf(codes.Internal, "failed to stream recent subtitles collection: %v", err)
 		}
 		count++
-
-		// Then send each subtitle
-		for _, sub := range result.Value.SubtitleCollection.Subtitles {
-			subtitleItem := &pb.ShowSubtitleItem{
-				Item: &pb.ShowSubtitleItem_Subtitle{
-					Subtitle: convertSubtitleToProto(sub),
-				},
-			}
-			if err := stream.Send(subtitleItem); err != nil {
-				return status.Errorf(codes.Internal, "failed to stream recent subtitle item: %v", err)
-			}
-			count++
-		}
 	}
 
 	s.logger.Debug().Int64("since_id", req.SinceId).Int("count", count).Msg("GetRecentSubtitles completed")
