@@ -11,11 +11,11 @@ import (
 	"github.com/Belphemur/SuperSubtitles/internal/models"
 )
 
-// StreamShowSubtitles streams ShowSubtitleItems (ShowInfo and Subtitle) for multiple shows.
-// For each show, it first sends a ShowInfo item, then streams each subtitle.
+// StreamShowSubtitles streams complete ShowSubtitles (show info + all subtitles) for multiple shows.
+// For each show, it accumulates all subtitles, fetches third-party IDs, then sends the complete collection.
 // Shows are processed in batches of 20 to limit concurrency.
-func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem] {
-	ch := make(chan models.StreamResult[models.ShowSubtitleItem])
+func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitles] {
+	ch := make(chan models.StreamResult[models.ShowSubtitles])
 
 	go func() {
 		defer close(ch)
@@ -41,7 +41,7 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 		}
 
 		if successCount == 0 && len(allErrors) > 0 {
-			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitleItem]{Err: fmt.Errorf("all shows failed processing: %v", errors.Join(allErrors...))})
+			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("all shows failed processing: %v", errors.Join(allErrors...))})
 		} else if len(allErrors) > 0 {
 			logger.Warn().Err(errors.Join(allErrors...)).Int("successfulShows", successCount).Int("totalShows", len(shows)).Msg("Partial success processing shows")
 		} else {
@@ -54,7 +54,7 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 
 // streamShowBatch processes a batch of shows concurrently, streaming results to the channel.
 // Returns a list of errors for shows that failed.
-func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch chan<- models.StreamResult[models.ShowSubtitleItem]) []error {
+func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch chan<- models.StreamResult[models.ShowSubtitles]) []error {
 	logger := config.GetLogger()
 
 	var errorsMu sync.Mutex
@@ -67,9 +67,10 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 		go func() {
 			defer wg.Done()
 
-			var thirdPartyIdsSent bool
+			// Accumulate all subtitles for this show
+			var subtitles []models.Subtitle
+			var firstValidSubtitleID int
 
-			// Stream subtitles as they arrive
 			for result := range c.StreamSubtitles(ctx, show.ID) {
 				if result.Err != nil {
 					logger.Warn().Err(result.Err).Int("showID", show.ID).Str("showName", show.Name).Msg("Failed to stream subtitles for show")
@@ -93,52 +94,49 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 					continue
 				}
 
-				// If we haven't sent ShowInfo yet and we found a valid episode ID, fetch and send third-party IDs
-				if !thirdPartyIdsSent {
-					thirdPartyIds := c.fetchThirdPartyIds(ctx, show, result.Value.ID)
-
-					// Send ShowInfo immediately
-					showInfo := models.ShowInfo{
-						Show:          show,
-						ThirdPartyIds: thirdPartyIds,
-					}
-					select {
-					case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
-					case <-ctx.Done():
-						return
-					}
-					thirdPartyIdsSent = true
-					foundThirdPartyIds := thirdPartyIds.IMDBID != "" || thirdPartyIds.TVDBID != 0
-					logger.Debug().
-						Int("showID", show.ID).
-						Str("showName", show.Name).
-						Str("imdbId", thirdPartyIds.IMDBID).
-						Int("tvdbId", thirdPartyIds.TVDBID).
-						Bool("foundThirdPartyIds", foundThirdPartyIds).
-						Msg("Sent ShowInfo")
+				if firstValidSubtitleID == 0 {
+					firstValidSubtitleID = result.Value.ID
 				}
-
-				// Stream subtitle immediately
-				subtitle := result.Value
-				select {
-				case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{Subtitle: &subtitle}}:
-				case <-ctx.Done():
-					return
-				}
+				subtitles = append(subtitles, result.Value)
 			}
 
-			// If we never found a valid episode ID, send ShowInfo with empty third-party IDs
-			if !thirdPartyIdsSent {
-				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, sending ShowInfo with empty third-party IDs")
-				showInfo := models.ShowInfo{
-					Show:          show,
-					ThirdPartyIds: models.ThirdPartyIds{},
-				}
-				select {
-				case ch <- models.StreamResult[models.ShowSubtitleItem]{Value: models.ShowSubtitleItem{ShowInfo: &showInfo}}:
-				case <-ctx.Done():
-					return
-				}
+			// Fetch third-party IDs using first valid subtitle ID
+			var thirdPartyIds models.ThirdPartyIds
+			if firstValidSubtitleID > 0 {
+				thirdPartyIds = c.fetchThirdPartyIds(ctx, show, firstValidSubtitleID)
+				foundThirdPartyIds := thirdPartyIds.IMDBID != "" || thirdPartyIds.TVDBID != 0
+				logger.Debug().
+					Int("showID", show.ID).
+					Str("showName", show.Name).
+					Str("imdbId", thirdPartyIds.IMDBID).
+					Int("tvdbId", thirdPartyIds.TVDBID).
+					Bool("foundThirdPartyIds", foundThirdPartyIds).
+					Msg("Fetched third-party IDs")
+			} else {
+				logger.Warn().Int("showID", show.ID).Str("showName", show.Name).Msg("No valid subtitle ID found, sending with empty third-party IDs")
+			}
+
+			// Build show name from subtitles if available
+			showName := show.Name
+			if len(subtitles) > 0 {
+				showName = subtitles[0].ShowName
+			}
+
+			// Send complete ShowSubtitles
+			showSubtitles := models.ShowSubtitles{
+				Show:          show,
+				ThirdPartyIds: thirdPartyIds,
+				SubtitleCollection: models.SubtitleCollection{
+					ShowName:  showName,
+					Subtitles: subtitles,
+					Total:     len(subtitles),
+				},
+			}
+
+			select {
+			case ch <- models.StreamResult[models.ShowSubtitles]{Value: showSubtitles}:
+			case <-ctx.Done():
+				return
 			}
 		}()
 	}

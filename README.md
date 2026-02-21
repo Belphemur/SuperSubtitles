@@ -196,7 +196,7 @@ type Client interface {
     // Errors are sent as StreamResult with a non-nil Err field.
     StreamShowList(ctx context.Context) <-chan StreamResult[Show]
     StreamSubtitles(ctx context.Context, showID int) <-chan StreamResult[Subtitle]
-    StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitleItem]
+    StreamShowSubtitles(ctx context.Context, shows []Show) <-chan StreamResult[ShowSubtitles]
     StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan StreamResult[ShowSubtitleItem]
 }
 ```

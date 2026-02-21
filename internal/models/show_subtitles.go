@@ -12,10 +12,3 @@ type ShowInfo struct {
 	Show          Show          `json:"show"`
 	ThirdPartyIds ThirdPartyIds `json:"thirdPartyIds"`
 }
-
-// ShowSubtitleItem represents a streaming item that is either show info or a subtitle.
-// Exactly one of ShowInfo or Subtitle will be non-nil.
-type ShowSubtitleItem struct {
-	ShowInfo *ShowInfo `json:"showInfo,omitempty"`
-	Subtitle *Subtitle `json:"subtitle,omitempty"`
-}

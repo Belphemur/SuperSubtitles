@@ -188,124 +188,101 @@ func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
 	}
 }
 
-func TestConvertShowSubtitleItemToProto_ShowInfo(t *testing.T) {
-	item := models.ShowSubtitleItem{
-		ShowInfo: &models.ShowInfo{
-			Show: models.Show{
-				Name:     "The Expanse",
-				ID:       204,
-				Year:     2015,
-				ImageURL: "http://example.com/expanse.jpg",
-			},
-			ThirdPartyIds: models.ThirdPartyIds{
-				IMDBID:   "tt3230854",
-				TVDBID:   281620,
-				TVMazeID: 151,
-				TraktID:  11463,
+func TestConvertShowSubtitlesToProto(t *testing.T) {
+	uploadTime := time.Date(2024, 2, 5, 8, 15, 0, 0, time.UTC)
+	ss := models.ShowSubtitles{
+		Show: models.Show{
+			Name:     "The Expanse",
+			ID:       204,
+			Year:     2015,
+			ImageURL: "http://example.com/expanse.jpg",
+		},
+		ThirdPartyIds: models.ThirdPartyIds{
+			IMDBID:   "tt3230854",
+			TVDBID:   281620,
+			TVMazeID: 151,
+			TraktID:  11463,
+		},
+		SubtitleCollection: models.SubtitleCollection{
+			ShowName: "The Expanse",
+			Total:    2,
+			Subtitles: []models.Subtitle{
+				{
+					ID:           3001,
+					ShowID:       204,
+					ShowName:     "The Expanse",
+					Name:         "S03E05",
+					Language:     "hun",
+					Season:       3,
+					Episode:      5,
+					Filename:     "the.expanse.s03e05.srt",
+					DownloadURL:  "http://example.com/download/3001",
+					Uploader:     "subtitlefan",
+					UploadedAt:   uploadTime,
+					Qualities:    []models.Quality{models.Quality720p},
+					Release:      "WEB-DL",
+					IsSeasonPack: false,
+				},
+				{
+					ID:       3002,
+					ShowID:   204,
+					ShowName: "The Expanse",
+					Language: "eng",
+					Season:   3,
+					Episode:  5,
+				},
 			},
 		},
 	}
 
-	result := convertShowSubtitleItemToProto(item)
+	result := convertShowSubtitlesToProto(ss)
 
-	if result.Item == nil {
-		t.Fatal("Expected oneof item to be set")
+	// Verify ShowInfo
+	if result.ShowInfo == nil {
+		t.Fatal("Expected ShowInfo to be set")
 	}
-
-	showInfoItem, ok := result.Item.(*pb.ShowSubtitleItem_ShowInfo)
-	if !ok {
-		t.Fatalf("Expected ShowInfo oneof, got %T", result.Item)
+	if result.ShowInfo.Show == nil {
+		t.Fatal("Expected ShowInfo.Show to be set")
 	}
-
-	if showInfoItem.ShowInfo == nil || showInfoItem.ShowInfo.Show == nil {
-		t.Fatal("Expected show info with nested show")
+	if result.ShowInfo.Show.Name != "The Expanse" {
+		t.Errorf("Expected show name 'The Expanse', got '%s'", result.ShowInfo.Show.Name)
 	}
-
-	if showInfoItem.ShowInfo.Show.Name != "The Expanse" {
-		t.Errorf("Expected show name 'The Expanse', got '%s'", showInfoItem.ShowInfo.Show.Name)
+	if result.ShowInfo.Show.Id != 204 {
+		t.Errorf("Expected show ID 204, got %d", result.ShowInfo.Show.Id)
 	}
-	if showInfoItem.ShowInfo.Show.Id != 204 {
-		t.Errorf("Expected show ID 204, got %d", showInfoItem.ShowInfo.Show.Id)
+	if result.ShowInfo.Show.Year != 2015 {
+		t.Errorf("Expected show year 2015, got %d", result.ShowInfo.Show.Year)
 	}
-	if showInfoItem.ShowInfo.Show.Year != 2015 {
-		t.Errorf("Expected show year 2015, got %d", showInfoItem.ShowInfo.Show.Year)
+	if result.ShowInfo.ThirdPartyIds == nil {
+		t.Fatal("Expected ThirdPartyIds to be set")
 	}
-	if showInfoItem.ShowInfo.Show.ImageUrl != "http://example.com/expanse.jpg" {
-		t.Errorf("Expected show image URL 'http://example.com/expanse.jpg', got '%s'", showInfoItem.ShowInfo.Show.ImageUrl)
+	if result.ShowInfo.ThirdPartyIds.ImdbId != "tt3230854" {
+		t.Errorf("Expected IMDB ID 'tt3230854', got '%s'", result.ShowInfo.ThirdPartyIds.ImdbId)
 	}
-
-	if showInfoItem.ShowInfo.ThirdPartyIds == nil {
-		t.Fatal("Expected third-party IDs to be set")
-	}
-	if showInfoItem.ShowInfo.ThirdPartyIds.ImdbId != "tt3230854" {
-		t.Errorf("Expected IMDB ID 'tt3230854', got '%s'", showInfoItem.ShowInfo.ThirdPartyIds.ImdbId)
-	}
-	if showInfoItem.ShowInfo.ThirdPartyIds.TvdbId != 281620 {
-		t.Errorf("Expected TVDB ID 281620, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TvdbId)
-	}
-	if showInfoItem.ShowInfo.ThirdPartyIds.TvMazeId != 151 {
-		t.Errorf("Expected TVMaze ID 151, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TvMazeId)
-	}
-	if showInfoItem.ShowInfo.ThirdPartyIds.TraktId != 11463 {
-		t.Errorf("Expected Trakt ID 11463, got %d", showInfoItem.ShowInfo.ThirdPartyIds.TraktId)
-	}
-}
-
-func TestConvertShowSubtitleItemToProto_Subtitle(t *testing.T) {
-	uploadTime := time.Date(2024, 2, 5, 8, 15, 0, 0, time.UTC)
-	subtitle := models.Subtitle{
-		ID:           3001,
-		ShowID:       77,
-		ShowName:     "The Expanse",
-		Name:         "S03E05",
-		Language:     "hun",
-		Season:       3,
-		Episode:      5,
-		Filename:     "the.expanse.s03e05.srt",
-		DownloadURL:  "http://example.com/download/3001",
-		Uploader:     "subtitlefan",
-		UploadedAt:   uploadTime,
-		Qualities:    []models.Quality{models.Quality720p},
-		Release:      "WEB-DL",
-		IsSeasonPack: true,
+	if result.ShowInfo.ThirdPartyIds.TvdbId != 281620 {
+		t.Errorf("Expected TVDB ID 281620, got %d", result.ShowInfo.ThirdPartyIds.TvdbId)
 	}
 
-	item := models.ShowSubtitleItem{Subtitle: &subtitle}
-	result := convertShowSubtitleItemToProto(item)
-
-	if result.Item == nil {
-		t.Fatal("Expected oneof item to be set")
+	// Verify Subtitles
+	if len(result.Subtitles) != 2 {
+		t.Fatalf("Expected 2 subtitles, got %d", len(result.Subtitles))
 	}
-
-	subtitleItem, ok := result.Item.(*pb.ShowSubtitleItem_Subtitle)
-	if !ok {
-		t.Fatalf("Expected Subtitle oneof, got %T", result.Item)
+	if result.Subtitles[0].Id != 3001 {
+		t.Errorf("Expected first subtitle ID 3001, got %d", result.Subtitles[0].Id)
 	}
-	if subtitleItem.Subtitle == nil {
-		t.Fatal("Expected subtitle to be set")
+	if result.Subtitles[0].Language != "hun" {
+		t.Errorf("Expected language 'hun', got '%s'", result.Subtitles[0].Language)
 	}
-	if subtitleItem.Subtitle.Id != 3001 {
-		t.Errorf("Expected subtitle ID 3001, got %d", subtitleItem.Subtitle.Id)
-	}
-	if subtitleItem.Subtitle.ShowId != 77 {
-		t.Errorf("Expected show ID 77, got %d", subtitleItem.Subtitle.ShowId)
-	}
-	if subtitleItem.Subtitle.Language != "hun" {
-		t.Errorf("Expected language 'hun', got '%s'", subtitleItem.Subtitle.Language)
-	}
-	if subtitleItem.Subtitle.UploadedAt == nil {
+	if result.Subtitles[0].UploadedAt == nil {
 		t.Fatal("Expected UploadedAt to be set")
 	}
-	if !subtitleItem.Subtitle.UploadedAt.AsTime().Equal(uploadTime) {
-		t.Errorf("Expected upload time %v, got %v", uploadTime, subtitleItem.Subtitle.UploadedAt.AsTime())
+	if !result.Subtitles[0].UploadedAt.AsTime().Equal(uploadTime) {
+		t.Errorf("Expected upload time %v, got %v", uploadTime, result.Subtitles[0].UploadedAt.AsTime())
 	}
-	if len(subtitleItem.Subtitle.Qualities) != 1 {
-		t.Fatalf("Expected 1 quality, got %d", len(subtitleItem.Subtitle.Qualities))
+	if result.Subtitles[1].Id != 3002 {
+		t.Errorf("Expected second subtitle ID 3002, got %d", result.Subtitles[1].Id)
 	}
-	if subtitleItem.Subtitle.Qualities[0] != pb.Quality_QUALITY_720P {
-		t.Errorf("Expected quality 720p, got %v", subtitleItem.Subtitle.Qualities[0])
-	}
-	if !subtitleItem.Subtitle.IsSeasonPack {
-		t.Error("Expected IsSeasonPack to be true")
+	if result.Subtitles[1].Language != "eng" {
+		t.Errorf("Expected language 'eng', got '%s'", result.Subtitles[1].Language)
 	}
 }

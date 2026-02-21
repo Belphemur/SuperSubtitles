@@ -14,7 +14,7 @@ The API is defined in [`api/proto/v1/supersubtitles.proto`](../api/proto/v1/supe
 service SuperSubtitlesService {
   rpc GetShowList(GetShowListRequest) returns (stream Show);
   rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitlesCollection);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
   rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
@@ -141,13 +141,13 @@ grpcurl -plaintext -d '{"show_id": 1234}' \
 
 ### 3. GetShowSubtitles (server-side streaming)
 
-Streams shows with their subtitles and third-party IDs (batch operation).
+Streams complete show subtitle collections for multiple shows. Each streamed message contains a show's full information and all its subtitles.
 
 **Request:**
 
 - `shows` (repeated Show): List of shows to fetch
 
-**Response:** Stream of `ShowSubtitleItem` messages. Each show produces a `show_info` item (containing `ShowInfo` with show metadata and third-party IDs) followed by `subtitle` items for that show. Items are linked by `show_id`.
+**Response:** Stream of `ShowSubtitlesCollection` messages. Each message contains `show_info` (with show metadata and third-party IDs) and a `subtitles` list with all subtitles for that show.
 
 **Example:**
 

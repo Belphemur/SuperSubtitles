@@ -185,7 +185,7 @@ func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_ShowInfoSentOncePerShow(t *testing.T) {
-	// Verify that ShowInfo is only sent once per unique show_id
+	// Verify that each show appears exactly once with all its subtitles grouped together
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
@@ -228,41 +228,33 @@ func TestClient_StreamRecentSubtitles_ShowInfoSentOncePerShow(t *testing.T) {
 	c := NewClient(testConfig)
 	ctx := context.Background()
 
-	showInfoCount := 0
-	subtitleCount := 0
-	showInfoIDs := make(map[int]int)
-
-	for item := range c.StreamRecentSubtitles(ctx, 0) {
-		if item.Err != nil {
-			t.Fatalf("Unexpected error: %v", item.Err)
-		}
-		if item.Value.ShowInfo != nil {
-			showInfoCount++
-			showInfoIDs[item.Value.ShowInfo.Show.ID]++
-			// Verify show name is set
-			if item.Value.ShowInfo.Show.Name == "" {
-				t.Errorf("Expected non-empty show name for show ID %d", item.Value.ShowInfo.Show.ID)
-			}
-		}
-		if item.Value.Subtitle != nil {
-			subtitleCount++
-		}
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, c.StreamRecentSubtitles(ctx, 0))
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Should have exactly 2 ShowInfo items (one per unique show)
-	if showInfoCount != 2 {
-		t.Errorf("Expected 2 ShowInfo items, got %d", showInfoCount)
+	// Should have exactly 2 shows
+	if len(showSubtitles) != 2 {
+		t.Fatalf("Expected 2 shows, got %d", len(showSubtitles))
 	}
 
-	// Each show should only have 1 ShowInfo
-	for showID, count := range showInfoIDs {
-		if count != 1 {
-			t.Errorf("Expected 1 ShowInfo for show %d, got %d", showID, count)
+	// Verify each show has the correct number of subtitles
+	totalSubtitles := 0
+	for _, ss := range showSubtitles {
+		if ss.Name == "" {
+			t.Errorf("Expected non-empty show name for show ID %d", ss.ID)
 		}
+		if ss.ID == 10 && len(ss.SubtitleCollection.Subtitles) != 2 {
+			t.Errorf("Expected 2 subtitles for show 10, got %d", len(ss.SubtitleCollection.Subtitles))
+		}
+		if ss.ID == 20 && len(ss.SubtitleCollection.Subtitles) != 1 {
+			t.Errorf("Expected 1 subtitle for show 20, got %d", len(ss.SubtitleCollection.Subtitles))
+		}
+		totalSubtitles += len(ss.SubtitleCollection.Subtitles)
 	}
 
-	// Should have 3 subtitle items
-	if subtitleCount != 3 {
-		t.Errorf("Expected 3 subtitle items, got %d", subtitleCount)
+	// Should have 3 total subtitles
+	if totalSubtitles != 3 {
+		t.Errorf("Expected 3 total subtitles, got %d", totalSubtitles)
 	}
 }

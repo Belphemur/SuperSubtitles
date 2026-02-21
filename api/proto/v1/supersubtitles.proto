@@ -16,10 +16,9 @@ service SuperSubtitlesService {
   // GetSubtitles streams all subtitles for a specific show
   rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
 
-  // GetShowSubtitles streams show information and subtitles for multiple shows.
-  // Streams ShowSubtitleItem messages which contain either show info (show + third-party IDs)
-  // or a subtitle, linked together by show_id.
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
+  // GetShowSubtitles streams complete show subtitle collections for multiple shows.
+  // Each streamed item contains the show info (with third-party IDs) and all subtitles for that show.
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitlesCollection);
 
   // CheckForUpdates checks if there are new subtitles available since a given content ID
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
@@ -92,6 +91,13 @@ message ShowSubtitleItem {
     ShowInfo show_info = 1;   // Show metadata with third-party IDs
     Subtitle subtitle = 2;    // A single subtitle belonging to a show (use show_id to link)
   }
+}
+
+// ShowSubtitlesCollection contains a show's complete information and all its subtitles.
+// Streamed by GetShowSubtitles — one message per show.
+message ShowSubtitlesCollection {
+  ShowInfo show_info = 1;               // Show metadata with third-party IDs
+  repeated Subtitle subtitles = 2;      // All subtitles for this show
 }
 
 // GetShowListRequest requests the list of all available shows

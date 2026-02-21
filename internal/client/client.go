@@ -22,8 +22,8 @@ type Client interface {
 	// Errors are sent as StreamResult with a non-nil Err field.
 	StreamShowList(ctx context.Context) <-chan models.StreamResult[models.Show]
 	StreamSubtitles(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle]
-	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitleItem]
-	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitleItem]
+	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitles]
+	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles]
 }
 
 // client implements the Client interface
