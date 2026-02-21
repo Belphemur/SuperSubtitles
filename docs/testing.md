@@ -67,7 +67,7 @@ Since the client exposes only streaming methods, tests need helpers to consume s
 | --------------------------- | ---------------------------------------------------------------- | ------------------------------------- |
 | `CollectShows`              | Consumes a `Show` stream and returns a slice                     | `([]models.Show, error)`              |
 | `CollectSubtitles`          | Consumes a `Subtitle` stream and returns a `SubtitleCollection`  | `(*models.SubtitleCollection, error)` |
-| `CollectShowSubtitles`      | Consumes a `ShowSubtitleItem` stream and groups by show          | `([]models.ShowSubtitles, error)`     |
+| `CollectShowSubtitles`      | Consumes a `ShowSubtitles` stream and returns a slice            | `([]models.ShowSubtitles, error)`     |
 
 **Example Usage:**
 

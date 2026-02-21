@@ -48,7 +48,7 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │                                                               │
 │  Proto definitions for:                                       │
 │    • Service: SuperSubtitlesService (4 streaming, 2 unary)    │
-│    • Messages: Show, Subtitle, ShowInfo, ShowSubtitleItem     │
+│    • Messages: Show, Subtitle, ShowInfo, ShowSubtitlesCollection│
 │    • Enums: Quality (360p-2160p)                              │
 │                                                               │
 │  Generated via: go generate ./api/proto/v1                    │
@@ -58,25 +58,21 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 ┌───────────────────────────────────────────────────────────────┐
 │                     internal/client                           │
 │                                                               │
-│  Client interface:                                            │
-│    • GetShowList(ctx) → []Show                                │
-│    • GetSubtitles(ctx, showID) → *SubtitleCollection [*]      │
-│    • GetShowSubtitles(ctx, shows) → []ShowSubtitles           │
-│    • GetRecentSubtitles(ctx, sinceID) → []ShowSubtitles [**]  │
+│  Client interface (streaming-first):                          │
 │    • CheckForUpdates(ctx, contentID) → *UpdateCheckResult     │
 │    • DownloadSubtitle(ctx, url, req) → *DownloadResult        │
-│    •                                                          │
+│                                                               │
 │    • StreamShowList(ctx) → <-chan StreamResult[Show]           │
 │    • StreamSubtitles(ctx, showID) → <-chan StreamResult[Sub]  │
-│    • StreamShowSubtitles(ctx, shows) → <-chan StreamResult    │
-│    • StreamRecentSubtitles(ctx, sinceID) → <-chan StreamResult│
+│    • StreamShowSubtitles(ctx, shows)                          │
+│        → <-chan StreamResult[ShowSubtitles]                   │
+│    • StreamRecentSubtitles(ctx, sinceID)                      │
+│        → <-chan StreamResult[ShowSubtitles]                   │
 │                                                               │
-│  Channel-based streaming methods send items as they arrive.   │
-│  GetX methods consume from StreamX channels internally.       │
-│  Handles HTTP requests, proxy config, parallel fetching,      │
-│  error aggregation, and partial-failure resilience.            │
-│  [*] HTML-based with parallel pagination (2 pages at a time)  │
-│  [**] Fetches from main page, filters by ID, groups by show   │
+│  Streaming methods accumulate subtitles per show and send     │
+│  complete ShowSubtitles items. Handles HTTP requests, proxy   │
+│  config, parallel fetching, error aggregation, and            │
+│  partial-failure resilience.                                  │
 └────────┬──────────────────────────┬───────────────────────────┘
          │                          │
          ▼                          ▼
@@ -112,7 +108,7 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │                     internal/models                           │
 │                                                               │
 │  Show, Subtitle, SubtitleCollection, SuperSubtitleResponse,   │
-│  ShowSubtitles, ShowInfo, ShowSubtitleItem, ThirdPartyIds,    │
+│  ShowSubtitles, ThirdPartyIds,                               │
 │  Quality (enum), UpdateCheckResponse, UpdateCheckResult,      │
 │  DownloadRequest, DownloadResult, StreamResult[T]             │
 │                                                               │

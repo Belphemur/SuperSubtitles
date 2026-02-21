@@ -155,10 +155,10 @@ SuperSubtitles exposes a gRPC API with 6 main operations. For complete API docum
 service SuperSubtitlesService {
   rpc GetShowList(GetShowListRequest) returns (stream Show);
   rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitleItem);
+  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitlesCollection);
   rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
   rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitleItem);
+  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitlesCollection);
 }
 ```
 

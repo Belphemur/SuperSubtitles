@@ -87,7 +87,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 - `internal/parser/third_party_parser.go` - ThirdPartyIdParser implementation
 - `internal/client/show_subtitles.go` - `StreamShowSubtitles` method with batching and per-show accumulation
-- `internal/models/show_subtitles.go` - `ShowSubtitles` and `ShowInfo` models
+- `internal/models/show_subtitles.go` - `ShowSubtitles` model
 - `internal/testutil/stream_helpers.go` - `CollectShowSubtitles` test helper
 
 ## Recent Subtitles Fetching
@@ -113,15 +113,15 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 **Key Features:**
 
 - **Efficient filtering**: Only processes subtitles newer than a given ID (numeric comparison)
-- **Show info deduplication**: ShowInfo sent only once per unique `show_id` within a call using an in-memory cache
+- **Per-show grouping**: Subtitles are grouped by show and sent as complete `ShowSubtitles` items
 - **Third-party ID enrichment**: Fetches detail pages to include IMDB, TVDB, TVMaze, Trakt IDs with show info
 - **Reuses existing parsers**: Same `SubtitleParser` used for both individual show pages and main page
-- **Partial failure resilience**: If a detail page fetch fails, ShowInfo is still sent with empty third-party IDs
+- **Partial failure resilience**: If a detail page fetch fails, show is still sent with empty third-party IDs
 
 **Implementation Files:**
 
 - `internal/parser/subtitle_parser.go` - `extractShowIDFromCategory` method extracts show ID from HTML
-- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` method with filtering, show info caching, and detail page fetching
+- `internal/client/recent_subtitles.go` - `StreamRecentSubtitles` method with filtering, per-show grouping, and detail page fetching
 - `internal/client/recent_subtitles_test.go` - 5 comprehensive tests covering filtering, empty results, errors, and show info deduplication
 - `internal/models/subtitle.go` - `ShowID` field on Subtitle model
 - `internal/testutil/stream_helpers.go` - `CollectShowSubtitles` test helper
