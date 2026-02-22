@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // DownloadSubtitle downloads a subtitle file, with support for extracting specific episodes from season packs.

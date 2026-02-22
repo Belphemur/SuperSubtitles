@@ -3,7 +3,7 @@ package testutil
 import (
 	"context"
 
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // CollectSubtitles consumes a subtitle stream and returns a SubtitleCollection.

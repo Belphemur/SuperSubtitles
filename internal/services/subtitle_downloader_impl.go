@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
 )

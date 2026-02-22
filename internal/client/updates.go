@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // CheckForUpdates checks if there are any updates available since a specific content ID

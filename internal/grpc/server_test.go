@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
-	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // mockClient implements client.Client for testing

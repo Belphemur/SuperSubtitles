@@ -5,8 +5,8 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // safeInt32 converts an int to int32 with bounds checking to prevent overflow

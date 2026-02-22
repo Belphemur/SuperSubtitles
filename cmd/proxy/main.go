@@ -12,10 +12,10 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/internal/client"
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	grpcserver "github.com/Belphemur/SuperSubtitles/internal/grpc"
+	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	grpcserver "github.com/Belphemur/SuperSubtitles/v2/internal/grpc"
 )
 
 func main() {

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/testutil"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
 
 func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {

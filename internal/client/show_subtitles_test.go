@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/testutil"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
 
 func TestClient_GetShowSubtitles(t *testing.T) {

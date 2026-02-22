@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 )
 
 func TestClient_CheckForUpdates(t *testing.T) {

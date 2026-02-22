@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Belphemur/SuperSubtitles/internal/testutil"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
 
 // createTestZip creates a test ZIP file with season pack structure

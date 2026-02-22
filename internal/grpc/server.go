@@ -3,10 +3,10 @@ package grpc
 import (
 	"context"
 
-	pb "github.com/Belphemur/SuperSubtitles/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/internal/client"
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

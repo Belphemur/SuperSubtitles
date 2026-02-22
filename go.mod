@@ -1,4 +1,4 @@
-module github.com/Belphemur/SuperSubtitles
+module github.com/Belphemur/SuperSubtitles/v2
 
 go 1.25
 

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // StreamSubtitles streams subtitles for a given show ID as they are parsed from each page.

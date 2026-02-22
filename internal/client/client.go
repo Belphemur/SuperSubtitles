@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/parser"
-	"github.com/Belphemur/SuperSubtitles/internal/services"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/parser"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/services"
 )
 
 // Client defines the interface for querying the SuperSubtitles website

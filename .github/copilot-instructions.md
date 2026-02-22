@@ -60,7 +60,7 @@ Always run commands from the repository root.
 SuperSubtitles/
 ├── cmd/proxy/main.go              # Application entry point (gRPC server)
 ├── config/config.yaml             # Default configuration (YAML)
-├── go.mod / go.sum                # Go module (module name: github.com/Belphemur/SuperSubtitles)
+├── go.mod / go.sum                # Go module (module name: github.com/Belphemur/SuperSubtitles/v2)
 ├── .golangci.yml                  # golangci-lint configuration
 ├── .goreleaser.yml                # GoReleaser build/release configuration
 ├── .releaserc.yml                 # semantic-release configuration
@@ -123,7 +123,7 @@ SuperSubtitles/
 
 ## Architecture & Conventions
 
-- **Standard Go layout:** `cmd/` for executables, `internal/` for library code. All imports use the module path `github.com/Belphemur/SuperSubtitles/internal/...`.
+- **Standard Go layout:** `cmd/` for executables, `internal/` for library code. All imports use the module path `github.com/Belphemur/SuperSubtitles/v2/internal/...`.
 - **Interfaces:** Defined in the same package as implementations (e.g., `Client` interface in `client.go`, `SubtitleDownloader` in `subtitle_downloader.go`, `Parser[T]` in `interfaces.go`).
 - **Configuration:** Loaded via `viper` from `config/config.yaml` or `./config.yaml`. Env vars prefixed with `APP_`. Log level also settable via `LOG_LEVEL` env var.
 - **Logging:** Uses `rs/zerolog` with a console writer. Access via `config.GetLogger()`. Structured logging with chained `.Str()`, `.Int()`, `.Msg()` calls. Do not create new logger instances.

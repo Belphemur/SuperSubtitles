@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // StreamShowSubtitles streams complete ShowSubtitles (show info + all subtitles) for multiple shows.

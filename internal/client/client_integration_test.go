@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Belphemur/SuperSubtitles/internal/config"
-	"github.com/Belphemur/SuperSubtitles/internal/models"
-	"github.com/Belphemur/SuperSubtitles/internal/testutil"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
 
 // TestClient_GetShowList_Integration is an integration test that calls the real SuperSubtitles website
