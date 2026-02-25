@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.1.0...v2.1.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* migrate to Go 1.26 ([#52](https://github.com/Belphemur/SuperSubtitles/issues/52)) ([3c5c5e0](https://github.com/Belphemur/SuperSubtitles/commit/3c5c5e041ea5974d1fdda8eb81039dbd2d69955f))
+
 # [2.1.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.0.0...v2.1.0) (2026-02-25)
 
 
