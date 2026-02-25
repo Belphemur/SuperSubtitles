@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.0.0...v2.1.0) (2026-02-25)
+
+
+### Features
+
+* **config:** make LRU ZIP cache size and TTL configurable ([#49](https://github.com/Belphemur/SuperSubtitles/issues/49)) ([1827a45](https://github.com/Belphemur/SuperSubtitles/commit/1827a4541fa20c5c911358be95dc539482dae0a5))
+
 # [2.0.0](https://github.com/Belphemur/SuperSubtitles/compare/v1.8.0...v2.0.0) (2026-02-22)
 
 
