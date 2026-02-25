@@ -23,7 +23,7 @@ A Go gRPC service that interfaces with [feliratok.eu](https://feliratok.eu), a H
 
 ### Prerequisites
 
-- Go 1.25 or later
+- Go 1.26 or later
 - `protoc` (Protocol Buffer compiler) for regenerating proto code
 - `golangci-lint` (for linting)
 - `pnpm` (for semantic-release dependencies, optional)

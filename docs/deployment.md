@@ -94,7 +94,7 @@ Runs on push to `main`:
 
 Prepares Copilot agent environment:
 
-- Installs Go 1.25
+- Installs Go 1.26
 - Installs gopls (Go language server)
 - Installs golangci-lint
 - Downloads Go dependencies
@@ -254,7 +254,7 @@ spec:
 
 ### Prerequisites
 
-- Go 1.25+
+- Go 1.26+
 - golangci-lint (for linting)
 - gotestsum (optional, for pretty test output)
 
