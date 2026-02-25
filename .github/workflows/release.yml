@@ -43,7 +43,7 @@ jobs:
           cache: true
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.22.2
+        uses: anchore/sbom-action/download-syft@v0.23.0
 
       # Set up QEMU for multi-platform builds (used by GoReleaser's Docker buildx)
       - name: Set up QEMU
