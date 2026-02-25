@@ -47,12 +47,41 @@ type DefaultSubtitleDownloader struct {
 	zipCache   *lru.LRU[string, *zipCacheEntry]
 }
 
-// NewSubtitleDownloader creates a new subtitle downloader with LRU cache
-// Cache stores up to 100 ZIP files with 1-hour TTL
+// resolveCacheConfig returns the cache size and TTL from cfg, with fallback defaults.
+// If cfg is nil, both defaults are returned.
+func resolveCacheConfig(cfg *config.Config) (size int, ttl time.Duration) {
+	size = 2000
+	ttl = 24 * time.Hour
+
+	if cfg == nil {
+		return
+	}
+
+	if cfg.Cache.Size > 0 {
+		size = cfg.Cache.Size
+	}
+	if cfg.Cache.TTL != "" {
+		if d, err := time.ParseDuration(cfg.Cache.TTL); err == nil {
+			ttl = d
+		} else {
+			logger := config.GetLogger()
+			logger.Warn().
+				Str("cacheTTL", cfg.Cache.TTL).
+				Dur("defaultTTL", ttl).
+				Msg("Invalid cache TTL in configuration, falling back to default")
+		}
+	}
+	return
+}
+
+// NewSubtitleDownloader creates a new subtitle downloader with LRU cache.
+// Cache size and TTL are read from config (cache.size and cache.ttl).
+// Defaults: 2000 entries, 24-hour TTL.
 func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
+	cacheSize, cacheTTL := resolveCacheConfig(config.GetConfig())
 	return &DefaultSubtitleDownloader{
 		httpClient: httpClient,
-		zipCache:   lru.NewLRU[string, *zipCacheEntry](100, nil, time.Hour),
+		zipCache:   lru.NewLRU[string, *zipCacheEntry](cacheSize, nil, cacheTTL),
 	}
 }
 

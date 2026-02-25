@@ -15,6 +15,8 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `server.port`             | Server listening port                 | `8080`                                                                             | `APP_SERVER_PORT`              |
 | `server.address`          | Server listening address              | `localhost`                                                                        | `APP_SERVER_ADDRESS`           |
 | `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             | `APP_LOG_LEVEL` or `LOG_LEVEL` |
+| `cache.size`              | Maximum entries in LRU ZIP cache      | `2000`                                                                             | `APP_CACHE_SIZE`               |
+| `cache.ttl`               | LRU cache TTL (Go duration)           | `24h`                                                                              | `APP_CACHE_TTL`                |
 
 ### Example Configuration
 
@@ -28,6 +30,10 @@ log_level: "info"
 server:
   port: 8080
   address: "localhost"
+
+cache:
+  size: 2000
+  ttl: "24h"
 ```
 
 ### Environment Variables
@@ -100,7 +106,7 @@ Prepares Copilot agent environment:
 | `github.com/PuerkitoBio/goquery`     | jQuery-like HTML parsing                | Latest             |
 | `github.com/rs/zerolog`              | Structured JSON/console logging         | Latest             |
 | `github.com/spf13/viper`             | Configuration management                | Latest             |
-| `github.com/hashicorp/golang-lru/v2` | LRU cache for ZIP file caching (1h TTL) | v2                 |
+| `github.com/hashicorp/golang-lru/v2` | LRU cache for ZIP file caching (configurable TTL) | v2                 |
 | `archive/zip` (stdlib)               | ZIP file extraction for season packs    | stdlib             |
 
 ### Dependency Management

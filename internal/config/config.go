@@ -21,6 +21,10 @@ type Config struct {
 		Address string `mapstructure:"address"`
 	} `mapstructure:"server"`
 	LogLevel string `mapstructure:"log_level"`
+	Cache    struct {
+		Size int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
+		TTL  string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
+	} `mapstructure:"cache"`
 }
 
 var (
