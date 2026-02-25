@@ -52,7 +52,7 @@ func TestShowParser_ParseHtml(t *testing.T) {
 			t.Errorf("Show %d: expected name %q, got %q", i, expected.Name, actual.Name)
 		}
 		if actual.ID != expected.ID {
-			t.Errorf("Show %d: expected ID %q, got %q", i, expected.ID, actual.ID)
+			t.Errorf("Show %d: expected ID %d, got %d", i, expected.ID, actual.ID)
 		}
 		if actual.Year != expected.Year {
 			t.Errorf("Show %d: expected year %d, got %d", i, expected.Year, actual.Year)
@@ -204,7 +204,7 @@ func TestShowParser_ParseHtml_Simple(t *testing.T) {
 		t.Errorf("Expected name %q, got %q", expected.Name, actual.Name)
 	}
 	if actual.ID != expected.ID {
-		t.Errorf("Expected ID %q, got %q", expected.ID, actual.ID)
+		t.Errorf("Expected ID %d, got %d", expected.ID, actual.ID)
 	}
 	if actual.Year != expected.Year {
 		t.Errorf("Expected year %d, got %d", expected.Year, actual.Year)
