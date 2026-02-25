@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
 
@@ -1098,5 +1099,71 @@ func TestExtractEpisodeFromZip_PreferSubtitleOverNonSubtitle(t *testing.T) {
 
 	if !strings.HasSuffix(result.Filename, ".ass") {
 		t.Errorf("Expected .ass filename, got: %s", result.Filename)
+	}
+}
+
+func TestResolveCacheConfig_Defaults_NilConfig(t *testing.T) {
+	size, ttl := resolveCacheConfig(nil)
+	if size != 2000 {
+		t.Errorf("Expected default size 2000, got %d", size)
+	}
+	if ttl != 24*time.Hour {
+		t.Errorf("Expected default TTL 24h, got %v", ttl)
+	}
+}
+
+func TestResolveCacheConfig_ValidValues(t *testing.T) {
+	cfg := &internalConfig.Config{}
+	cfg.Cache.Size = 500
+	cfg.Cache.TTL = "6h"
+
+	size, ttl := resolveCacheConfig(cfg)
+	if size != 500 {
+		t.Errorf("Expected size 500, got %d", size)
+	}
+	if ttl != 6*time.Hour {
+		t.Errorf("Expected TTL 6h, got %v", ttl)
+	}
+}
+
+func TestResolveCacheConfig_ZeroSize_UsesDefault(t *testing.T) {
+	cfg := &internalConfig.Config{}
+	cfg.Cache.Size = 0
+	cfg.Cache.TTL = "12h"
+
+	size, ttl := resolveCacheConfig(cfg)
+	if size != 2000 {
+		t.Errorf("Expected default size 2000, got %d", size)
+	}
+	if ttl != 12*time.Hour {
+		t.Errorf("Expected TTL 12h, got %v", ttl)
+	}
+}
+
+func TestResolveCacheConfig_EmptyTTL_UsesDefault(t *testing.T) {
+	cfg := &internalConfig.Config{}
+	cfg.Cache.Size = 100
+	cfg.Cache.TTL = ""
+
+	size, ttl := resolveCacheConfig(cfg)
+	if size != 100 {
+		t.Errorf("Expected size 100, got %d", size)
+	}
+	if ttl != 24*time.Hour {
+		t.Errorf("Expected default TTL 24h, got %v", ttl)
+	}
+}
+
+func TestResolveCacheConfig_InvalidTTL_UsesDefault(t *testing.T) {
+	cfg := &internalConfig.Config{}
+	cfg.Cache.Size = 300
+	cfg.Cache.TTL = "24hours" // invalid Go duration
+
+	size, ttl := resolveCacheConfig(cfg)
+	if size != 300 {
+		t.Errorf("Expected size 300, got %d", size)
+	}
+	if ttl != 24*time.Hour {
+		t.Errorf("Expected default TTL 24h on invalid input, got %v", ttl)
 	}
 }
