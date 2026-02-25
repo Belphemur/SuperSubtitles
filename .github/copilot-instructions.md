@@ -4,7 +4,7 @@
 
 SuperSubtitles is a Go gRPC service that scrapes and normalizes subtitle data from the Hungarian subtitle website [feliratok.eu](https://feliratok.eu). It exposes a gRPC API that fetches TV show listings (via HTML scraping), retrieves subtitles (via JSON API), extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt), and serves normalized data models via Protocol Buffers. The module name is `SuperSubtitles` (PascalCase).
 
-**Language:** Go 1.25 · **Dependencies:** gRPC, protobuf, goquery (HTML parsing), zerolog (logging), viper (configuration)
+**Language:** Go 1.26 · **Dependencies:** gRPC, protobuf, goquery (HTML parsing), zerolog (logging), viper (configuration)
 
 ## Build, Test & Validate
 
