@@ -19,18 +19,22 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │                        cmd/proxy/main.go                      │
-│                      (gRPC Server Entry Point)                │
+│                      (Application Entry Point)                │
 │                                                               │
-│  • Initializes gRPC server with reflection                    │
-│  • Registers SuperSubtitlesService                            │
+│  • Creates gRPC server via internal/grpc.NewGRPCServer        │
+│  • Starts Prometheus metrics HTTP server (port 9090)          │
 │  • Handles graceful shutdown on SIGTERM/SIGINT                │
 └──────────────────────────┬────────────────────────────────────┘
                            │
                            ▼
 ┌───────────────────────────────────────────────────────────────┐
-│                    internal/grpc/server                       │
+│                    internal/grpc                              │
 │                                                               │
-│  Implements SuperSubtitlesServiceServer:                      │
+│  setup.go:                                                    │
+│    • NewGRPCServer: creates server with Prometheus            │
+│      interceptors, health check, and reflection               │
+│                                                               │
+│  server.go — Implements SuperSubtitlesServiceServer:          │
 │    • GetShowList        (server-side streaming)                │
 │    • GetSubtitles       (server-side streaming)                │
 │    • GetShowSubtitles   (server-side streaming)                │
@@ -123,6 +127,17 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │  Viper-based configuration loaded from config/config.yaml     │
 │  Zerolog singleton logger with console output                 │
 │  Env var support (prefix: APP_, also LOG_LEVEL)               │
+└───────────────────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────────────────────────────┐
+│                     internal/metrics                          │
+│                                                               │
+│  metrics.go: Custom Prometheus metrics (subtitle downloads,   │
+│    cache hits/misses/evictions/entries)                        │
+│  server.go: HTTP server for /metrics endpoint                 │
+│  Metrics registered via init() with default Prometheus        │
+│  registry. Go runtime metrics included automatically.         │
 └───────────────────────────────────────────────────────────────┘
 ```
 

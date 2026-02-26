@@ -17,6 +17,8 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             | `APP_LOG_LEVEL` or `LOG_LEVEL` |
 | `cache.size`              | Maximum entries in LRU ZIP cache      | `2000`                                                                             | `APP_CACHE_SIZE`               |
 | `cache.ttl`               | LRU cache TTL (Go duration)           | `24h`                                                                              | `APP_CACHE_TTL`                |
+| `metrics.enabled`         | Enable Prometheus metrics endpoint    | `true`                                                                             | `APP_METRICS_ENABLED`          |
+| `metrics.port`            | Port for the metrics HTTP server      | `9090`                                                                             | `APP_METRICS_PORT`             |
 
 ### Example Configuration
 
@@ -34,6 +36,10 @@ server:
 cache:
   size: 2000
   ttl: "24h"
+
+metrics:
+  enabled: true
+  port: 9090
 ```
 
 ### Environment Variables
@@ -50,6 +56,12 @@ export APP_SUPER_SUBTITLE_DOMAIN=https://feliratok.eu
 
 # Override timeout
 export APP_CLIENT_TIMEOUT=60s
+
+# Override metrics port
+export APP_METRICS_PORT=9091
+
+# Disable metrics
+export APP_METRICS_ENABLED=false
 ```
 
 ## CI/CD Pipeline
@@ -107,6 +119,8 @@ Prepares Copilot agent environment:
 | `github.com/rs/zerolog`              | Structured JSON/console logging         | Latest             |
 | `github.com/spf13/viper`             | Configuration management                | Latest             |
 | `github.com/hashicorp/golang-lru/v2` | LRU cache for ZIP file caching (configurable TTL) | v2                 |
+| `github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus` | gRPC Prometheus interceptors | Latest |
+| `github.com/prometheus/client_golang` | Prometheus client library               | Latest             |
 | `archive/zip` (stdlib)               | ZIP file extraction for season packs    | stdlib             |
 
 ### Dependency Management
@@ -171,11 +185,11 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 # Pull the latest image
 docker pull ghcr.io/belphemur/supersubtitles:latest
 
-# Run with default configuration
-docker run -p 8080:8080 ghcr.io/belphemur/supersubtitles:latest
+# Run with default configuration (expose gRPC and metrics ports)
+docker run -p 8080:8080 -p 9090:9090 ghcr.io/belphemur/supersubtitles:latest
 
 # Run with custom configuration
-docker run -p 8080:8080 \
+docker run -p 8080:8080 -p 9090:9090 \
   -e APP_SERVER_ADDRESS=0.0.0.0 \
   -e LOG_LEVEL=debug \
   ghcr.io/belphemur/supersubtitles:latest

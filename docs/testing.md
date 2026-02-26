@@ -125,6 +125,14 @@ results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ct
   - Multi-format support
   - Benchmark tests for performance
 
+### Metrics Tests
+
+- `internal/metrics/metrics_test.go` - Prometheus metrics tests:
+  - Counter and gauge registration and increment verification
+  - `SubtitleDownloadsTotal` counter with success/error labels
+  - Cache metrics (hits, misses, evictions, entries)
+  - `NewHTTPServer` creation and default port behavior
+
 ## Running Tests
 
 ```bash
