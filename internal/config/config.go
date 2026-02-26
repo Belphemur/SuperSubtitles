@@ -25,6 +25,10 @@ type Config struct {
 		Size int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
 		TTL  string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
 	} `mapstructure:"cache"`
+	Metrics struct {
+		Enabled bool `mapstructure:"enabled"` // Whether to expose Prometheus metrics
+		Port    int  `mapstructure:"port"`    // Port for the metrics HTTP server
+	} `mapstructure:"metrics"`
 }
 
 var (

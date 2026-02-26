@@ -9,3 +9,6 @@ log_level: "info"
 cache:
   size: 2000
   ttl: "24h"
+metrics:
+  enabled: true
+  port: 9090

@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
@@ -82,9 +83,13 @@ func resolveCacheConfig(cfg *config.Config) (size int, ttl time.Duration) {
 // Defaults: 2000 entries, 24-hour TTL.
 func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	cacheSize, cacheTTL := resolveCacheConfig(config.GetConfig())
+	onEvict := func(_ string, _ *zipCacheEntry) {
+		metrics.CacheEvictionsTotal.Inc()
+		metrics.CacheEntries.Dec()
+	}
 	return &DefaultSubtitleDownloader{
 		httpClient: httpClient,
-		zipCache:   lru.NewLRU[string, *zipCacheEntry](cacheSize, nil, cacheTTL),
+		zipCache:   lru.NewLRU[string, *zipCacheEntry](cacheSize, onEvict, cacheTTL),
 	}
 }
 
@@ -104,6 +109,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 	// Download the file
 	content, contentType, err := d.downloadFile(ctx, downloadURL)
 	if err != nil {
+		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
 		return nil, fmt.Errorf("failed to download subtitle: %w", err)
 	}
 
@@ -123,6 +129,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 			content = convertToUTF8(content)
 		}
 
+		metrics.SubtitleDownloadsTotal.WithLabelValues("success").Inc()
 		return &models.DownloadResult{
 			Filename:    generateFilename(subtitleID, contentType),
 			Content:     content,
@@ -138,6 +145,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 
 	episodeFile, err := d.extractEpisodeFromZip(content, *episode)
 	if err != nil {
+		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
 		return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, err)
 	}
 
@@ -146,6 +154,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		Int("size", len(episodeFile.Content)).
 		Msg("Successfully extracted episode from season pack")
 
+	metrics.SubtitleDownloadsTotal.WithLabelValues("success").Inc()
 	return episodeFile, nil
 }
 
@@ -355,8 +364,10 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 			Str("url", url).
 			Time("cachedAt", cached.cachedAt).
 			Msg("Retrieved file from cache")
+		metrics.CacheHitsTotal.Inc()
 		return cached.content, "application/zip", nil
 	}
+	metrics.CacheMissesTotal.Inc()
 
 	// Download from URL
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -405,6 +416,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 			content:  content,
 			cachedAt: time.Now(),
 		})
+		metrics.CacheEntries.Set(float64(d.zipCache.Len()))
 		logger.Debug().
 			Str("url", url).
 			Int("size", len(content)).
