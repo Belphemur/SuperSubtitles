@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
@@ -36,12 +39,14 @@ func main() {
 		metricsServer := metrics.NewHTTPServer(cfg.Server.Address, cfg.Metrics.Port)
 		go func() {
 			logger.Info().Str("address", metricsServer.Addr).Msg("Starting Prometheus metrics HTTP server")
-			if err := metricsServer.ListenAndServe(); err != nil && err.Error() != "http: Server closed" {
+			if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Fatal().Err(err).Msg("Failed to serve metrics")
 			}
 		}()
 		defer func() {
-			if err := metricsServer.Shutdown(context.Background()); err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := metricsServer.Shutdown(ctx); err != nil {
 				logger.Error().Err(err).Msg("Failed to shutdown metrics server")
 			}
 		}()

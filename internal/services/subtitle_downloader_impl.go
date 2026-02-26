@@ -87,6 +87,7 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		metrics.CacheEvictionsTotal.Inc()
 		metrics.CacheEntries.Dec()
 	}
+	metrics.CacheEntries.Set(0)
 	return &DefaultSubtitleDownloader{
 		httpClient: httpClient,
 		zipCache:   lru.NewLRU[string, *zipCacheEntry](cacheSize, onEvict, cacheTTL),
@@ -412,11 +413,14 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 
 	// Cache ZIP files based on magic number detection (more reliable than content-type)
 	if isZipFile(content) {
+		isNewEntry := !d.zipCache.Contains(url)
 		d.zipCache.Add(url, &zipCacheEntry{
 			content:  content,
 			cachedAt: time.Now(),
 		})
-		metrics.CacheEntries.Set(float64(d.zipCache.Len()))
+		if isNewEntry {
+			metrics.CacheEntries.Inc()
+		}
 		logger.Debug().
 			Str("url", url).
 			Int("size", len(content)).
