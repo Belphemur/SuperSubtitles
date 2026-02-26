@@ -242,12 +242,14 @@ This document explains key architectural and design decisions made in the SuperS
 **Problem**: The original implementation used a complex flag-based iteration pattern, searching for the link's href in all cells, then looking for subsequent `td.sangol` elements. This was fragile and prone to incorrect matches in multi-column layouts.
 
 **Solution**: Simplified to:
+
 1. Get the parent `<td>` of the show link (the image cell)
 2. Use `.Next()` to get the immediately following sibling `<td>`
 3. Verify it has class "sangol" (the name cell)
 4. Extract the show name from the first `<div>` in that cell
 
 **Rationale**:
+
 - Mirrors the actual HTML structure where name cells always follow image cells
 - Eliminates string matching and iteration complexity
 - Works correctly with multi-column layouts (2+ shows per row)
