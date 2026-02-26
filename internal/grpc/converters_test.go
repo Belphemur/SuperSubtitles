@@ -286,3 +286,201 @@ func TestConvertShowSubtitlesToProto(t *testing.T) {
 		t.Errorf("Expected language 'eng', got '%s'", result.Subtitles[1].Language)
 	}
 }
+
+// TestSanitizeUTF8_ValidString tests that valid UTF-8 strings pass through unchanged
+func TestSanitizeUTF8_ValidString(t *testing.T) {
+	testCases := []string{
+		"Breaking Bad",
+		"Magyar felirat",
+		"日本語",
+		"Émile Zola",
+		"Test 123 !@#$",
+	}
+
+	for _, tc := range testCases {
+		result := sanitizeUTF8(tc)
+		if result != tc {
+			t.Errorf("Expected valid UTF-8 string to remain unchanged: %q, got %q", tc, result)
+		}
+	}
+}
+
+// TestSanitizeUTF8_InvalidString tests that invalid UTF-8 sequences are replaced
+func TestSanitizeUTF8_InvalidString(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "invalid byte at start",
+			input:    "\xffHello World",
+			expected: "�Hello World",
+		},
+		{
+			name:     "invalid byte in middle",
+			input:    "Hello\xffWorld",
+			expected: "Hello�World",
+		},
+		{
+			name:     "invalid byte at end",
+			input:    "Hello World\xff",
+			expected: "Hello World�",
+		},
+		{
+			name:     "multiple invalid bytes",
+			input:    "\xffHello\xfe\xfdWorld\xfc",
+			expected: "�Hello�World�",
+		},
+		{
+			name:     "incomplete UTF-8 sequence",
+			input:    "Test\xc3",
+			expected: "Test�",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := sanitizeUTF8(tc.input)
+			if result != tc.expected {
+				t.Errorf("Expected %q, got %q", tc.expected, result)
+			}
+		})
+	}
+}
+
+// TestSanitizeUTF8Slice_ValidStrings tests that valid UTF-8 strings in slices pass through unchanged
+func TestSanitizeUTF8Slice_ValidStrings(t *testing.T) {
+	input := []string{"DIMENSION", "LOL", "NTb"}
+	result := sanitizeUTF8Slice(input)
+
+	if len(result) != len(input) {
+		t.Errorf("Expected slice length %d, got %d", len(input), len(result))
+	}
+
+	for i, s := range input {
+		if result[i] != s {
+			t.Errorf("Expected string at index %d to be %q, got %q", i, s, result[i])
+		}
+	}
+}
+
+// TestSanitizeUTF8Slice_InvalidStrings tests that invalid UTF-8 sequences in slices are sanitized
+func TestSanitizeUTF8Slice_InvalidStrings(t *testing.T) {
+	input := []string{
+		"Valid",
+		"\xffInvalid",
+		"Also\xfeValid",
+	}
+	expected := []string{
+		"Valid",
+		"�Invalid",
+		"Also�Valid",
+	}
+
+	result := sanitizeUTF8Slice(input)
+
+	if len(result) != len(expected) {
+		t.Fatalf("Expected slice length %d, got %d", len(expected), len(result))
+	}
+
+	for i, exp := range expected {
+		if result[i] != exp {
+			t.Errorf("Expected string at index %d to be %q, got %q", i, exp, result[i])
+		}
+	}
+}
+
+// TestSanitizeUTF8Slice_EmptySlice tests that empty slices are handled correctly
+func TestSanitizeUTF8Slice_EmptySlice(t *testing.T) {
+	input := []string{}
+	result := sanitizeUTF8Slice(input)
+
+	if len(result) != 0 {
+		t.Errorf("Expected empty slice, got length %d", len(result))
+	}
+}
+
+// TestConvertShowToProto_InvalidUTF8 tests that invalid UTF-8 in show fields is sanitized
+func TestConvertShowToProto_InvalidUTF8(t *testing.T) {
+	show := models.Show{
+		Name:     "Breaking\xffBad",
+		ID:       42,
+		Year:     2008,
+		ImageURL: "http://example.com/image\xfe.jpg",
+	}
+
+	result := convertShowToProto(show)
+
+	if result.Name != "Breaking�Bad" {
+		t.Errorf("Expected sanitized name 'Breaking�Bad', got '%s'", result.Name)
+	}
+	if result.ImageUrl != "http://example.com/image�.jpg" {
+		t.Errorf("Expected sanitized image URL 'http://example.com/image�.jpg', got '%s'", result.ImageUrl)
+	}
+}
+
+// TestConvertSubtitleToProto_InvalidUTF8 tests that invalid UTF-8 in subtitle fields is sanitized
+func TestConvertSubtitleToProto_InvalidUTF8(t *testing.T) {
+	subtitle := models.Subtitle{
+		ID:            101,
+		ShowID:        1,
+		ShowName:      "Breaking\xffBad",
+		Name:          "S01\xfeE01",
+		Language:      "hun\xfd",
+		Filename:      "file\xfc.srt",
+		DownloadURL:   "http://example.com/\xfb",
+		Uploader:      "user\xfa123",
+		ReleaseGroups: []string{"DIM\xffENSION", "L\xfeOL"},
+		Release:       "720p\xff",
+	}
+
+	result := convertSubtitleToProto(subtitle)
+
+	if result.ShowName != "Breaking�Bad" {
+		t.Errorf("Expected sanitized ShowName 'Breaking�Bad', got '%s'", result.ShowName)
+	}
+	if result.Name != "S01�E01" {
+		t.Errorf("Expected sanitized Name 'S01�E01', got '%s'", result.Name)
+	}
+	if result.Language != "hun�" {
+		t.Errorf("Expected sanitized Language 'hun�', got '%s'", result.Language)
+	}
+	if result.Filename != "file�.srt" {
+		t.Errorf("Expected sanitized Filename 'file�.srt', got '%s'", result.Filename)
+	}
+	if result.DownloadUrl != "http://example.com/�" {
+		t.Errorf("Expected sanitized DownloadUrl 'http://example.com/�', got '%s'", result.DownloadUrl)
+	}
+	if result.Uploader != "user�123" {
+		t.Errorf("Expected sanitized Uploader 'user�123', got '%s'", result.Uploader)
+	}
+	if result.Release != "720p�" {
+		t.Errorf("Expected sanitized Release '720p�', got '%s'", result.Release)
+	}
+	if len(result.ReleaseGroups) != 2 {
+		t.Fatalf("Expected 2 release groups, got %d", len(result.ReleaseGroups))
+	}
+	if result.ReleaseGroups[0] != "DIM�ENSION" {
+		t.Errorf("Expected sanitized release group 'DIM�ENSION', got '%s'", result.ReleaseGroups[0])
+	}
+	if result.ReleaseGroups[1] != "L�OL" {
+		t.Errorf("Expected sanitized release group 'L�OL', got '%s'", result.ReleaseGroups[1])
+	}
+}
+
+// TestConvertThirdPartyIdsToProto_InvalidUTF8 tests that invalid UTF-8 in IMDB ID is sanitized
+func TestConvertThirdPartyIdsToProto_InvalidUTF8(t *testing.T) {
+	ids := models.ThirdPartyIds{
+		IMDBID:   "tt09\xff03747",
+		TVDBID:   81189,
+		TVMazeID: 169,
+		TraktID:  1388,
+	}
+
+	result := convertThirdPartyIdsToProto(ids)
+
+	if result.ImdbId != "tt09�03747" {
+		t.Errorf("Expected sanitized IMDB ID 'tt09�03747', got '%s'", result.ImdbId)
+	}
+}

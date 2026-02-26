@@ -242,12 +242,14 @@ This document explains key architectural and design decisions made in the SuperS
 **Problem**: The original implementation used a complex flag-based iteration pattern, searching for the link's href in all cells, then looking for subsequent `td.sangol` elements. This was fragile and prone to incorrect matches in multi-column layouts.
 
 **Solution**: Simplified to:
+
 1. Get the parent `<td>` of the show link (the image cell)
 2. Use `.Next()` to get the immediately following sibling `<td>`
 3. Verify it has class "sangol" (the name cell)
 4. Extract the show name from the first `<div>` in that cell
 
 **Rationale**:
+
 - Mirrors the actual HTML structure where name cells always follow image cells
 - Eliminates string matching and iteration complexity
 - Works correctly with multi-column layouts (2+ shows per row)
@@ -255,6 +257,23 @@ This document explains key architectural and design decisions made in the SuperS
 - Preserves show names with parenthetical alternate titles (e.g., "Cash Queens (Les Lionnes)")
 
 **Implementation**: `internal/parser/show_parser.go` - `extractShowNameFromGoquery` method uses goquery's `Closest()` and `Next()` for reliable sibling navigation.
+
+## UTF-8 Safety for Scraped Content
+
+**Decision**: Apply multi-layer UTF-8 sanitization across the entire data pipeline — HTML parsing, subtitle file content, ZIP filenames, and gRPC serialization.
+
+**Rationale**:
+
+- feliratok.eu serves HTML in various encodings (ISO-8859-1, Windows-1252, UTF-8) and may not always declare charset correctly
+- ZIP archives contain filenames encoded in the creator's local encoding (e.g., CP437, ISO-8859-1), which are not valid UTF-8
+- Protocol Buffers requires all `string` fields to be valid UTF-8; invalid sequences cause marshaling errors at the gRPC transport layer
+- Subtitle files downloaded from the site may be in non-UTF-8 encodings
+
+**Implementation**:
+
+- `internal/parser/charset.go` - `NewUTF8Reader` wraps `io.Reader` with `golang.org/x/net/html/charset` for automatic encoding detection and conversion to UTF-8, used by all HTML parsers
+- `internal/grpc/converters.go` - `sanitizeUTF8` / `sanitizeUTF8Slice` use `strings.ToValidUTF8` to replace invalid sequences with U+FFFD as a defense-in-depth safety net before protobuf marshaling
+- `internal/services/subtitle_downloader_impl.go` - `convertToUTF8` uses `golang.org/x/text/transform` with `charset.DetermineEncoding` for subtitle file content; `strings.ToValidUTF8` for ZIP entry filenames
 
 ## Standard gRPC Health Checking Protocol
 

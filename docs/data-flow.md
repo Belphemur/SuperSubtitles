@@ -6,7 +6,7 @@ This document describes the data flow for all major operations in SuperSubtitles
 
 1. `StreamShowList` fires 3 parallel HTTP requests to different feliratok.eu endpoints
 2. Each endpoint is handled by `fetchEndpointPages`, which fetches page 1 first
-3. Page 1 HTML is parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
+3. Page 1 HTML is converted to UTF-8 using `NewUTF8Reader` (automatic charset detection), then parsed by `ShowParser.ParseHtml` using goquery to extract show ID, name, year, and image URL from HTML tables
 4. `ShowParser.ExtractLastPage` inspects the pagination HTML (`div.pagination` links with `oldal=N` parameters) to discover the total page count
 5. If more than 1 page exists, remaining pages (2..lastPage) are fetched in **parallel batches of 10** (`pageBatchSize`). Each batch waits for completion before starting the next
 6. Results from all pages are merged and deduplicated by show ID using a `sync.Map`, preserving first-occurrence order
@@ -40,7 +40,7 @@ For the `nem-all-forditas-alatt` endpoint with 42 pages:
 **Process:**
 
 1. Fetch first page: `GET /index.php?sid=<showID>`
-2. Parse HTML using `SubtitleParser.ParseHtmlWithPagination`:
+2. Parse HTML using `SubtitleParser.ParseHtmlWithPagination` (content is first converted to UTF-8 via `NewUTF8Reader`):
    - Extracts subtitles from 6-column table (Category | Language | Description | Uploader | Date | Download)
    - Parses description for season/episode/release info
    - Detects all qualities from release string
@@ -78,7 +78,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 
 1. `StreamShowSubtitles` processes shows in batches of 20
 2. For each show, it accumulates all subtitles from `StreamSubtitles`, then loads the detail page HTML using the first valid (non-zero) subtitle ID
-3. `ThirdPartyIdParser` extracts IDs from `div.adatlapRow a` links using regex and URL parsing
+3. `ThirdPartyIdParser` converts HTML to UTF-8 via `NewUTF8Reader`, then extracts IDs from `div.adatlapRow a` links using regex and URL parsing
 4. For each show, a complete `ShowSubtitles` (containing show info, third-party IDs, and all subtitles) is sent to the channel
 5. The gRPC server converts each `ShowSubtitles` to a `ShowSubtitlesCollection` proto message and streams it to the client
 6. Tests use `testutil.CollectShowSubtitles` helper to collect stream results into a slice
@@ -138,12 +138,14 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 1. `DownloadSubtitle` method in the Client interface accepts a `DownloadRequest` with the subtitle ID
 2. Client builds the download URL as `index.php?action=letolt&felirat=<subtitleID>` against the configured base domain
 3. **`SubtitleDownloader` service is the primary download handler for all subtitle files**:
-   - **Regular subtitle files** (SRT, ASS, VTT, SUB): Downloaded and returned with correct content-type and extension
+   - **Regular subtitle files** (SRT, ASS, VTT, SUB): Downloaded, converted to UTF-8 (via `convertToUTF8` charset detection), and returned with correct content-type and extension
    - **ZIP files without episode number**: Entire ZIP returned (for manual extraction)
    - **ZIP files with episode number**:
      - ZIP file is downloaded (or retrieved from cache)
      - Episode pattern matching using regex with word boundaries: `S03E01`, `s03e01`, `3x01`, `E01` (with guards against false positives like E01 matching E010)
      - Specific episode subtitle extracted from the ZIP archive
+     - ZIP entry filenames are sanitized to valid UTF-8 (replacing invalid bytes with U+FFFD)
+     - Extracted text subtitle content is converted to UTF-8 via charset detection
      - Only the requested episode file is returned with correct content-type based on file extension
 4. **Multi-Format Support**:
    - SRT (SubRip) - `application/x-subrip`
@@ -165,7 +167,7 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
 **Implementation Files:**
 
 - `internal/services/subtitle_downloader.go` - Interface definition
-- `internal/services/subtitle_downloader_impl.go` - Implementation with caching, ZIP extraction, and format detection
+- `internal/services/subtitle_downloader_impl.go` - Implementation with caching, ZIP extraction, format detection, and UTF-8 conversion
 - `internal/services/subtitle_downloader_test.go` - Comprehensive unit tests and benchmarks covering ZIP detection/extraction, caching, and edge cases
 - `internal/models/download_request.go` - Request/response models
 - `internal/client/client.go` - Client integration

@@ -27,7 +27,14 @@ func (p *ThirdPartyIdParser) ParseHtml(body io.Reader) (models.ThirdPartyIds, er
 	logger := config.GetLogger()
 	logger.Info().Msg("Starting third-party ID extraction from HTML")
 
-	doc, err := goquery.NewDocumentFromReader(body)
+	// Convert any character encoding to UTF-8 before parsing
+	utf8Body, err := NewUTF8Reader(body)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to convert HTML to UTF-8")
+		return models.ThirdPartyIds{}, fmt.Errorf("failed to convert HTML to UTF-8: %w", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(utf8Body)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse HTML document")
 		return models.ThirdPartyIds{}, fmt.Errorf("failed to parse HTML: %w", err)
