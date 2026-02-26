@@ -1,3 +1,15 @@
+# [2.2.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.1.2...v2.2.0) (2026-02-26)
+
+
+### Bug Fixes
+
+* **metrics:** address PR review feedback from Copilot and Gemini ([1afd80e](https://github.com/Belphemur/SuperSubtitles/commit/1afd80e2a619e01179c1502c43e2721069fde6ab))
+
+
+### Features
+
+* **metrics:** add Prometheus metrics for downloads and cache ([11f1011](https://github.com/Belphemur/SuperSubtitles/commit/11f1011c4a5b08380423db8dd02fde2fb645d0c5))
+
 ## [2.1.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.1.1...v2.1.2) (2026-02-26)
 
 
