@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
@@ -323,7 +324,7 @@ func isTextSubtitleContentType(contentType string) bool {
 // It handles BOM detection and uses heuristic charset detection.
 // If the content is already valid UTF-8, this is a no-op.
 func convertToUTF8(content []byte) []byte {
-	if len(content) == 0 {
+	if len(content) == 0 || utf8.Valid(content) {
 		return content
 	}
 
