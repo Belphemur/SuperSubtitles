@@ -1,21 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	"google.golang.org/grpc/health/grpc_health_v1"
-	"google.golang.org/grpc/reflection"
-
-	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	grpcserver "github.com/Belphemur/SuperSubtitles/v2/internal/grpc"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 )
 
 func main() {
@@ -32,20 +28,24 @@ func main() {
 	// Create a client instance
 	httpClient := client.NewClient(cfg)
 
-	// Create a gRPC server
-	grpcServer := grpc.NewServer()
+	// Create and configure the gRPC server
+	grpcServer := grpcserver.NewGRPCServer(httpClient)
 
-	// Register the SuperSubtitles service
-	pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClient))
-
-	// Register health check service
-	healthServer := health.NewServer()
-	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
-	healthServer.SetServingStatus("supersubtitles.v1.SuperSubtitlesService", grpc_health_v1.HealthCheckResponse_SERVING)
-	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING) // Overall server health
-
-	// Register reflection service for tools like grpcurl
-	reflection.Register(grpcServer)
+	// Start Prometheus metrics HTTP server
+	if cfg.Metrics.Enabled {
+		metricsServer := metrics.NewHTTPServer(cfg.Server.Address, cfg.Metrics.Port)
+		go func() {
+			logger.Info().Str("address", metricsServer.Addr).Msg("Starting Prometheus metrics HTTP server")
+			if err := metricsServer.ListenAndServe(); err != nil && err.Error() != "http: Server closed" {
+				logger.Fatal().Err(err).Msg("Failed to serve metrics")
+			}
+		}()
+		defer func() {
+			if err := metricsServer.Shutdown(context.Background()); err != nil {
+				logger.Error().Err(err).Msg("Failed to shutdown metrics server")
+			}
+		}()
+	}
 
 	// Create a listener
 	address := fmt.Sprintf("%s:%d", cfg.Server.Address, cfg.Server.Port)
