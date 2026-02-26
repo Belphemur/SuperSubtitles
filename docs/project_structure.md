@@ -27,6 +27,16 @@ SuperSubtitles/
 │   │   └── errors.go              # Custom error types
 │   ├── config/
 │   │   └── config.go              # Viper configuration & zerolog logger
+│   ├── grpc/
+│   │   ├── server.go              # gRPC service implementation
+│   │   ├── setup.go               # gRPC server factory with Prometheus interceptors
+│   │   ├── converters.go          # Proto ↔ model converters
+│   │   ├── converters_test.go     # Converter tests
+│   │   └── server_test.go         # gRPC server tests
+│   ├── metrics/
+│   │   ├── metrics.go             # Custom Prometheus metric definitions
+│   │   ├── metrics_test.go        # Metrics unit tests
+│   │   └── server.go              # HTTP server for /metrics endpoint
 │   ├── models/
 │   │   ├── show.go                # Show struct
 │   │   ├── subtitle.go            # Subtitle & SubtitleCollection
@@ -75,7 +85,11 @@ SuperSubtitles/
 
 ### `cmd/proxy/`
 
-Application entry point. Currently a CLI tool that demonstrates fetching and logging show data. Designed to be extended into a full HTTP proxy server.
+Application entry point. Orchestrates application startup:
+- Creates the HTTP client
+- Creates the gRPC server (via `grpc.NewGRPCServer()`)
+- Starts the Prometheus metrics HTTP server (if enabled)
+- Handles graceful shutdown on SIGTERM/SIGINT
 
 ### `internal/client/`
 
@@ -155,25 +169,55 @@ The client package is organized by feature with each file containing related fun
     - Downloads files with content-type detection (magic numbers + MIME types)
     - ZIP file detection and extraction
     - Episode extraction from season packs using regex pattern matching
-    - LRU cache for ZIP files (100 entries, 1-hour TTL)
+    - LRU cache for ZIP files (configurable size/TTL, default 2000 entries/24h)
     - ZIP bomb detection to prevent malicious archives
     - Support for multiple subtitle formats (SRT, ASS, VTT, SUB)
+    - Prometheus metrics for cache hits/misses/evictions and download counts
   - `subtitle_downloader_test.go` — Comprehensive tests covering:
     - ZIP detection and extraction
     - Cache behavior
     - Episode matching with edge cases
     - ZIP bomb detection
 
+### `internal/grpc/`
+
+**gRPC Server**
+
+- `setup.go` — `NewGRPCServer()` factory:
+  - Creates `grpc.Server` with Prometheus unary and stream interceptors
+  - Registers SuperSubtitles service, health check, and reflection
+  - Pre-populates gRPC metric labels via `InitializeMetrics()`
+- `server.go` — `SuperSubtitlesServiceServer` implementation with 6 RPCs
+- `converters.go` — Proto ↔ model conversion functions
+
+### `internal/metrics/`
+
+**Prometheus Metrics**
+
+- `metrics.go` — Custom metric definitions registered via `init()`:
+  - `subtitle_downloads_total` (counter, labels: success/error)
+  - `subtitle_cache_hits_total`, `subtitle_cache_misses_total`, `subtitle_cache_evictions_total` (counters)
+  - `subtitle_cache_entries` (gauge)
+- `server.go` — `NewHTTPServer()` creates an HTTP server serving `promhttp.Handler()` at `/metrics`
+- `metrics_test.go` — Verifies metric registration and increment behavior
+
 ## File Relationships
 
 ```
 cmd/proxy/main.go
     ↓
+grpc.NewGRPCServer(client)
+    ├─→ Prometheus interceptors (unary + stream)
+    ├─→ Health check + reflection
+    └─→ server.go (service implementation)
+         ↓
 client.NewClient()
     ├─→ ShowParser (parses HTML)
-    ├─→ SubtitleConverter (normalizes data)
+    ├─→ SubtitleParser (parses subtitles with pagination)
     ├─→ ThirdPartyIdParser (extracts IDs)
-    └─→ SubtitleDownloader (downloads & caches files)
+    └─→ SubtitleDownloader (downloads & caches files, emits metrics)
+
+metrics.NewHTTPServer() → HTTP /metrics endpoint
 
 All depend on:
     • config.GetConfig() — Configuration

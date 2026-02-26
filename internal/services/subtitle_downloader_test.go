@@ -13,7 +13,10 @@ import (
 	"time"
 
 	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 )
 
 // createTestZip creates a test ZIP file with season pack structure
@@ -1351,5 +1354,226 @@ func TestIsTextSubtitleContentType(t *testing.T) {
 				t.Errorf("isTextSubtitleContentType(%q) = %v, want %v", tc.contentType, result, tc.expected)
 			}
 		})
+	}
+}
+
+// Metric helper functions for integration tests
+
+func getCounterValue(c prometheus.Counter) float64 {
+	var m dto.Metric
+	if err := c.(prometheus.Metric).Write(&m); err != nil {
+		return 0
+	}
+	return m.GetCounter().GetValue()
+}
+
+func getGaugeValue(g prometheus.Gauge) float64 {
+	var m dto.Metric
+	if err := g.(prometheus.Metric).Write(&m); err != nil {
+		return 0
+	}
+	return m.GetGauge().GetValue()
+}
+
+func getCounterVecValue(cv *prometheus.CounterVec, labels ...string) float64 {
+	c, err := cv.GetMetricWithLabelValues(labels...)
+	if err != nil {
+		return 0
+	}
+	var m dto.Metric
+	if err := c.Write(&m); err != nil {
+		return 0
+	}
+	return m.GetCounter().GetValue()
+}
+
+func TestDownloadSubtitle_Metrics_SuccessIncrement(t *testing.T) {
+	content := "1\n00:00:01,000 --> 00:00:02,000\nTest subtitle\n"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/x-subrip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(content))
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	before := getCounterVecValue(metrics.SubtitleDownloadsTotal, "success")
+
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	after := getCounterVecValue(metrics.SubtitleDownloadsTotal, "success")
+	if after != before+1 {
+		t.Errorf("Expected success counter to increment by 1, got diff %.0f", after-before)
+	}
+}
+
+func TestDownloadSubtitle_Metrics_ErrorIncrement(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	before := getCounterVecValue(metrics.SubtitleDownloadsTotal, "error")
+
+	_, _ = downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		nil,
+	)
+
+	after := getCounterVecValue(metrics.SubtitleDownloadsTotal, "error")
+	if after != before+1 {
+		t.Errorf("Expected error counter to increment by 1, got diff %.0f", after-before)
+	}
+}
+
+func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
+	zipContent := createTestZip(t, map[string]string{
+		"show.s03e01.srt": "Episode 1 content",
+		"show.s03e02.srt": "Episode 2 content",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	missBeforeFirst := getCounterValue(metrics.CacheMissesTotal)
+	hitBeforeFirst := getCounterValue(metrics.CacheHitsTotal)
+
+	// First request — cache miss
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "metrics-test"),
+		testutil.IntPtr(1),
+	)
+	if err != nil {
+		t.Fatalf("First request failed: %v", err)
+	}
+
+	missAfterFirst := getCounterValue(metrics.CacheMissesTotal)
+	if missAfterFirst != missBeforeFirst+1 {
+		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", missAfterFirst-missBeforeFirst)
+	}
+
+	// Second request — cache hit
+	_, err = downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "metrics-test"),
+		testutil.IntPtr(2),
+	)
+	if err != nil {
+		t.Fatalf("Second request failed: %v", err)
+	}
+
+	hitAfterSecond := getCounterValue(metrics.CacheHitsTotal)
+	if hitAfterSecond != hitBeforeFirst+1 {
+		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", hitAfterSecond-hitBeforeFirst)
+	}
+}
+
+func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
+	zipContent := createTestZip(t, map[string]string{
+		"show.s03e01.srt": "Episode 1 content",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	entriesBefore := getGaugeValue(metrics.CacheEntries)
+
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "gauge-test-unique"),
+		testutil.IntPtr(1),
+	)
+	if err != nil {
+		t.Fatalf("Download failed: %v", err)
+	}
+
+	entriesAfter := getGaugeValue(metrics.CacheEntries)
+	if entriesAfter != entriesBefore+1 {
+		t.Errorf("Expected cache entries gauge to increment by 1, got diff %.0f", entriesAfter-entriesBefore)
+	}
+}
+
+func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionSuccess(t *testing.T) {
+	zipContent := createTestZip(t, map[string]string{
+		"show.s03e01.srt": "Episode 1 content",
+		"show.s03e02.srt": "Episode 2 content",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	before := getCounterVecValue(metrics.SubtitleDownloadsTotal, "success")
+
+	_, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "zip-success-test"),
+		testutil.IntPtr(1),
+	)
+	if err != nil {
+		t.Fatalf("Download failed: %v", err)
+	}
+
+	after := getCounterVecValue(metrics.SubtitleDownloadsTotal, "success")
+	if after != before+1 {
+		t.Errorf("Expected success counter to increment by 1 for ZIP extraction, got diff %.0f", after-before)
+	}
+}
+
+func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionError(t *testing.T) {
+	zipContent := createTestZip(t, map[string]string{
+		"show.s03e01.srt": "Episode 1 content",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	before := getCounterVecValue(metrics.SubtitleDownloadsTotal, "error")
+
+	// Request non-existent episode
+	_, _ = downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "zip-error-test"),
+		testutil.IntPtr(99),
+	)
+
+	after := getCounterVecValue(metrics.SubtitleDownloadsTotal, "error")
+	if after != before+1 {
+		t.Errorf("Expected error counter to increment by 1 for failed ZIP extraction, got diff %.0f", after-before)
 	}
 }

@@ -80,20 +80,17 @@ The gRPC server is implemented in [`internal/grpc/server.go`](../internal/grpc/s
 
 ### Starting the Server
 
-The server is started in [`cmd/proxy/main.go`](../cmd/proxy/main.go):
+The server is created via `NewGRPCServer()` in [`internal/grpc/setup.go`](../internal/grpc/setup.go), which configures Prometheus interceptors, health checking, and reflection. The entry point in [`cmd/proxy/main.go`](../cmd/proxy/main.go) orchestrates startup:
 
 ```go
-// Create gRPC server with reflection and health check
-grpcServer := grpc.NewServer()
-pb.RegisterSuperSubtitlesServiceServer(grpcServer, grpcserver.NewServer(httpClient))
+// Create gRPC server with Prometheus interceptors, health check, and reflection
+grpcServer := grpcserver.NewGRPCServer(httpClient)
 
-// Register health check service
-healthServer := health.NewServer()
-grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
-healthServer.SetServingStatus("supersubtitles.v1.SuperSubtitlesService", grpc_health_v1.HealthCheckResponse_SERVING)
-healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
-
-reflection.Register(grpcServer)
+// Optionally start Prometheus metrics HTTP server
+if cfg.Metrics.Enabled {
+    metricsServer := metrics.NewHTTPServer(cfg.Server.Address, cfg.Metrics.Port)
+    go metricsServer.ListenAndServe()
+}
 
 // Listen and serve
 listener, _ := net.Listen("tcp", address)
@@ -102,6 +99,7 @@ grpcServer.Serve(listener)
 
 **Features:**
 
+- Prometheus gRPC interceptors for request counts, latencies, and stream message counts
 - Graceful shutdown on SIGTERM/SIGINT
 - gRPC reflection enabled (for grpcurl, Postman, etc.)
 - Standard gRPC health checking protocol
@@ -207,7 +205,6 @@ Streams recently uploaded subtitles since a given subtitle ID.
 
 - `since_id` (int32): Subtitle ID to fetch from
 
-
 ### 7. Health Check
 
 Checks the health status of the server using the standard gRPC health checking protocol.
@@ -236,6 +233,7 @@ grpcurl -plaintext localhost:8080 grpc.health.v1.Health/Check
 grpcurl -plaintext -d '{"service": "supersubtitles.v1.SuperSubtitlesService"}' \
   localhost:8080 grpc.health.v1.Health/Check
 ```
+
 **Response:** Stream of `ShowSubtitlesCollection` messages. Each message contains a show's complete information (with third-party IDs) and all its recent subtitles.
 
 **Example:**
@@ -456,3 +454,47 @@ The server handles SIGTERM and SIGINT signals, calling `GracefulStop()` to:
 - [Testing](./testing.md) - Testing infrastructure
 - [Design Decisions](./design-decisions.md) - Architectural decisions
 - [Deployment](./deployment.md) - CI/CD and deployment
+
+## Prometheus Metrics
+
+The gRPC server is instrumented with Prometheus metrics via `go-grpc-middleware/providers/prometheus` interceptors. Additionally, custom application metrics track subtitle downloads and cache performance.
+
+### Metrics Endpoint
+
+When enabled (`metrics.enabled: true` in config, default), an HTTP server exposes Prometheus metrics at `/metrics` on a separate port (default `9090`):
+
+```bash
+curl http://localhost:9090/metrics
+```
+
+Disable metrics or change the port via configuration:
+
+```yaml
+metrics:
+  enabled: false # disable metrics endpoint
+  port: 9091 # or change the port
+```
+
+### Available Metrics
+
+**gRPC server metrics** (via interceptors):
+
+| Metric                           | Type      | Labels                      | Description              |
+| -------------------------------- | --------- | --------------------------- | ------------------------ |
+| `grpc_server_started_total`      | Counter   | type, service, method       | RPCs started             |
+| `grpc_server_handled_total`      | Counter   | type, service, method, code | RPCs completed           |
+| `grpc_server_handling_seconds`   | Histogram | type, service, method       | RPC latency              |
+| `grpc_server_msg_received_total` | Counter   | type, service, method       | Stream messages received |
+| `grpc_server_msg_sent_total`     | Counter   | type, service, method       | Stream messages sent     |
+
+**Application metrics** (custom):
+
+| Metric                           | Type    | Labels                 | Description                |
+| -------------------------------- | ------- | ---------------------- | -------------------------- |
+| `subtitle_downloads_total`       | Counter | status (success/error) | Subtitle download attempts |
+| `subtitle_cache_hits_total`      | Counter | —                      | ZIP cache hits             |
+| `subtitle_cache_misses_total`    | Counter | —                      | ZIP cache misses           |
+| `subtitle_cache_evictions_total` | Counter | —                      | ZIP cache evictions        |
+| `subtitle_cache_entries`         | Gauge   | —                      | Current ZIP cache size     |
+
+Go runtime metrics (goroutines, memory, GC) are included automatically by the default Prometheus registry.
