@@ -19,6 +19,8 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 
 	lru "github.com/hashicorp/golang-lru/v2/expirable"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 // ZIP bomb detection constants
@@ -114,6 +116,11 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 			Int("size", len(content)).
 			Bool("isZip", isZip).
 			Msg("Returning downloaded file as-is")
+
+		// Convert text-based subtitle files to UTF-8
+		if isTextSubtitleContentType(contentType) {
+			content = convertToUTF8(content)
+		}
 
 		return &models.DownloadResult{
 			Filename:    generateFilename(subtitleID, contentType),
@@ -296,6 +303,47 @@ func getContentTypeFromFilename(filename string) string {
 	}
 }
 
+// isTextSubtitleContentType checks if the content type is a text-based subtitle format
+// that should be converted to UTF-8
+func isTextSubtitleContentType(contentType string) bool {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		mediaType = contentType
+	}
+	switch mediaType {
+	case "application/x-subrip", "application/x-ass", "text/ass",
+		"text/vtt", "text/webvtt", "application/x-sub",
+		"text/plain":
+		return true
+	}
+	return false
+}
+
+// convertToUTF8 detects the character encoding of text content and converts it to UTF-8.
+// It handles BOM detection and uses heuristic charset detection.
+// If the content is already valid UTF-8, this is a no-op.
+func convertToUTF8(content []byte) []byte {
+	if len(content) == 0 {
+		return content
+	}
+
+	// Try to detect encoding from the content
+	// We pass a fake "text/plain" content type so charset.DetermineEncoding uses
+	// the BOM and content heuristics rather than a declared charset
+	encoding, _, _ := charset.DetermineEncoding(content, "text/plain")
+
+	// Transform the content to UTF-8
+	decoded, _, err := transform.Bytes(encoding.NewDecoder(), content)
+	if err != nil {
+		// If transformation fails, return original content
+		logger := config.GetLogger()
+		logger.Warn().Err(err).Msg("Failed to convert subtitle content to UTF-8, returning original")
+		return content
+	}
+
+	return decoded
+}
+
 // downloadFile downloads a file from the given URL with caching for ZIP files
 func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string) ([]byte, string, error) {
 	logger := config.GetLogger()
@@ -416,8 +464,9 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 
 		// Check both the full path and the base filename for episode pattern
 		// This handles both flat structures (episode in filename) and nested structures (episode in folder name)
-		filename := filepath.Base(file.Name)
-		fullPath := file.Name
+		// ZIP filenames may not be valid UTF-8 (e.g., CP437, local encoding), so sanitize them
+		filename := strings.ToValidUTF8(filepath.Base(file.Name), "�")
+		fullPath := strings.ToValidUTF8(file.Name, "�")
 
 		// Evaluate the episode pattern match once for both filename and full path
 		matchesFilename := episodePattern.MatchString(filename)
@@ -488,9 +537,16 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		return nil, fmt.Errorf("failed to read file %s from ZIP: %w", bestMatch.file.Name, err)
 	}
 
+	contentType := getContentTypeFromFilename(bestMatch.filename)
+
+	// Convert text-based subtitle files to UTF-8
+	if isTextSubtitleContentType(contentType) {
+		content = convertToUTF8(content)
+	}
+
 	return &models.DownloadResult{
 		Filename:    bestMatch.filename,
 		Content:     content,
-		ContentType: getContentTypeFromFilename(bestMatch.filename),
+		ContentType: contentType,
 	}, nil
 }

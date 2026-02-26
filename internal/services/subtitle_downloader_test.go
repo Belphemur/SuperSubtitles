@@ -1167,3 +1167,189 @@ func TestResolveCacheConfig_InvalidTTL_UsesDefault(t *testing.T) {
 		t.Errorf("Expected default TTL 24h on invalid input, got %v", ttl)
 	}
 }
+
+// TestExtractEpisodeFromZip_InvalidUTF8Filename tests that filenames with invalid UTF-8 bytes
+// (e.g., from non-UTF-8 encoded ZIP entries) are sanitized with the replacement character.
+func TestExtractEpisodeFromZip_InvalidUTF8Filename(t *testing.T) {
+	// Simulate a ZIP where the filename contains invalid UTF-8 bytes,
+	// like "Pokémon" encoded in ISO-8859-1 (é = 0xE9) instead of UTF-8 (é = 0xC3 0xA9)
+	// This produces "Pok\xe9mon" which is not valid UTF-8.
+	invalidFilename := "Pok\xe9mon.the.Series_.XYZ.S01E01.WEBRip.Netflix.en[cc].srt"
+	subtitleContent := "1\n00:00:01,000 --> 00:00:02,000\nTest subtitle\n"
+
+	zipContent := createTestZip(t, map[string]string{
+		invalidFilename: subtitleContent,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		testutil.IntPtr(1),
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// The filename should have the invalid byte replaced with the Unicode replacement character
+	expectedFilename := "Pok�mon.the.Series_.XYZ.S01E01.WEBRip.Netflix.en[cc].srt"
+	if result.Filename != expectedFilename {
+		t.Errorf("Expected sanitized filename %q, got %q", expectedFilename, result.Filename)
+	}
+
+	if result.ContentType != "application/x-subrip" {
+		t.Errorf("Expected content type 'application/x-subrip', got %q", result.ContentType)
+	}
+
+	if len(result.Content) == 0 {
+		t.Error("Expected non-empty content")
+	}
+}
+
+// TestExtractEpisodeFromZip_MultipleInvalidUTF8Filenames tests that the correct episode is
+// matched even when multiple files have invalid UTF-8 filenames.
+func TestExtractEpisodeFromZip_MultipleInvalidUTF8Filenames(t *testing.T) {
+	ep1Content := "1\n00:00:01,000 --> 00:00:02,000\nEpisode 1\n"
+	ep2Content := "1\n00:00:01,000 --> 00:00:02,000\nEpisode 2\n"
+
+	// Both filenames have invalid UTF-8 (ISO-8859-1 encoded accented chars)
+	zipContent := createTestZip(t, map[string]string{
+		"Pok\xe9mon.S01E01.srt": ep1Content,
+		"Pok\xe9mon.S01E02.srt": ep2Content,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	// Request episode 2
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		testutil.IntPtr(2),
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	expectedFilename := "Pok�mon.S01E02.srt"
+	if result.Filename != expectedFilename {
+		t.Errorf("Expected sanitized filename %q, got %q", expectedFilename, result.Filename)
+	}
+
+	if string(result.Content) != ep2Content {
+		t.Errorf("Expected episode 2 content, got %q", string(result.Content))
+	}
+}
+
+// TestExtractEpisodeFromZip_Windows1252Filename tests filenames with Windows-1252 specific bytes
+// that are invalid in UTF-8 (0x80-0x9F range).
+func TestExtractEpisodeFromZip_Windows1252Filename(t *testing.T) {
+	// 0x93 and 0x94 are "smart quotes" in Windows-1252, invalid in UTF-8
+	invalidFilename := "Show\x93s.Name\x94.S01E01.srt"
+	subtitleContent := "1\n00:00:01,000 --> 00:00:02,000\nTest\n"
+
+	zipContent := createTestZip(t, map[string]string{
+		invalidFilename: subtitleContent,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(zipContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "123456789"),
+		testutil.IntPtr(1),
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	// The invalid bytes should be replaced with replacement characters
+	expectedFilename := "Show�s.Name�.S01E01.srt"
+	if result.Filename != expectedFilename {
+		t.Errorf("Expected sanitized filename %q, got %q", expectedFilename, result.Filename)
+	}
+}
+
+// TestConvertToUTF8_ISO88591Content tests that subtitle content in ISO-8859-1 is converted to UTF-8
+func TestConvertToUTF8_ISO88591Content(t *testing.T) {
+	// SRT content with ISO-8859-1 encoded "é" (0xE9)
+	iso88591Content := []byte("1\r\n00:00:01,000 --> 00:00:02,000\r\nCaf\xe9\r\n")
+
+	result := convertToUTF8(iso88591Content)
+
+	resultStr := string(result)
+	if !strings.Contains(resultStr, "Café") {
+		t.Errorf("Expected converted content to contain 'Café', got %q", resultStr)
+	}
+}
+
+// TestConvertToUTF8_AlreadyUTF8 tests that valid UTF-8 content passes through unchanged
+func TestConvertToUTF8_AlreadyUTF8(t *testing.T) {
+	utf8Content := []byte("1\r\n00:00:01,000 --> 00:00:02,000\r\nCafé\r\n")
+
+	result := convertToUTF8(utf8Content)
+
+	if !bytes.Equal(result, utf8Content) {
+		t.Errorf("Expected UTF-8 content to pass through unchanged")
+	}
+}
+
+// TestConvertToUTF8_EmptyContent tests that empty content is handled
+func TestConvertToUTF8_EmptyContent(t *testing.T) {
+	result := convertToUTF8([]byte{})
+	if len(result) != 0 {
+		t.Errorf("Expected empty result, got %d bytes", len(result))
+	}
+}
+
+// TestIsTextSubtitleContentType tests the content type detection for text subtitles
+func TestIsTextSubtitleContentType(t *testing.T) {
+	testCases := []struct {
+		contentType string
+		expected    bool
+	}{
+		{"application/x-subrip", true},
+		{"application/x-ass", true},
+		{"text/ass", true},
+		{"text/vtt", true},
+		{"text/webvtt", true},
+		{"application/x-sub", true},
+		{"text/plain", true},
+		{"application/zip", false},
+		{"application/octet-stream", false},
+		{"application/x-subrip; charset=utf-8", true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.contentType, func(t *testing.T) {
+			result := isTextSubtitleContentType(tc.contentType)
+			if result != tc.expected {
+				t.Errorf("isTextSubtitleContentType(%q) = %v, want %v", tc.contentType, result, tc.expected)
+			}
+		})
+	}
+}

@@ -2,12 +2,37 @@ package grpc
 
 import (
 	"math"
+	"strings"
+	"unicode/utf8"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
+
+// sanitizeUTF8 ensures a string contains only valid UTF-8 sequences.
+// Invalid UTF-8 sequences are replaced with the Unicode replacement character (U+FFFD).
+// This prevents gRPC marshaling errors when strings contain invalid UTF-8 from scraped HTML.
+func sanitizeUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+	// Use strings.ToValidUTF8 to replace invalid sequences with the replacement character
+	return strings.ToValidUTF8(s, "�")
+}
+
+// sanitizeUTF8Slice sanitizes each string in a slice
+func sanitizeUTF8Slice(slice []string) []string {
+	if len(slice) == 0 {
+		return slice
+	}
+	result := make([]string, len(slice))
+	for i, s := range slice {
+		result[i] = sanitizeUTF8(s)
+	}
+	return result
+}
 
 // safeInt32 converts an int to int32 with bounds checking to prevent overflow
 func safeInt32(val int) int32 {
@@ -28,10 +53,10 @@ func safeInt64(val int) int64 {
 // convertShowToProto converts a models.Show to a proto Show message
 func convertShowToProto(show models.Show) *pb.Show {
 	return &pb.Show{
-		Name:     show.Name,
+		Name:     sanitizeUTF8(show.Name),
 		Id:       safeInt64(show.ID),
 		Year:     safeInt32(show.Year),
-		ImageUrl: show.ImageURL,
+		ImageUrl: sanitizeUTF8(show.ImageURL),
 	}
 }
 
@@ -51,7 +76,7 @@ func convertShowFromProto(pbShow *pb.Show) models.Show {
 // convertThirdPartyIdsToProto converts models.ThirdPartyIds to proto ThirdPartyIds message
 func convertThirdPartyIdsToProto(ids models.ThirdPartyIds) *pb.ThirdPartyIds {
 	return &pb.ThirdPartyIds{
-		ImdbId:   ids.IMDBID,
+		ImdbId:   sanitizeUTF8(ids.IMDBID),
 		TvdbId:   safeInt64(ids.TVDBID),
 		TvMazeId: safeInt64(ids.TVMazeID),
 		TraktId:  safeInt64(ids.TraktID),
@@ -93,18 +118,18 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 	return &pb.Subtitle{
 		Id:            safeInt64(subtitle.ID),
 		ShowId:        safeInt64(subtitle.ShowID),
-		ShowName:      subtitle.ShowName,
-		Name:          subtitle.Name,
-		Language:      subtitle.Language,
+		ShowName:      sanitizeUTF8(subtitle.ShowName),
+		Name:          sanitizeUTF8(subtitle.Name),
+		Language:      sanitizeUTF8(subtitle.Language),
 		Season:        safeInt32(subtitle.Season),
 		Episode:       safeInt32(subtitle.Episode),
-		Filename:      subtitle.Filename,
-		DownloadUrl:   subtitle.DownloadURL,
-		Uploader:      subtitle.Uploader,
+		Filename:      sanitizeUTF8(subtitle.Filename),
+		DownloadUrl:   sanitizeUTF8(subtitle.DownloadURL),
+		Uploader:      sanitizeUTF8(subtitle.Uploader),
 		UploadedAt:    uploadedAt,
 		Qualities:     qualities,
-		ReleaseGroups: subtitle.ReleaseGroups,
-		Release:       subtitle.Release,
+		ReleaseGroups: sanitizeUTF8Slice(subtitle.ReleaseGroups),
+		Release:       sanitizeUTF8(subtitle.Release),
 		IsSeasonPack:  subtitle.IsSeasonPack,
 	}
 }

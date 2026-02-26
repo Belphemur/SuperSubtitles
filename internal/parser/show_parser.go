@@ -29,7 +29,14 @@ func (p *ShowParser) ParseHtml(body io.Reader) ([]models.Show, error) {
 	logger := config.GetLogger()
 	logger.Info().Msg("Starting HTML parsing for shows")
 
-	doc, err := goquery.NewDocumentFromReader(body)
+	// Convert any character encoding to UTF-8 before parsing
+	utf8Body, err := NewUTF8Reader(body)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to convert HTML to UTF-8")
+		return nil, fmt.Errorf("failed to convert HTML to UTF-8: %w", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(utf8Body)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to parse HTML document")
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
@@ -210,7 +217,14 @@ func (p *ShowParser) extractShowNameFromGoquery(link *goquery.Selection) string 
 func (p *ShowParser) ExtractLastPage(body io.Reader) int {
 	logger := config.GetLogger()
 
-	doc, err := goquery.NewDocumentFromReader(body)
+	// Convert any character encoding to UTF-8 before parsing
+	utf8Body, err := NewUTF8Reader(body)
+	if err != nil {
+		logger.Debug().Err(err).Msg("Failed to convert HTML to UTF-8")
+		return 1
+	}
+
+	doc, err := goquery.NewDocumentFromReader(utf8Body)
 	if err != nil {
 		logger.Debug().Err(err).Msg("Failed to parse HTML for pagination")
 		return 1
