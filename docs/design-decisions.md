@@ -256,6 +256,23 @@ This document explains key architectural and design decisions made in the SuperS
 
 **Implementation**: `internal/parser/show_parser.go` - `extractShowNameFromGoquery` method uses goquery's `Closest()` and `Next()` for reliable sibling navigation.
 
+## UTF-8 Safety for Scraped Content
+
+**Decision**: Apply multi-layer UTF-8 sanitization across the entire data pipeline — HTML parsing, subtitle file content, ZIP filenames, and gRPC serialization.
+
+**Rationale**:
+
+- feliratok.eu serves HTML in various encodings (ISO-8859-1, Windows-1252, UTF-8) and may not always declare charset correctly
+- ZIP archives contain filenames encoded in the creator's local encoding (e.g., CP437, ISO-8859-1), which are not valid UTF-8
+- Protocol Buffers requires all `string` fields to be valid UTF-8; invalid sequences cause marshaling errors at the gRPC transport layer
+- Subtitle files downloaded from the site may be in non-UTF-8 encodings
+
+**Implementation**:
+
+- `internal/parser/charset.go` - `NewUTF8Reader` wraps `io.Reader` with `golang.org/x/net/html/charset` for automatic encoding detection and conversion to UTF-8, used by all HTML parsers
+- `internal/grpc/converters.go` - `sanitizeUTF8` / `sanitizeUTF8Slice` use `strings.ToValidUTF8` to replace invalid sequences with U+FFFD as a defense-in-depth safety net before protobuf marshaling
+- `internal/services/subtitle_downloader_impl.go` - `convertToUTF8` uses `golang.org/x/text/transform` with `charset.DetermineEncoding` for subtitle file content; `strings.ToValidUTF8` for ZIP entry filenames
+
 ## Standard gRPC Health Checking Protocol
 
 **Decision**: Implement the standard gRPC health checking protocol (`grpc.health.v1.Health`) rather than a custom health endpoint.
