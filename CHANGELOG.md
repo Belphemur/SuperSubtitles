@@ -1,3 +1,12 @@
+## [2.1.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.1.1...v2.1.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* **docs:** simplify show link extraction logic in design decisions ([0edb099](https://github.com/Belphemur/SuperSubtitles/commit/0edb099b8549259af180753708ee4116100243f6))
+* **parser:** ensure all parsed and downloaded content is valid UTF-8 ([a638c1d](https://github.com/Belphemur/SuperSubtitles/commit/a638c1db1b2f56aa4a78178f4b1dd8bc6ace9964))
+* **services:** skip UTF-8 conversion when content is already valid UTF-8 ([d44d142](https://github.com/Belphemur/SuperSubtitles/commit/d44d14216dd03c5ef72a028057508d09a99b1a86))
+
 ## [2.1.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.1.0...v2.1.1) (2026-02-25)
 
 
