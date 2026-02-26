@@ -54,6 +54,12 @@ go build ./...            # Build
 
 Use [conventional commits](https://www.conventionalcommits.org/) for all commits (required for semantic-release).
 
+## Grafana Dashboard
+
+A ready-to-import Grafana dashboard is available at [`grafana/dashboard.json`](grafana/dashboard.json). It covers gRPC server metrics (request rates, latency percentiles, error rates, streaming throughput, status codes), subtitle download metrics, and LRU cache metrics.
+
+**To import:** Grafana → Dashboards → Import → upload or paste the JSON file. You will be prompted to select your Prometheus datasource.
+
 ## Documentation
 
 Comprehensive documentation is in [`docs/`](docs/architecture.md):
