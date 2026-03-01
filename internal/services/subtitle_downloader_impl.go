@@ -16,11 +16,11 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/cache"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 
-	lru "github.com/hashicorp/golang-lru/v2/expirable"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
@@ -39,16 +39,10 @@ const (
 	maxDownloadSize = 150 * 1024 * 1024
 )
 
-// zipCacheEntry represents a cached ZIP file with its content
-type zipCacheEntry struct {
-	content  []byte
-	cachedAt time.Time
-}
-
 // DefaultSubtitleDownloader implements SubtitleDownloader with caching
 type DefaultSubtitleDownloader struct {
 	httpClient *http.Client
-	zipCache   *lru.LRU[string, *zipCacheEntry]
+	zipCache   cache.Cache
 }
 
 // resolveCacheConfig returns the cache size and TTL from cfg, with fallback defaults.
@@ -78,19 +72,53 @@ func resolveCacheConfig(cfg *config.Config) (size int, ttl time.Duration) {
 	return
 }
 
-// NewSubtitleDownloader creates a new subtitle downloader with LRU cache.
+// NewSubtitleDownloader creates a new subtitle downloader with a pluggable cache.
+// The cache backend ("memory" or "redis") is selected via config (cache.type).
 // Cache size and TTL are read from config (cache.size and cache.ttl).
-// Defaults: 2000 entries, 24-hour TTL.
+// Defaults: memory backend, 2000 entries, 24-hour TTL.
 func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
-	cacheSize, cacheTTL := resolveCacheConfig(config.GetConfig())
-	onEvict := func(_ string, _ *zipCacheEntry) {
+	cfg := config.GetConfig()
+	cacheSize, cacheTTL := resolveCacheConfig(cfg)
+	onEvict := func(_ string, _ []byte) {
 		metrics.CacheEvictionsTotal.Inc()
 		metrics.CacheEntries.Dec()
 	}
 	metrics.CacheEntries.Set(0)
+
+	cacheType := "memory"
+	if cfg != nil && cfg.Cache.Type != "" {
+		cacheType = cfg.Cache.Type
+	}
+
+	providerCfg := cache.ProviderConfig{
+		Size:    cacheSize,
+		TTL:     cacheTTL,
+		OnEvict: onEvict,
+	}
+	if cfg != nil {
+		providerCfg.RedisAddress = cfg.Cache.Redis.Address
+		providerCfg.RedisPassword = cfg.Cache.Redis.Password
+		providerCfg.RedisDB = cfg.Cache.Redis.DB
+	}
+
+	logger := config.GetLogger()
+	zipCache, err := cache.New(cacheType, providerCfg)
+	if err != nil {
+		logger.Warn().Err(err).
+			Str("cacheType", cacheType).
+			Msg("Failed to create cache, falling back to memory")
+		zipCache, _ = cache.New("memory", providerCfg)
+	}
+
+	logger.Info().
+		Str("cacheType", cacheType).
+		Int("cacheSize", cacheSize).
+		Dur("cacheTTL", cacheTTL).
+		Msg("Subtitle downloader cache initialized")
+
 	return &DefaultSubtitleDownloader{
 		httpClient: httpClient,
-		zipCache:   lru.NewLRU[string, *zipCacheEntry](cacheSize, onEvict, cacheTTL),
+		zipCache:   zipCache,
 	}
 }
 
@@ -363,10 +391,9 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	if cached, found := d.zipCache.Get(url); found {
 		logger.Debug().
 			Str("url", url).
-			Time("cachedAt", cached.cachedAt).
 			Msg("Retrieved file from cache")
 		metrics.CacheHitsTotal.Inc()
-		return cached.content, "application/zip", nil
+		return cached, "application/zip", nil
 	}
 	metrics.CacheMissesTotal.Inc()
 
@@ -414,10 +441,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	// Cache ZIP files based on magic number detection (more reliable than content-type)
 	if isZipFile(content) {
 		isNewEntry := !d.zipCache.Contains(url)
-		d.zipCache.Add(url, &zipCacheEntry{
-			content:  content,
-			cachedAt: time.Now(),
-		})
+		d.zipCache.Set(url, content)
 		if isNewEntry {
 			metrics.CacheEntries.Inc()
 		}
