@@ -20,8 +20,9 @@ type Config struct {
 		Port    int    `mapstructure:"port"`
 		Address string `mapstructure:"address"`
 	} `mapstructure:"server"`
-	LogLevel string `mapstructure:"log_level"`
-	Cache    struct {
+	LogLevel  string `mapstructure:"log_level"`
+	LogFormat string `mapstructure:"log_format"` // Log output format: "console" (default) or "json"
+	Cache     struct {
 		Size int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
 		TTL  string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
 	} `mapstructure:"cache"`
@@ -37,7 +38,7 @@ var (
 )
 
 func init() {
-	// Initialize zerolog with console writer for human-readable output
+	// Initialize zerolog with console writer for human-readable output (default before config loads)
 	logger = zerolog.New(zerolog.ConsoleWriter{
 		Out:     os.Stdout,
 		NoColor: false,
@@ -46,6 +47,16 @@ func init() {
 	config, err := LoadConfig()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to load config")
+	}
+
+	// Configure the log writer based on log_format setting
+	switch config.LogFormat {
+	case "json":
+		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	case "console", "":
+		// already initialized above; nothing to do
+	default:
+		logger.Warn().Str("invalid_format", config.LogFormat).Msg("Invalid log format, using default 'console'")
 	}
 
 	// Parse and set log level from config
@@ -82,6 +93,8 @@ func LoadConfig() (*Config, error) {
 
 	// Add specific environment variable for log level
 	_ = viper.BindEnv("log_level", "LOG_LEVEL")
+	// Add specific environment variable for log format
+	_ = viper.BindEnv("log_format", "LOG_FORMAT")
 
 	// Read config file
 	if err := viper.ReadInConfig(); err != nil {
