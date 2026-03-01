@@ -30,6 +30,11 @@ func main() {
 
 	// Create a client instance
 	httpClient := client.NewClient(cfg)
+	defer func() {
+		if err := httpClient.Close(); err != nil {
+			logger.Error().Err(err).Msg("Failed to close client")
+		}
+	}()
 
 	// Create and configure the gRPC server
 	grpcServer := grpcserver.NewGRPCServer(httpClient)

@@ -18,6 +18,10 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `log_format`              | Log output format (console/json); defaults to console for unrecognized values | `console`                                                                          | `APP_LOG_FORMAT` or `LOG_FORMAT` |
 | `cache.size`              | Maximum entries in LRU ZIP cache      | `2000`                                                                             | `APP_CACHE_SIZE`               |
 | `cache.ttl`               | LRU cache TTL (Go duration)           | `24h`                                                                              | `APP_CACHE_TTL`                |
+| `cache.type`              | Cache backend (`memory` or `redis`)   | `memory`                                                                           | `APP_CACHE_TYPE`               |
+| `cache.redis.address`     | Redis/Valkey server address           | `localhost:6379`                                                                   | `APP_CACHE_REDIS_ADDRESS`      |
+| `cache.redis.password`    | Redis/Valkey password (optional)      | `""`                                                                               | `APP_CACHE_REDIS_PASSWORD`     |
+| `cache.redis.db`          | Redis/Valkey database number          | `0`                                                                                | `APP_CACHE_REDIS_DB`           |
 | `metrics.enabled`         | Enable Prometheus metrics endpoint    | `true`                                                                             | `APP_METRICS_ENABLED`          |
 | `metrics.port`            | Port for the metrics HTTP server      | `9090`                                                                             | `APP_METRICS_PORT`             |
 
@@ -36,8 +40,13 @@ server:
   address: "localhost"
 
 cache:
+  type: "memory"  # "memory" (in-process LRU) or "redis" (Redis/Valkey-backed LRU)
   size: 2000
   ttl: "24h"
+  redis:
+    address: "localhost:6379"
+    password: ""
+    db: 0
 
 metrics:
   enabled: true
@@ -123,7 +132,8 @@ Prepares Copilot agent environment:
 | `github.com/PuerkitoBio/goquery`     | jQuery-like HTML parsing                | Latest             |
 | `github.com/rs/zerolog`              | Structured JSON/console logging         | Latest             |
 | `github.com/spf13/viper`             | Configuration management                | Latest             |
-| `github.com/hashicorp/golang-lru/v2` | LRU cache for ZIP file caching (configurable TTL) | v2                 |
+| `github.com/hashicorp/golang-lru/v2` | In-memory LRU cache (memory backend)           | v2                 |
+| `github.com/redis/go-redis/v9`      | Redis/Valkey client (redis cache backend)       | v9                 |
 | `github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus` | gRPC Prometheus interceptors | Latest |
 | `github.com/prometheus/client_golang` | Prometheus client library               | Latest             |
 | `archive/zip` (stdlib)               | ZIP file extraction for season packs    | stdlib             |
@@ -202,6 +212,13 @@ docker run -p 8080:8080 -p 9090:9090 \
 # Run with volume-mounted config
 docker run -p 8080:8080 \
   -v $(pwd)/config.yaml:/app/config/config.yaml \
+  ghcr.io/belphemur/supersubtitles:latest
+
+# Run with Redis/Valkey cache backend
+docker run -p 8080:8080 -p 9090:9090 \
+  -e APP_SERVER_ADDRESS=0.0.0.0 \
+  -e APP_CACHE_TYPE=redis \
+  -e APP_CACHE_REDIS_ADDRESS=redis:6379 \
   ghcr.io/belphemur/supersubtitles:latest
 ```
 

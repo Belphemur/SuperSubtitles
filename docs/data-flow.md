@@ -155,10 +155,13 @@ For a show with 5 subtitle pages (like https://feliratok.eu/index.php?sid=3217):
    - ZIP archives - `application/zip`
    - Unknown formats default to `application/octet-stream`
 5. **Caching Strategy**:
-   - LRU cache with 100-entry capacity and 1-hour TTL
+   - Pluggable LRU cache backend selected via `cache.type` config: `memory` (default) or `redis`
+   - **Memory backend**: In-process LRU cache using hashicorp/golang-lru with configurable size and TTL
+   - **Redis/Valkey backend**: Uses a single Redis hash for values with per-field TTL (`HPEXPIRE`, requires Redis 7.4+ / Valkey 8+) and a sorted set for LRU access-time tracking — only 2 Redis keys regardless of cache size. Atomic Lua scripts ensure get-and-touch / set-and-evict consistency
    - Only ZIP files are cached (regular subtitle files are small and not cached)
    - Cache key is the download URL
    - Multiple episode requests from same season pack use cached ZIP
+   - Falls back to memory if the configured backend fails to initialize
 6. **File Structure Support**:
    - Flat ZIP structure (all files in root)
    - Nested folders (e.g., `ShowName.S03/ShowName.S03E01.srt`)

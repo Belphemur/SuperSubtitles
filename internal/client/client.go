@@ -24,6 +24,9 @@ type Client interface {
 	StreamSubtitles(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle]
 	StreamShowSubtitles(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitles]
 	StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles]
+
+	// Close releases any resources held by the client (e.g., cache connections).
+	Close() error
 }
 
 // client implements the Client interface
@@ -79,4 +82,9 @@ func NewClient(cfg *config.Config) Client {
 		subtitleDownloader: services.NewSubtitleDownloader(httpClient),
 		subtitleParser:     parser.NewSubtitleParser(cfg.SuperSubtitleDomain),
 	}
+}
+
+// Close releases any resources held by the client, such as cache connections.
+func (c *client) Close() error {
+	return c.subtitleDownloader.Close()
 }

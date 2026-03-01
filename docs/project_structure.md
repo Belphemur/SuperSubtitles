@@ -121,6 +121,16 @@ The client package is organized by feature with each file containing related fun
   - Server address and port settings
   - Log level control
 
+### `internal/cache/`
+
+**Pluggable LRU cache abstraction** with a factory + provider registry pattern:
+
+- `cache.go` — `Cache` interface: `Get`, `Set`, `Contains`, `Len`, `Close`
+- `factory.go` — Provider registry: `Register`, `New`, `RegisteredProviders`
+- `memory.go` — In-memory LRU provider (wraps `hashicorp/golang-lru/v2/expirable`)
+- `redis.go` — Redis/Valkey provider using hash + sorted set + `HPEXPIRE` for per-field TTL with atomic Lua scripts
+- Test files for each provider and the factory
+
 ### `internal/models/`
 
 **Data structures** representing all entities:
@@ -169,7 +179,7 @@ The client package is organized by feature with each file containing related fun
     - Downloads files with content-type detection (magic numbers + MIME types)
     - ZIP file detection and extraction
     - Episode extraction from season packs using regex pattern matching
-    - LRU cache for ZIP files (configurable size/TTL, default 2000 entries/24h)
+    - Pluggable LRU cache via `cache.Cache` interface (memory or Redis/Valkey backend, configurable size/TTL)
     - ZIP bomb detection to prevent malicious archives
     - Support for multiple subtitle formats (SRT, ASS, VTT, SUB)
     - Prometheus metrics for cache hits/misses/evictions and download counts

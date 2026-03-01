@@ -23,8 +23,14 @@ type Config struct {
 	LogLevel  string `mapstructure:"log_level"`
 	LogFormat string `mapstructure:"log_format"` // Log output format: "console" (default) or "json"
 	Cache     struct {
-		Size int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
-		TTL  string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
+		Type  string `mapstructure:"type"` // Cache backend: "memory" (default) or "redis"
+		Size  int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
+		TTL   string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
+		Redis struct {
+			Address  string `mapstructure:"address"`  // Redis/Valkey server address (e.g., "localhost:6379")
+			Password string `mapstructure:"password"` // Redis/Valkey password (optional)
+			DB       int    `mapstructure:"db"`       // Redis/Valkey database number (default 0)
+		} `mapstructure:"redis"`
 	} `mapstructure:"cache"`
 	Metrics struct {
 		Enabled bool `mapstructure:"enabled"` // Whether to expose Prometheus metrics

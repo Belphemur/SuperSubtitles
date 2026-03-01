@@ -125,6 +125,24 @@ results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ct
   - Multi-format support
   - Benchmark tests for performance
 
+### Cache Tests
+
+- `internal/cache/memory_test.go` - In-memory LRU cache tests:
+  - Get/Set, Contains, Len operations
+  - LRU eviction when exceeding capacity
+  - Eviction callback invocation
+  - Overwrite behavior
+- `internal/cache/factory_test.go` - Factory and provider registry tests:
+  - Creating caches via factory
+  - Unknown provider error handling
+  - Registered provider listing and sorting
+  - Redis connection failure handling
+- `internal/cache/redis_test.go` - Redis/Valkey cache tests (skipped without `REDIS_ADDRESS` env var):
+  - Get/Set, Contains, Len operations
+  - LRU eviction when exceeding capacity
+  - Touch-promotes-entry (Get refreshes LRU ordering)
+  - Eviction callback invocation
+
 ### Metrics Tests
 
 - `internal/metrics/metrics_test.go` - Prometheus metrics tests:
