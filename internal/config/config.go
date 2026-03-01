@@ -20,7 +20,9 @@ type Config struct {
 		Port    int    `mapstructure:"port"`
 		Address string `mapstructure:"address"`
 	} `mapstructure:"server"`
-	Cache    struct {
+	LogLevel  string `mapstructure:"log_level"`
+	LogFormat string `mapstructure:"log_format"` // Log output format: "console" (default) or "json"
+	Cache     struct {
 		Type  string `mapstructure:"type"` // Cache backend: "memory" (default) or "redis"
 		Size  int    `mapstructure:"size"` // Maximum number of entries in the LRU cache
 		TTL   string `mapstructure:"ttl"`  // Go duration string like "1h", "24h", etc.
@@ -29,8 +31,7 @@ type Config struct {
 			Password string `mapstructure:"password"` // Redis/Valkey password (optional)
 			DB       int    `mapstructure:"db"`       // Redis/Valkey database number (default 0)
 		} `mapstructure:"redis"`
-	LogLevel  string `mapstructure:"log_level"`
-	LogFormat string `mapstructure:"log_format"` // Log output format: "console" (default) or "json"
+	} `mapstructure:"cache"`
 	Metrics struct {
 		Enabled bool `mapstructure:"enabled"` // Whether to expose Prometheus metrics
 		Port    int  `mapstructure:"port"`    // Port for the metrics HTTP server
