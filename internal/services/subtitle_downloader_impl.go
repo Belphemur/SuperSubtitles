@@ -569,7 +569,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 
 	// No matches found
 	if len(matches) == 0 {
-		return nil, fmt.Errorf("episode %d not found in season pack ZIP (searched %d files)", episode, len(zipReader.File))
+		return nil, &ErrSubtitleNotFoundInZip{Episode: episode, FileCount: len(zipReader.File)}
 	}
 
 	// Sort matches: first by priority (prefer .srt over others), then by filename for determinism

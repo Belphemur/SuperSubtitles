@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -268,6 +269,9 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				}
 				if !strings.Contains(err.Error(), "not found") {
 					t.Errorf("Expected 'not found' error, got: %v", err)
+				}
+				if !errors.Is(err, &ErrSubtitleNotFoundInZip{}) {
+					t.Errorf("Expected errors.Is to match ErrSubtitleNotFoundInZip, got: %v", err)
 				}
 				return
 			}

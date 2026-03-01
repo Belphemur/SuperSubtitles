@@ -3,15 +3,19 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/services"
 )
 
 // mockClient implements client.Client for testing
@@ -510,6 +514,36 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 	}
 	if resp.ContentType != "application/zip" {
 		t.Errorf("Expected content type 'application/zip', got '%s'", resp.ContentType)
+	}
+}
+
+// TestDownloadSubtitle_EpisodeNotFoundInZip tests that ErrSubtitleNotFoundInZip results in a NotFound gRPC status
+func TestDownloadSubtitle_EpisodeNotFoundInZip(t *testing.T) {
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, &services.ErrSubtitleNotFoundInZip{Episode: *episode, FileCount: 3})
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "101",
+		Episode:    proto.Int32(5),
+	}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("Expected codes.NotFound, got %v", st.Code())
 	}
 }
 
