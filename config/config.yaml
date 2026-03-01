@@ -6,6 +6,7 @@ server:
   port: 8080
   address: "localhost"
 log_level: "info"
+log_format: "console"
 cache:
   type: "memory"  # "memory" (in-process LRU) or "redis" (Redis/Valkey-backed LRU)
   size: 2000

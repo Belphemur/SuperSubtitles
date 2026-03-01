@@ -15,6 +15,7 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `server.port`             | Server listening port                 | `8080`                                                                             | `APP_SERVER_PORT`              |
 | `server.address`          | Server listening address              | `localhost`                                                                        | `APP_SERVER_ADDRESS`           |
 | `log_level`               | Zerolog level (debug/info/warn/error) | `info`                                                                             | `APP_LOG_LEVEL` or `LOG_LEVEL` |
+| `log_format`              | Log output format (console/json); defaults to console for unrecognized values | `console`                                                                          | `APP_LOG_FORMAT` or `LOG_FORMAT` |
 | `cache.size`              | Maximum entries in LRU ZIP cache      | `2000`                                                                             | `APP_CACHE_SIZE`               |
 | `cache.ttl`               | LRU cache TTL (Go duration)           | `24h`                                                                              | `APP_CACHE_TTL`                |
 | `cache.type`              | Cache backend (`memory` or `redis`)   | `memory`                                                                           | `APP_CACHE_TYPE`               |
@@ -32,6 +33,7 @@ super_subtitle_domain: "https://feliratok.eu"
 client_timeout: "30s"
 user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0"
 log_level: "info"
+log_format: "console"
 
 server:
   port: 8080
@@ -56,6 +58,9 @@ metrics:
 ```bash
 # Override log level
 export LOG_LEVEL=debug
+
+# Enable JSON logging
+export LOG_FORMAT=json
 
 # Override server address
 export APP_SERVER_ADDRESS=0.0.0.0
