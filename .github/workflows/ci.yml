@@ -42,6 +42,16 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      valkey:
+        image: valkey/valkey:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v6
 
@@ -55,6 +65,8 @@ jobs:
         run: go install gotest.tools/gotestsum@latest
 
       - name: Run tests
+        env:
+          REDIS_ADDRESS: localhost:6379
         run: |
           mkdir -p test-results
           gotestsum --junitfile test-results/junit.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...

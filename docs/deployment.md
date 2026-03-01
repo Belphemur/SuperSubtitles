@@ -95,8 +95,11 @@ golangci-lint run
 
 **Test Job:**
 
+The test job spins up a `valkey/valkey:latest` service container (Redis-compatible, exposed on `localhost:6379`) and sets `REDIS_ADDRESS=localhost:6379` so the Redis cache tests in `internal/cache/redis_test.go` run against a real Valkey instance instead of being skipped.
+
 ```bash
-gotestsum --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...
+# Service: valkey/valkey:latest on localhost:6379
+REDIS_ADDRESS=localhost:6379 gotestsum --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...
 # Upload to Codecov
 ```
 
