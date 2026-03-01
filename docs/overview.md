@@ -10,7 +10,7 @@ SuperSubtitles is a Go proxy service that interfaces with [feliratok.eu](https:/
 4. **Extracts third-party IDs** (IMDB, TVDB, TVMaze, Trakt) by scraping show detail pages.
 5. **Normalizes all data** — converting Hungarian language names to ISO codes, parsing quality strings (360p–2160p), building download URLs, and converting timestamps.
 6. **Checks for updates** since a given content ID via the recheck endpoint.
-7. **Downloads subtitles with episode extraction** — downloads subtitle files with support for extracting specific episodes from season pack ZIP files, using an LRU cache (1-hour TTL) to optimize repeated requests.
+7. **Downloads subtitles with episode extraction** — downloads subtitle files with support for extracting specific episodes from season pack ZIP files, using a pluggable LRU cache (memory or Redis/Valkey backend, configurable size and TTL) to optimize repeated requests.
 
 The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all client functionality through a clean gRPC API with **server-side streaming** for list/collection endpoints. The server listens on the configured address and port (`server.address` and `server.port` in config), supports graceful shutdown, and includes gRPC reflection for tools like grpcurl.
 
@@ -86,8 +86,8 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 │  Parser[T]          │  │  SubtitleDownloader          │
 │  SingleResultParser │  │   • ZIP download & caching   │
 │                     │  │   • Episode extraction       │
-│  ShowParser         │  │   • LRU cache (1h TTL)       │
-│   (HTML → []Show)   │  │                              │
+│  ShowParser         │  │   • Pluggable cache backend  │
+│   (HTML → []Show)   │  │     (memory / Redis/Valkey)  │
 │                     │  │                              │
 │  ThirdPartyIdParser │  │                              │
 │   (HTML → IDs)      │  │                              │

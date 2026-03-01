@@ -67,6 +67,7 @@ Key architectural and design decisions with rationale.
 - Client architecture considerations
 - Parallel pagination
 - Error handling strategy
+- Pluggable cache with factory pattern (memory / Redis/Valkey)
 
 ### [Deployment](./deployment.md)
 

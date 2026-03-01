@@ -295,3 +295,32 @@ This document explains key architectural and design decisions made in the SuperS
 - Multi-stage Dockerfile: download stage fetches `grpc_health_probe` and verifies checksum against official release checksums
 - Health check runs every 30s with 10s timeout, 5s start period, 3 retries
 - Final image excludes build tools (wget) for minimal size
+
+## Pluggable Cache with Factory Pattern
+
+**Decision**: Abstract the ZIP file cache behind an interface (`cache.Cache`) with a provider registry, allowing the cache backend to be selected via configuration (`cache.type`). Ship two built-in providers: `memory` (in-process LRU) and `redis` (Redis/Valkey-backed LRU).
+
+**Rationale**:
+
+- Decouples the `SubtitleDownloader` from a specific cache implementation
+- Enables sharing cache across multiple application instances via Redis/Valkey
+- Factory + provider registry pattern makes it easy to add new backends without modifying existing code
+- Falls back gracefully to memory if the configured backend fails to initialize
+
+**Redis/Valkey LRU Architecture**:
+
+- Only **2 Redis keys** are used regardless of cache size (not N+1 individual keys):
+  - A **Hash** (`sscache:data`) stores all cached values as fields, with per-field TTL via `HPEXPIRE` (Redis 7.4+ / Valkey 8+)
+  - A **Sorted Set** (`sscache:lru`) tracks LRU ordering (member = key, score = last-access microsecond timestamp)
+- **Atomic Lua scripts** ensure consistency:
+  - `getAndTouch`: retrieves a value and refreshes the LRU score in one atomic operation
+  - `setAndEvict`: stores a value, sets per-field TTL, updates LRU, and evicts the oldest entries when over capacity
+- Expired hash fields are automatically removed by Redis; stale sorted-set members are lazily cleaned during eviction
+
+**Implementation**:
+
+- `internal/cache/cache.go` — `Cache` interface with `Get`, `Set`, `Contains`, `Len`, `Close`
+- `internal/cache/factory.go` — Provider registry with `Register`, `New`, `RegisteredProviders`
+- `internal/cache/memory.go` — In-memory provider wrapping `hashicorp/golang-lru/v2/expirable`
+- `internal/cache/redis.go` — Redis/Valkey provider with Lua scripts for atomic LRU operations
+- `internal/services/subtitle_downloader_impl.go` — Uses `cache.Cache` interface; selects backend via `cache.New(cacheType, ...)`
