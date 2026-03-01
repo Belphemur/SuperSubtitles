@@ -7,8 +7,13 @@ server:
   address: "localhost"
 log_level: "info"
 cache:
+  type: "memory"  # "memory" (in-process LRU) or "redis" (Redis/Valkey-backed LRU)
   size: 2000
   ttl: "24h"
+  redis:
+    address: "localhost:6379"
+    password: ""
+    db: 0
 metrics:
   enabled: true
   port: 9090
