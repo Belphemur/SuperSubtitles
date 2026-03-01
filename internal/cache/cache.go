@@ -9,7 +9,7 @@ type EvictCallback func(key string, value []byte)
 // This avoids coupling the cache package to a specific logging framework.
 type Logger interface {
 	// Error logs a message at error level with an associated error value.
-	Error(msg string, err error, keysAndValues ...any)
+	Error(msg string, err error)
 }
 
 // Cache defines the interface for key-value caching with LRU semantics.

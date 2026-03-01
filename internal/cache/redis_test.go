@@ -94,8 +94,9 @@ func TestRedisCache_Contains(t *testing.T) {
 func TestRedisCache_Len(t *testing.T) {
 	c := newTestRedisCacheWithConfig(t, 100, 10*time.Second, nil)
 
-	if c.Len() != 0 {
-		t.Fatalf("Expected Len 0 on clean DB, got %d", c.Len())
+	n := c.Len()
+	if n != 0 {
+		t.Fatalf("Expected Len 0 on clean DB, got %d", n)
 	}
 
 	c.Set("redis-len-a", []byte("1"))

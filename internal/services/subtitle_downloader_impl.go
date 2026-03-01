@@ -21,6 +21,7 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 
+	"github.com/rs/zerolog"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
@@ -94,7 +95,7 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		Size:    cacheSize,
 		TTL:     cacheTTL,
 		OnEvict: onEvict,
-		Logger:  &zerologCacheLogger{},
+		Logger:  &zerologCacheLogger{logger: config.GetLogger()},
 	}
 	if cfg != nil {
 		providerCfg.RedisAddress = cfg.Cache.Redis.Address
@@ -137,11 +138,12 @@ func (d *DefaultSubtitleDownloader) Close() error {
 }
 
 // zerologCacheLogger adapts zerolog to the cache.Logger interface.
-type zerologCacheLogger struct{}
+type zerologCacheLogger struct {
+	logger zerolog.Logger
+}
 
-func (z *zerologCacheLogger) Error(msg string, err error, _ ...any) {
-	logger := config.GetLogger()
-	logger.Error().Err(err).Msg(msg)
+func (z *zerologCacheLogger) Error(msg string, err error) {
+	z.logger.Error().Err(err).Msg(msg)
 }
 
 // DownloadSubtitle downloads a subtitle file, with support for extracting episodes from season packs.
