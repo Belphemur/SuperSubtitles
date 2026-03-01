@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.3.0...v2.4.0) (2026-03-01)
+
+
+### Features
+
+* **cache:** pluggable LRU cache with Redis/Valkey backend via factory pattern ([#62](https://github.com/Belphemur/SuperSubtitles/issues/62)) ([d74cdd1](https://github.com/Belphemur/SuperSubtitles/commit/d74cdd1e2e139dfffc7d9818ee191387f8081da9))
+
 # [2.3.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.2.1...v2.3.0) (2026-02-26)
 
 
