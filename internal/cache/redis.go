@@ -21,6 +21,10 @@ func init() {
 // redisCache implements the Cache interface using Redis/Valkey with
 // application-level LRU semantics.
 //
+// Requires Redis 7.4+ or Valkey 8+ for per-field hash TTL (HPEXPIRE command).
+// Using an older version will cause Set operations to fail silently (values are stored
+// but won't expire automatically).
+//
 // Data is stored in just 2 Redis keys (regardless of the number of cache entries):
 //
 //   - {prefix}data — a Hash that stores all cached values (field = user key, value = bytes).
@@ -153,6 +157,8 @@ func (r *redisCache) Set(key string, value []byte) {
 	}
 
 	if r.onEvict != nil {
+		// Value is nil because retrieving evicted values from Redis would require
+		// additional roundtrips. Callers should only rely on the key for bookkeeping.
 		for _, evictedKey := range evicted {
 			r.onEvict(evictedKey, nil)
 		}

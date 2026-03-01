@@ -107,7 +107,10 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		logger.Warn().Err(err).
 			Str("cacheType", cacheType).
 			Msg("Failed to create cache, falling back to memory")
-		zipCache, _ = cache.New("memory", providerCfg)
+		zipCache, err = cache.New("memory", providerCfg)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("Failed to create fallback memory cache")
+		}
 	}
 
 	logger.Info().
