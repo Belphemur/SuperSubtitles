@@ -1,8 +1,16 @@
 package cache
 
 // EvictCallback is called when an entry is evicted from the cache.
-// Not all providers support eviction callbacks (e.g., Redis relies on server-side eviction).
+// Support for eviction callbacks is provider-specific. For example, the Redis/Valkey
+// provider performs application-level LRU eviction and can invoke this callback.
 type EvictCallback func(key string, value []byte)
+
+// Logger is a minimal logging interface for cache providers to report errors.
+// This avoids coupling the cache package to a specific logging framework.
+type Logger interface {
+	// Error logs a message at error level with an associated error value.
+	Error(msg string, err error, keysAndValues ...any)
+}
 
 // Cache defines the interface for key-value caching with LRU semantics.
 // Implementations may use in-memory storage or external backends like Redis/Valkey.

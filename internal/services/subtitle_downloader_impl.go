@@ -94,6 +94,7 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		Size:    cacheSize,
 		TTL:     cacheTTL,
 		OnEvict: onEvict,
+		Logger:  &zerologCacheLogger{},
 	}
 	if cfg != nil {
 		providerCfg.RedisAddress = cfg.Cache.Redis.Address
@@ -102,11 +103,13 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	}
 
 	logger := config.GetLogger()
+	activeType := cacheType
 	zipCache, err := cache.New(cacheType, providerCfg)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("cacheType", cacheType).
 			Msg("Failed to create cache, falling back to memory")
+		activeType = "memory"
 		zipCache, err = cache.New("memory", providerCfg)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create fallback memory cache")
@@ -114,7 +117,7 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	}
 
 	logger.Info().
-		Str("cacheType", cacheType).
+		Str("cacheType", activeType).
 		Int("cacheSize", cacheSize).
 		Dur("cacheTTL", cacheTTL).
 		Msg("Subtitle downloader cache initialized")
@@ -123,6 +126,22 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		httpClient: httpClient,
 		zipCache:   zipCache,
 	}
+}
+
+// Close releases resources held by the downloader, such as cache connections.
+func (d *DefaultSubtitleDownloader) Close() error {
+	if d.zipCache != nil {
+		return d.zipCache.Close()
+	}
+	return nil
+}
+
+// zerologCacheLogger adapts zerolog to the cache.Logger interface.
+type zerologCacheLogger struct{}
+
+func (z *zerologCacheLogger) Error(msg string, err error, _ ...any) {
+	logger := config.GetLogger()
+	logger.Error().Err(err).Msg(msg)
 }
 
 // DownloadSubtitle downloads a subtitle file, with support for extracting episodes from season packs.

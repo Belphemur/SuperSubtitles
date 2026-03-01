@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -40,6 +41,7 @@ type redisCache struct {
 	ttl     time.Duration
 	maxSize int
 	onEvict EvictCallback
+	logger  Logger
 	dataKey string // hash key, e.g. "sscache:data"
 	lruKey  string // sorted set key, e.g. "sscache:lru"
 }
@@ -119,6 +121,7 @@ func newRedisCache(cfg ProviderConfig) (Cache, error) {
 		ttl:     cfg.TTL,
 		maxSize: cfg.Size,
 		onEvict: cfg.OnEvict,
+		logger:  cfg.Logger,
 		dataKey: prefix + "data",
 		lruKey:  prefix + "lru",
 	}, nil
@@ -128,6 +131,12 @@ func (r *redisCache) keys() []string {
 	return []string{r.dataKey, r.lruKey}
 }
 
+func (r *redisCache) logError(msg string, err error) {
+	if r.logger != nil {
+		r.logger.Error(msg, err)
+	}
+}
+
 func (r *redisCache) Get(key string) ([]byte, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -135,6 +144,10 @@ func (r *redisCache) Get(key string) ([]byte, bool) {
 	now := strconv.FormatInt(time.Now().UnixMicro(), 10)
 	result, err := getAndTouch.Run(ctx, r.client, r.keys(), now, key).Text()
 	if err != nil {
+		// redis.Nil means the key doesn't exist — a normal cache miss.
+		if !errors.Is(err, redis.Nil) {
+			r.logError("redis cache Get failed", err)
+		}
 		return nil, false
 	}
 	return []byte(result), true
@@ -152,7 +165,12 @@ func (r *redisCache) Set(key string, value []byte) {
 		value, now, key, maxSize, ttlMs,
 	).StringSlice()
 
-	if err != nil || len(evicted) == 0 {
+	if err != nil {
+		r.logError("redis cache Set failed", err)
+		return
+	}
+
+	if len(evicted) == 0 {
 		return
 	}
 
@@ -170,6 +188,9 @@ func (r *redisCache) Contains(key string) bool {
 	defer cancel()
 
 	n, err := r.client.HExists(ctx, r.dataKey, key).Result()
+	if err != nil {
+		r.logError("redis cache Contains failed", err)
+	}
 	return err == nil && n
 }
 
@@ -179,6 +200,7 @@ func (r *redisCache) Len() int {
 
 	n, err := r.client.HLen(ctx, r.dataKey).Result()
 	if err != nil {
+		r.logError("redis cache Len failed", err)
 		return 0
 	}
 	return int(n)

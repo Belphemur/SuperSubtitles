@@ -18,6 +18,9 @@ type ProviderConfig struct {
 	// OnEvict is called when an entry is evicted. Not all providers support this.
 	OnEvict EvictCallback
 
+	// Logger receives error reports from cache operations. If nil, errors are silently ignored.
+	Logger Logger
+
 	// RedisAddress is the Redis/Valkey server address (e.g., "localhost:6379").
 	RedisAddress string
 

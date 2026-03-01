@@ -64,6 +64,10 @@ func (m *mockClient) DownloadSubtitle(ctx context.Context, subtitleID string, ep
 	return &models.DownloadResult{}, nil
 }
 
+func (m *mockClient) Close() error {
+	return nil
+}
+
 func (m *mockClient) GetRecentSubtitles(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
 	if m.getRecentSubtitlesFunc != nil {
 		return m.getRecentSubtitlesFunc(ctx, sinceID)

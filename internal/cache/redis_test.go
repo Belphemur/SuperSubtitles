@@ -1,9 +1,12 @@
 package cache
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // TestRedisCache requires a running Redis/Valkey server.
@@ -19,6 +22,18 @@ func skipIfNoRedis(t *testing.T) string {
 	return addr
 }
 
+// flushTestRedisDB clears all data in DB 15 so tests start with a clean slate.
+func flushTestRedisDB(t *testing.T, addr string) {
+	t.Helper()
+	client := redis.NewClient(&redis.Options{Addr: addr, DB: 15})
+	defer client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := client.FlushDB(ctx).Err(); err != nil {
+		t.Fatalf("Failed to flush Redis test DB: %v", err)
+	}
+}
+
 func newTestRedisCache(t *testing.T) Cache {
 	t.Helper()
 	return newTestRedisCacheWithConfig(t, 100, 10*time.Second, nil)
@@ -27,6 +42,7 @@ func newTestRedisCache(t *testing.T) Cache {
 func newTestRedisCacheWithConfig(t *testing.T, size int, ttl time.Duration, onEvict EvictCallback) Cache {
 	t.Helper()
 	addr := skipIfNoRedis(t)
+	flushTestRedisDB(t, addr)
 	c, err := New("redis", ProviderConfig{
 		Size:         size,
 		TTL:          ttl,
@@ -78,12 +94,15 @@ func TestRedisCache_Contains(t *testing.T) {
 func TestRedisCache_Len(t *testing.T) {
 	c := newTestRedisCacheWithConfig(t, 100, 10*time.Second, nil)
 
+	if c.Len() != 0 {
+		t.Fatalf("Expected Len 0 on clean DB, got %d", c.Len())
+	}
+
 	c.Set("redis-len-a", []byte("1"))
 	c.Set("redis-len-b", []byte("2"))
 
-	n := c.Len()
-	if n < 2 {
-		t.Fatalf("Expected Len >= 2, got %d", n)
+	if c.Len() != 2 {
+		t.Fatalf("Expected Len 2, got %d", c.Len())
 	}
 }
 
@@ -133,6 +152,7 @@ func TestRedisCache_LRU_TouchPromotesEntry(t *testing.T) {
 
 func TestRedisCache_Close(t *testing.T) {
 	addr := skipIfNoRedis(t)
+	flushTestRedisDB(t, addr)
 	c, err := New("redis", ProviderConfig{
 		Size:         10,
 		TTL:          time.Minute,
