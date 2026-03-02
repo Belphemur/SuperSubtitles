@@ -66,23 +66,16 @@ jobs:
 
       - name: Run tests
         run: |
-          mkdir -p test-results
-          gotestsum --junitfile test-results/junit-${{ matrix.group.name }}.xml --format testname -- -race -coverprofile=coverage-${{ matrix.group.name }}.txt -covermode=atomic ${{ matrix.group.packages }}
+          gotestsum --junitfile junit-${{ matrix.group.name }}.xml --format testname -- -race -coverprofile=coverage-${{ matrix.group.name }}.txt -covermode=atomic ${{ matrix.group.packages }}
 
-      - name: Upload test results to Codecov
+      - name: Upload test artifacts
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: test-results/junit-${{ matrix.group.name }}.xml
-
-      - name: Upload coverage reports to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage-${{ matrix.group.name }}.txt
-          flags: ${{ matrix.group.name }}
+          name: test-artifacts-${{ matrix.group.name }}
+          path: |
+            junit-${{ matrix.group.name }}.xml
+            coverage-${{ matrix.group.name }}.txt
 
   test-cache:
     name: Test (cache)
@@ -113,23 +106,42 @@ jobs:
         env:
           REDIS_ADDRESS: localhost:6379
         run: |
-          mkdir -p test-results
-          gotestsum --junitfile test-results/junit-cache.xml --format testname -- -race -coverprofile=coverage-cache.txt -covermode=atomic ./internal/cache/...
+          gotestsum --junitfile junit-cache.xml --format testname -- -race -coverprofile=coverage-cache.txt -covermode=atomic ./internal/cache/...
 
-      - name: Upload test results to Codecov
+      - name: Upload test artifacts
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: test-results/junit-cache.xml
+          name: test-artifacts-cache
+          path: |
+            junit-cache.xml
+            coverage-cache.txt
 
-      - name: Upload coverage reports to Codecov
-        if: ${{ !cancelled() }}
+  report:
+    name: Report to Codecov
+    runs-on: ubuntu-latest
+    needs: [test, test-cache]
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-artifacts-*
+          merge-multiple: true
+          path: artifacts
+
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage-cache.txt
-          flags: cache
+          files: artifacts/coverage-parser-models-errors.txt,artifacts/coverage-client.txt,artifacts/coverage-services-grpc-metrics.txt,artifacts/coverage-cache.txt
+
+      - name: Upload test results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          files: artifacts/junit-parser-models-errors.xml,artifacts/junit-client.xml,artifacts/junit-services-grpc-metrics.xml,artifacts/junit-cache.xml
 
   build:
     name: Build
