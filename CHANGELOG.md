@@ -1,3 +1,15 @@
+# [2.5.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.2...v2.5.0) (2026-03-02)
+
+
+### Bug Fixes
+
+* **cache:** remove t.Parallel() from Redis tests to prevent DB flush races ([296f207](https://github.com/Belphemur/SuperSubtitles/commit/296f20790c9d5b3ca820b2164c1b8d1d17c45a78))
+
+
+### Features
+
+* **ci:** parallelize test suite to reduce CI time to ~1 minute ([47c6fad](https://github.com/Belphemur/SuperSubtitles/commit/47c6fad940b81c1a10eb2e1bb71dab46c8c49f4b))
+
 ## [2.4.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.1...v2.4.2) (2026-03-02)
 
 
