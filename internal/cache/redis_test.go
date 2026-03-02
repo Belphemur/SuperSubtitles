@@ -58,6 +58,7 @@ func newTestRedisCacheWithConfig(t *testing.T, size int, ttl time.Duration, onEv
 }
 
 func TestRedisCache_GetSet(t *testing.T) {
+	t.Parallel()
 	c := newTestRedisCache(t)
 
 	val, ok := c.Get("redis-test-key")
@@ -79,6 +80,7 @@ func TestRedisCache_GetSet(t *testing.T) {
 }
 
 func TestRedisCache_Contains(t *testing.T) {
+	t.Parallel()
 	c := newTestRedisCache(t)
 
 	if c.Contains("redis-absent") {
@@ -92,6 +94,7 @@ func TestRedisCache_Contains(t *testing.T) {
 }
 
 func TestRedisCache_Len(t *testing.T) {
+	t.Parallel()
 	c := newTestRedisCacheWithConfig(t, 100, 10*time.Second, nil)
 
 	n := c.Len()
@@ -108,6 +111,7 @@ func TestRedisCache_Len(t *testing.T) {
 }
 
 func TestRedisCache_LRU_Eviction(t *testing.T) {
+	t.Parallel()
 	evicted := make([]string, 0)
 	onEvict := func(key string, _ []byte) {
 		evicted = append(evicted, key)
@@ -132,6 +136,7 @@ func TestRedisCache_LRU_Eviction(t *testing.T) {
 }
 
 func TestRedisCache_LRU_TouchPromotesEntry(t *testing.T) {
+	t.Parallel()
 	// Max size 2. Insert a, b. Touch a. Insert c. "b" should be evicted (not "a").
 	c := newTestRedisCacheWithConfig(t, 2, 10*time.Second, nil)
 
@@ -152,6 +157,7 @@ func TestRedisCache_LRU_TouchPromotesEntry(t *testing.T) {
 }
 
 func TestRedisCache_Close(t *testing.T) {
+	t.Parallel()
 	addr := skipIfNoRedis(t)
 	flushTestRedisDB(t, addr)
 	c, err := New("redis", ProviderConfig{
