@@ -74,6 +74,7 @@ var (
 // reads the cache size at scrape time. If a collector for the same group already
 // exists it is replaced, making it safe to call when a new cache instance is
 // created for a group that was previously registered (e.g., in tests).
+// The map entry is only updated once registration succeeds.
 func registerEntriesCollector(group string, lenFunc func() int) *cacheEntriesCollector {
 	desc := prometheus.NewDesc(
 		"cache_entries",
@@ -88,18 +89,36 @@ func registerEntriesCollector(group string, lenFunc func() int) *cacheEntriesCol
 
 	if old, ok := entriesCollectors[group]; ok {
 		entriesReg.Unregister(old)
+		delete(entriesCollectors, group)
 	}
+
+	if err := entriesReg.Register(c); err != nil {
+		// AlreadyRegisteredError means a concurrent registration beat us to it
+		// (unlikely given the mutex, but handle defensively). Reuse that collector.
+		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			if existing, ok := are.ExistingCollector.(*cacheEntriesCollector); ok {
+				entriesCollectors[group] = existing
+				return existing
+			}
+		}
+		// Registration failed for another reason; return the new collector anyway
+		// so the cache functions. It will simply not appear in metrics.
+		return c
+	}
+
 	entriesCollectors[group] = c
-	_ = entriesReg.Register(c)
 	return c
 }
 
-// unregisterEntriesCollector removes the entries collector for the given group.
-func unregisterEntriesCollector(group string) {
+// unregisterEntriesCollector removes the entries collector for the given group,
+// but only if owner is still the currently registered collector for that group.
+// This prevents a newer cache instance's collector from being accidentally removed
+// when an older instance with the same group is closed.
+func unregisterEntriesCollector(group string, owner *cacheEntriesCollector) {
 	entriesCollectorMu.Lock()
 	defer entriesCollectorMu.Unlock()
 
-	if c, ok := entriesCollectors[group]; ok {
+	if c, ok := entriesCollectors[group]; ok && c == owner {
 		entriesReg.Unregister(c)
 		delete(entriesCollectors, group)
 	}

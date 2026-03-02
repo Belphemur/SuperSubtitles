@@ -4,8 +4,9 @@ package cache
 // for hits, misses, evictions, and current entry count under the given group label.
 // All metric tracking lives in the cache layer so callers do not need to manage it.
 type instrumentedCache struct {
-	inner Cache
-	group string
+	inner     Cache
+	group     string
+	collector *cacheEntriesCollector
 }
 
 // newInstrumentedCache wraps inner with metric instrumentation for the given group.
@@ -13,8 +14,8 @@ type instrumentedCache struct {
 // which is correct for backends (e.g., Redis) where TTL expiry removes entries
 // outside the application's control.
 func newInstrumentedCache(inner Cache, group string) *instrumentedCache {
-	registerEntriesCollector(group, inner.Len)
-	return &instrumentedCache{inner: inner, group: group}
+	collector := registerEntriesCollector(group, inner.Len)
+	return &instrumentedCache{inner: inner, group: group, collector: collector}
 }
 
 func (c *instrumentedCache) Get(key string) ([]byte, bool) {
@@ -39,8 +40,9 @@ func (c *instrumentedCache) Len() int {
 	return c.inner.Len()
 }
 
-// Close unregisters the entries collector and closes the underlying cache.
+// Close unregisters the entries collector (only if still owned by this instance)
+// and closes the underlying cache.
 func (c *instrumentedCache) Close() error {
-	unregisterEntriesCollector(c.group)
+	unregisterEntriesCollector(c.group, c.collector)
 	return c.inner.Close()
 }

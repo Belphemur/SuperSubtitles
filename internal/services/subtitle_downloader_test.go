@@ -1489,10 +1489,16 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 	defer server.Close()
 
 	downloader := NewSubtitleDownloader(server.Client())
-	d := downloader.(*DefaultSubtitleDownloader)
+	d, ok := downloader.(*DefaultSubtitleDownloader)
+	if !ok {
+		t.Fatalf("NewSubtitleDownloader returned %T, want *DefaultSubtitleDownloader", downloader)
+	}
 
 	if d.zipCache.Len() != 0 {
 		t.Fatalf("Expected 0 cache entries before download, got %d", d.zipCache.Len())
+	}
+	if v := gatherCacheEntriesMetric("zip"); v != 0 {
+		t.Fatalf("Expected cache_entries{cache=\"zip\"} == 0 before download, got %.0f", v)
 	}
 
 	_, err := downloader.DownloadSubtitle(
@@ -1507,6 +1513,28 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 	if d.zipCache.Len() != 1 {
 		t.Errorf("Expected 1 cache entry after download, got %d", d.zipCache.Len())
 	}
+	if v := gatherCacheEntriesMetric("zip"); v != 1 {
+		t.Errorf("Expected cache_entries{cache=\"zip\"} == 1 after download, got %.0f", v)
+	}
+}
+
+// gatherCacheEntriesMetric reads the current value of cache_entries{cache=group}
+// from the default Prometheus registry, returning -1 if the metric is not found.
+func gatherCacheEntriesMetric(group string) float64 {
+	mfs, _ := prometheus.DefaultGatherer.Gather()
+	for _, mf := range mfs {
+		if mf.GetName() != "cache_entries" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == "cache" && lp.GetValue() == group {
+					return m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	return -1
 }
 
 func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionSuccess(t *testing.T) {
