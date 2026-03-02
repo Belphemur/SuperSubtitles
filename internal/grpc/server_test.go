@@ -3,14 +3,18 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
@@ -513,7 +517,90 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 	}
 }
 
-// TestGetRecentSubtitles_Success tests successful recent subtitles streaming
+// TestDownloadSubtitle_EpisodeNotFoundInZip tests that ErrSubtitleNotFoundInZip results in a NotFound gRPC status
+func TestDownloadSubtitle_EpisodeNotFoundInZip(t *testing.T) {
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, &apperrors.ErrSubtitleNotFoundInZip{Episode: *episode, FileCount: 3})
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "101",
+		Episode:    proto.Int32(5),
+	}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("Expected codes.NotFound, got %v", st.Code())
+	}
+}
+
+// TestDownloadSubtitle_ResourceNotFound tests that ErrSubtitleResourceNotFound (HTTP 404) results in a NotFound gRPC status
+func TestDownloadSubtitle_ResourceNotFound(t *testing.T) {
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, fmt.Errorf("failed to download subtitle: %w", &apperrors.ErrSubtitleResourceNotFound{URL: "http://example.com/download/101"})
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{SubtitleId: "101"}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("Expected codes.NotFound, got %v", st.Code())
+	}
+}
+
+// TestGetSubtitles_ShowNotFound tests that ErrNotFound results in a NotFound gRPC status
+func TestGetSubtitles_ShowNotFound(t *testing.T) {
+	mock := &mockClient{
+		streamSubtitlesFunc: func(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
+			ch := make(chan models.StreamResult[models.Subtitle], 1)
+			ch <- models.StreamResult[models.Subtitle]{Err: apperrors.NewNotFoundError("show", showID)}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Subtitle]()
+
+	err := srv.GetSubtitles(&pb.GetSubtitlesRequest{ShowId: 999}, stream)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.NotFound {
+		t.Errorf("Expected codes.NotFound, got %v", st.Code())
+	}
+}
 func TestGetRecentSubtitles_Success(t *testing.T) {
 	mockShowSubtitles := []models.ShowSubtitles{
 		{

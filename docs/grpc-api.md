@@ -327,6 +327,8 @@ message ShowSubtitlesCollection {
 The gRPC server returns standard gRPC status codes:
 
 - `OK` (0): Success
+- `NOT_FOUND` (5): Resource not found — episode missing from subtitle ZIP archive (`DownloadSubtitle`), subtitle URL returns HTTP 404 (`DownloadSubtitle`), or show ID does not exist (`GetSubtitles`)
+- `INVALID_ARGUMENT` (3): Invalid request — no valid shows provided (`GetShowSubtitles`)
 - `INTERNAL` (13): Internal errors (HTTP failures, parsing errors, etc.)
 
 All errors are logged with structured logging using zerolog.
