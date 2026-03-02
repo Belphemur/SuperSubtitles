@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
@@ -270,7 +271,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				if !strings.Contains(err.Error(), "not found") {
 					t.Errorf("Expected 'not found' error, got: %v", err)
 				}
-				if !errors.Is(err, &ErrSubtitleNotFoundInZip{}) {
+				if !errors.Is(err, &apperrors.ErrSubtitleNotFoundInZip{}) {
 					t.Errorf("Expected errors.Is to match ErrSubtitleNotFoundInZip, got: %v", err)
 				}
 				return
@@ -375,8 +376,8 @@ func TestDownloadSubtitle_HTTPError(t *testing.T) {
 		t.Fatal("Expected error for 404 response, got nil")
 	}
 
-	if !strings.Contains(err.Error(), "404") {
-		t.Errorf("Expected error message to contain '404', got: %v", err)
+	if !errors.Is(err, &apperrors.ErrSubtitleResourceNotFound{}) {
+		t.Errorf("Expected errors.Is to match ErrSubtitleResourceNotFound, got: %v", err)
 	}
 }
 

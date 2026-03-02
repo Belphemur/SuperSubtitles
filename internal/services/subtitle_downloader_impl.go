@@ -16,6 +16,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/cache"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
@@ -436,7 +437,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, "", &ErrSubtitleResourceNotFound{URL: url}
+		return nil, "", &apperrors.ErrSubtitleResourceNotFound{URL: url}
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -573,7 +574,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 
 	// No matches found
 	if len(matches) == 0 {
-		return nil, &ErrSubtitleNotFoundInZip{Episode: episode, FileCount: len(zipReader.File)}
+		return nil, &apperrors.ErrSubtitleNotFoundInZip{Episode: episode, FileCount: len(zipReader.File)}
 	}
 
 	// Sort matches: first by priority (prefer .srt over others), then by filename for determinism

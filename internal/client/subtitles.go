@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
@@ -37,6 +38,11 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan models.
 			return
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: apperrors.NewNotFoundError("show", showID)})
+			return
+		}
 
 		if resp.StatusCode != http.StatusOK {
 			sendResult(ctx, ch, models.StreamResult[models.Subtitle]{Err: fmt.Errorf("first page returned status %d", resp.StatusCode)})
