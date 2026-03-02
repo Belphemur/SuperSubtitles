@@ -66,3 +66,93 @@ func TestFactory_New_Redis_InvalidAddress(t *testing.T) {
 		t.Fatal("Expected error when connecting to invalid Redis address")
 	}
 }
+
+func TestFactory_Register_NilProvider(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("Expected panic when registering nil provider")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("Expected string panic, got %T: %v", r, r)
+		}
+		if msg != "cache: Register provider is nil" {
+			t.Fatalf("Unexpected panic message: %s", msg)
+		}
+	}()
+	Register("nil-test", nil)
+}
+
+func TestFactory_Register_Duplicate(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("Expected panic when registering duplicate provider")
+		}
+		msg, ok := r.(string)
+		if !ok {
+			t.Fatalf("Expected string panic, got %T: %v", r, r)
+		}
+		expected := `cache: provider "memory" already registered`
+		if msg != expected {
+			t.Fatalf("Unexpected panic message: %q, want %q", msg, expected)
+		}
+	}()
+	// "memory" is already registered by the memory provider's init()
+	Register("memory", func(cfg ProviderConfig) (Cache, error) {
+		return nil, nil
+	})
+}
+
+func TestFactory_New_WithGroup(t *testing.T) {
+	c, err := New("memory", ProviderConfig{
+		Size:  100,
+		TTL:   time.Hour,
+		Group: "test-group",
+	})
+	if err != nil {
+		t.Fatalf("New with group: %v", err)
+	}
+	defer c.Close()
+
+	c.Set("key1", []byte("value1"))
+	val, ok := c.Get("key1")
+	if !ok || string(val) != "value1" {
+		t.Fatal("Instrumented cache should return stored value")
+	}
+	if !c.Contains("key1") {
+		t.Fatal("Instrumented cache Contains should return true for existing key")
+	}
+	if c.Len() != 1 {
+		t.Fatalf("Expected Len()=1, got %d", c.Len())
+	}
+}
+
+func TestFactory_New_WithGroupAndOnEvict(t *testing.T) {
+	evicted := make(chan string, 1)
+	c, err := New("memory", ProviderConfig{
+		Size:  1, // size=1 forces eviction on second Set
+		TTL:   time.Hour,
+		Group: "evict-group",
+		OnEvict: func(key string, value []byte) {
+			evicted <- key
+		},
+	})
+	if err != nil {
+		t.Fatalf("New with group+onEvict: %v", err)
+	}
+	defer c.Close()
+
+	c.Set("first", []byte("1"))
+	c.Set("second", []byte("2")) // should evict "first"
+
+	select {
+	case key := <-evicted:
+		if key != "first" {
+			t.Fatalf("Expected evicted key %q, got %q", "first", key)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("OnEvict callback was not called within timeout")
+	}
+}

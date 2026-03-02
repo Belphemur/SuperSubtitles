@@ -17,19 +17,20 @@ func BoolPtr(v bool) *bool {
 
 // SubtitleRowOptions contains options for generating a subtitle row
 type SubtitleRowOptions struct {
-	ShowID           int
-	Language         string // "Magyar", "Angol", etc.
-	FlagImage        string // "hungary.gif", "uk.gif", etc.
-	MagyarTitle      string
-	EredetiTitle     string
-	Uploader         string
-	UploaderBold     bool
-	UploadDate       string
-	DownloadAction   string
-	DownloadFilename string
-	SubtitleID       int
-	BackgroundColor  string // Default alternates
-	Status           string // Optional status like "fordítás alatt (Alice)"
+	ShowID            int
+	Language          string // "Magyar", "Angol", etc.
+	FlagImage         string // "hungary.gif", "uk.gif", etc.
+	MagyarTitle       string
+	EredetiTitle      string
+	Uploader          string
+	UploaderBold      bool
+	UploadDate        string
+	DownloadAction    string
+	DownloadFilename  string
+	SubtitleID        int
+	BackgroundColor   string // Default alternates
+	Status            string // Optional status like "fordítás alatt (Alice)"
+	SkipShowIDDefault bool   // When true, preserves ShowID=0 in generated HTML instead of auto-filling with default value 2967
 }
 
 // ShowRowOptions contains options for generating a show row
@@ -91,7 +92,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 				row.FlagImage = "uk.gif"
 			}
 		}
-		if row.ShowID == 0 {
+		if row.ShowID == 0 && !row.SkipShowIDDefault {
 			row.ShowID = 2967
 		}
 		if row.SubtitleID == 0 {
@@ -213,7 +214,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 				row.FlagImage = "uk.gif"
 			}
 		}
-		if row.ShowID == 0 {
+		if row.ShowID == 0 && !row.SkipShowIDDefault {
 			row.ShowID = 2967
 		}
 		if row.SubtitleID == 0 {

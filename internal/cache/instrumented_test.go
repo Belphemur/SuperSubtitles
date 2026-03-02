@@ -161,3 +161,33 @@ func TestInstrumentedCache_Close_UnregistersEntries(t *testing.T) {
 		t.Fatal("Expected entries collector to be unregistered after Close()")
 	}
 }
+
+func TestInstrumentedCache_Contains(t *testing.T) {
+	c := newInstrumentedTestCache(t, "test-contains")
+
+	if c.Contains("missing") {
+		t.Error("Expected Contains to return false for absent key")
+	}
+
+	c.Set("present", []byte("value"))
+
+	if !c.Contains("present") {
+		t.Error("Expected Contains to return true for existing key")
+	}
+}
+
+func TestInstrumentedCache_Len(t *testing.T) {
+	c := newInstrumentedTestCache(t, "test-len")
+
+	if c.Len() != 0 {
+		t.Errorf("Expected Len() == 0 on empty cache, got %d", c.Len())
+	}
+
+	c.Set("a", []byte("1"))
+	c.Set("b", []byte("2"))
+	c.Set("c", []byte("3"))
+
+	if c.Len() != 3 {
+		t.Errorf("Expected Len() == 3 after three Sets, got %d", c.Len())
+	}
+}
