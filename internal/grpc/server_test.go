@@ -679,3 +679,323 @@ func TestGetRecentSubtitles_Success(t *testing.T) {
 		t.Errorf("Expected language 'eng', got '%s'", collection.Subtitles[1].Language)
 	}
 }
+
+// errorOnSendStream is a mock stream that always returns an error on Send
+type errorOnSendStream[T any] struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (m *errorOnSendStream[T]) Send(item *T) error {
+	return fmt.Errorf("send failed")
+}
+func (m *errorOnSendStream[T]) SetHeader(metadata.MD) error  { return nil }
+func (m *errorOnSendStream[T]) SendHeader(metadata.MD) error { return nil }
+func (m *errorOnSendStream[T]) SetTrailer(metadata.MD)       {}
+func (m *errorOnSendStream[T]) Context() context.Context     { return m.ctx }
+func (m *errorOnSendStream[T]) SendMsg(msg any) error        { return nil }
+func (m *errorOnSendStream[T]) RecvMsg(msg any) error        { return nil }
+
+// TestGetShowList_StreamSendError tests that a stream.Send error returns Internal status
+func TestGetShowList_StreamSendError(t *testing.T) {
+	mock := &mockClient{
+		getShowListFunc: func(ctx context.Context) ([]models.Show, error) {
+			return []models.Show{{Name: "Breaking Bad", ID: 1}}, nil
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := &errorOnSendStream[pb.Show]{ctx: context.Background()}
+
+	err := srv.GetShowList(&pb.GetShowListRequest{}, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestGetShowList_PartialSuccess tests that errors after successful sends are logged and streaming continues
+func TestGetShowList_PartialSuccess(t *testing.T) {
+	mock := &mockClient{
+		streamShowListFunc: func(ctx context.Context) <-chan models.StreamResult[models.Show] {
+			ch := make(chan models.StreamResult[models.Show], 2)
+			ch <- models.StreamResult[models.Show]{Value: models.Show{Name: "Breaking Bad", ID: 1}}
+			ch <- models.StreamResult[models.Show]{Err: errors.New("page 2 failed")}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Show]()
+
+	err := srv.GetShowList(&pb.GetShowListRequest{}, stream)
+	if err != nil {
+		t.Fatalf("Expected no error (partial success), got: %v", err)
+	}
+
+	if len(stream.items) != 1 {
+		t.Fatalf("Expected 1 show streamed, got %d", len(stream.items))
+	}
+	if stream.items[0].Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", stream.items[0].Name)
+	}
+}
+
+// TestGetSubtitles_GenericError tests that a non-NotFound error returns Internal status
+func TestGetSubtitles_GenericError(t *testing.T) {
+	mock := &mockClient{
+		streamSubtitlesFunc: func(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
+			ch := make(chan models.StreamResult[models.Subtitle], 1)
+			ch <- models.StreamResult[models.Subtitle]{Err: errors.New("database error")}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.Subtitle]()
+
+	err := srv.GetSubtitles(&pb.GetSubtitlesRequest{ShowId: 1}, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestGetShowSubtitles_ErrorAfterPartialSuccess tests that errors after partial sends are logged and streaming continues
+func TestGetShowSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
+	mock := &mockClient{
+		streamShowSubtitlesFunc: func(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitles] {
+			ch := make(chan models.StreamResult[models.ShowSubtitles], 2)
+			ch <- models.StreamResult[models.ShowSubtitles]{
+				Value: models.ShowSubtitles{
+					Show: models.Show{Name: "Breaking Bad", ID: 1},
+					SubtitleCollection: models.SubtitleCollection{
+						ShowName:  "Breaking Bad",
+						Subtitles: []models.Subtitle{{ID: 101, ShowID: 1}},
+					},
+				},
+			}
+			ch <- models.StreamResult[models.ShowSubtitles]{Err: errors.New("fetch failed for show 2")}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.ShowSubtitlesCollection]()
+
+	req := &pb.GetShowSubtitlesRequest{
+		Shows: []*pb.Show{
+			{Name: "Breaking Bad", Id: 1},
+			{Name: "Game of Thrones", Id: 2},
+		},
+	}
+
+	err := srv.GetShowSubtitles(req, stream)
+	if err != nil {
+		t.Fatalf("Expected no error (partial success), got: %v", err)
+	}
+
+	if len(stream.items) != 1 {
+		t.Fatalf("Expected 1 streamed item, got %d", len(stream.items))
+	}
+	if stream.items[0].GetShowInfo().Show.Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", stream.items[0].GetShowInfo().Show.Name)
+	}
+}
+
+// TestGetShowSubtitles_StreamSendError tests that a stream.Send error returns Internal status
+func TestGetShowSubtitles_StreamSendError(t *testing.T) {
+	mock := &mockClient{
+		getShowSubtitlesFunc: func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error) {
+			return []models.ShowSubtitles{
+				{
+					Show:               models.Show{Name: "Breaking Bad", ID: 1},
+					SubtitleCollection: models.SubtitleCollection{ShowName: "Breaking Bad"},
+				},
+			}, nil
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := &errorOnSendStream[pb.ShowSubtitlesCollection]{ctx: context.Background()}
+
+	req := &pb.GetShowSubtitlesRequest{
+		Shows: []*pb.Show{{Name: "Breaking Bad", Id: 1}},
+	}
+
+	err := srv.GetShowSubtitles(req, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestCheckForUpdates_Error tests that an error returns Internal status
+func TestCheckForUpdates_Error(t *testing.T) {
+	mock := &mockClient{
+		checkForUpdatesFunc: func(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error) {
+			return nil, errors.New("service unavailable")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	_, err := srv.CheckForUpdates(ctx, &pb.CheckForUpdatesRequest{ContentId: 12345})
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestGetRecentSubtitles_ErrorAsFirstResult tests that an error as the first result returns Internal status
+func TestGetRecentSubtitles_ErrorAsFirstResult(t *testing.T) {
+	mock := &mockClient{
+		streamRecentSubtitlesFunc: func(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
+			ch := make(chan models.StreamResult[models.ShowSubtitles], 1)
+			ch <- models.StreamResult[models.ShowSubtitles]{Err: errors.New("connection refused")}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.ShowSubtitlesCollection]()
+
+	err := srv.GetRecentSubtitles(&pb.GetRecentSubtitlesRequest{SinceId: 100}, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestGetRecentSubtitles_StreamSendError tests that a stream.Send error returns Internal status
+func TestGetRecentSubtitles_StreamSendError(t *testing.T) {
+	mock := &mockClient{
+		getRecentSubtitlesFunc: func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
+			return []models.ShowSubtitles{
+				{
+					Show:               models.Show{Name: "Breaking Bad", ID: 1},
+					SubtitleCollection: models.SubtitleCollection{ShowName: "Breaking Bad"},
+				},
+			}, nil
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := &errorOnSendStream[pb.ShowSubtitlesCollection]{ctx: context.Background()}
+
+	err := srv.GetRecentSubtitles(&pb.GetRecentSubtitlesRequest{SinceId: 100}, stream)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}
+
+// TestGetRecentSubtitles_ErrorAfterPartialSuccess tests that errors after partial sends are logged and streaming continues
+func TestGetRecentSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
+	mock := &mockClient{
+		streamRecentSubtitlesFunc: func(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
+			ch := make(chan models.StreamResult[models.ShowSubtitles], 2)
+			ch <- models.StreamResult[models.ShowSubtitles]{
+				Value: models.ShowSubtitles{
+					Show: models.Show{Name: "Breaking Bad", ID: 1},
+					SubtitleCollection: models.SubtitleCollection{
+						ShowName:  "Breaking Bad",
+						Subtitles: []models.Subtitle{{ID: 101, ShowID: 1}},
+					},
+				},
+			}
+			ch <- models.StreamResult[models.ShowSubtitles]{Err: errors.New("page 2 failed")}
+			close(ch)
+			return ch
+		},
+	}
+
+	srv := NewServer(mock).(*server)
+	stream := newMockServerStream[pb.ShowSubtitlesCollection]()
+
+	err := srv.GetRecentSubtitles(&pb.GetRecentSubtitlesRequest{SinceId: 100}, stream)
+	if err != nil {
+		t.Fatalf("Expected no error (partial success), got: %v", err)
+	}
+
+	if len(stream.items) != 1 {
+		t.Fatalf("Expected 1 streamed item, got %d", len(stream.items))
+	}
+	if stream.items[0].GetShowInfo().Show.Name != "Breaking Bad" {
+		t.Errorf("Expected show name 'Breaking Bad', got '%s'", stream.items[0].GetShowInfo().Show.Name)
+	}
+}
+
+// TestDownloadSubtitle_GenericError tests that a non-specific error returns Internal status
+func TestDownloadSubtitle_GenericError(t *testing.T) {
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, errors.New("unexpected server error")
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{SubtitleId: "101"}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Internal {
+		t.Errorf("Expected codes.Internal, got %v", st.Code())
+	}
+}

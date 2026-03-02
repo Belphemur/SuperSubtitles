@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -482,5 +483,33 @@ func TestConvertThirdPartyIdsToProto_InvalidUTF8(t *testing.T) {
 
 	if result.ImdbId != "tt09�03747" {
 		t.Errorf("Expected sanitized IMDB ID 'tt09�03747', got '%s'", result.ImdbId)
+	}
+}
+
+// TestSafeInt32_OverflowValues tests that safeInt32 clamps values exceeding int32 bounds
+func TestSafeInt32_OverflowValues(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    int
+		expected int32
+	}{
+		{"positive overflow", math.MaxInt32 + 1, math.MaxInt32},
+		{"large positive overflow", math.MaxInt32 + 1000, math.MaxInt32},
+		{"negative overflow", math.MinInt32 - 1, math.MinInt32},
+		{"large negative overflow", math.MinInt32 - 1000, math.MinInt32},
+		{"max int32", math.MaxInt32, math.MaxInt32},
+		{"min int32", math.MinInt32, math.MinInt32},
+		{"zero", 0, 0},
+		{"positive within range", 42, 42},
+		{"negative within range", -42, -42},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := safeInt32(tc.input)
+			if result != tc.expected {
+				t.Errorf("safeInt32(%d) = %d, expected %d", tc.input, result, tc.expected)
+			}
+		})
 	}
 }
