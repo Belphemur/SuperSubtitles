@@ -48,3 +48,7 @@ jobs:
           echo "✅ golangci-lint installed"
           echo "✅ Dependencies downloaded and verified"
           echo "✅ Application built successfully"
+          echo ""
+          echo "ℹ️  Tests are intentionally NOT run here."
+          echo "    Some tests require a running Valkey/Redis service (REDIS_ADDRESS env var)."
+          echo "    Run tests with: REDIS_ADDRESS=localhost:6379 go test -race ./..."

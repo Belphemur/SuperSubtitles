@@ -40,6 +40,7 @@ func TestMetrics_SubtitleDownloadsTotal_Error(t *testing.T) {
 }
 
 func TestMetrics_NewHTTPServer(t *testing.T) {
+	t.Parallel()
 	srv := NewHTTPServer("localhost", 9090)
 
 	if srv.Addr != "localhost:9090" {
@@ -52,6 +53,7 @@ func TestMetrics_NewHTTPServer(t *testing.T) {
 }
 
 func TestMetrics_NewHTTPServer_DefaultPort(t *testing.T) {
+	t.Parallel()
 	srv := NewHTTPServer("0.0.0.0", 0)
 
 	if srv.Addr != "0.0.0.0:9090" {

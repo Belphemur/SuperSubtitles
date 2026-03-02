@@ -13,6 +13,7 @@ import (
 )
 
 func TestClient_GetShowSubtitles(t *testing.T) {
+	t.Parallel()
 	// Sample HTML for detail page with third-party IDs
 	detailPageHTML := testutil.GenerateThirdPartyIDHTML("tt12345678", 987654, 555666, 987654)
 

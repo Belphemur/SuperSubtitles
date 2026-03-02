@@ -6,6 +6,7 @@ import (
 )
 
 func TestFactory_New_Memory(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 100, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New memory: %v", err)
@@ -21,6 +22,7 @@ func TestFactory_New_Memory(t *testing.T) {
 }
 
 func TestFactory_New_UnknownProvider(t *testing.T) {
+	t.Parallel()
 	_, err := New("nonexistent", ProviderConfig{})
 	if err == nil {
 		t.Fatal("Expected error for unknown provider")
@@ -28,6 +30,7 @@ func TestFactory_New_UnknownProvider(t *testing.T) {
 }
 
 func TestFactory_RegisteredProviders(t *testing.T) {
+	t.Parallel()
 	names := RegisteredProviders()
 	if len(names) < 2 {
 		t.Fatalf("Expected at least 2 providers (memory, redis), got %d: %v", len(names), names)
@@ -46,6 +49,7 @@ func TestFactory_RegisteredProviders(t *testing.T) {
 }
 
 func TestFactory_RegisteredProviders_Sorted(t *testing.T) {
+	t.Parallel()
 	names := RegisteredProviders()
 	for i := 1; i < len(names); i++ {
 		if names[i-1] > names[i] {
@@ -56,6 +60,7 @@ func TestFactory_RegisteredProviders_Sorted(t *testing.T) {
 }
 
 func TestFactory_New_Redis_InvalidAddress(t *testing.T) {
+	t.Parallel()
 	// Redis provider should fail to connect to an invalid address
 	_, err := New("redis", ProviderConfig{
 		Size:         100,
@@ -68,6 +73,7 @@ func TestFactory_New_Redis_InvalidAddress(t *testing.T) {
 }
 
 func TestFactory_Register_NilProvider(t *testing.T) {
+	t.Parallel()
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -85,6 +91,7 @@ func TestFactory_Register_NilProvider(t *testing.T) {
 }
 
 func TestFactory_Register_Duplicate(t *testing.T) {
+	t.Parallel()
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -106,6 +113,7 @@ func TestFactory_Register_Duplicate(t *testing.T) {
 }
 
 func TestFactory_New_WithGroup(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{
 		Size:  100,
 		TTL:   time.Hour,
@@ -130,6 +138,7 @@ func TestFactory_New_WithGroup(t *testing.T) {
 }
 
 func TestFactory_New_WithGroupAndOnEvict(t *testing.T) {
+	t.Parallel()
 	evicted := make(chan string, 1)
 	c, err := New("memory", ProviderConfig{
 		Size:  1, // size=1 forces eviction on second Set

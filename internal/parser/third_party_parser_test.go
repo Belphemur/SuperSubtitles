@@ -9,6 +9,7 @@ import (
 )
 
 func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML content using the helper
 	htmlContent := testutil.GenerateThirdPartyIDHTML("tt14261112", 366532, 60743, 366532)
 
@@ -43,6 +44,7 @@ func TestThirdPartyIdParser_ParseHtml(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_EmptyHTML(t *testing.T) {
+	t.Parallel()
 	htmlContent := testutil.GenerateEmptyHTML()
 
 	parser := NewThirdPartyIdParser()
@@ -59,6 +61,7 @@ func TestThirdPartyIdParser_ParseHtml_EmptyHTML(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_PartialLinks(t *testing.T) {
+	t.Parallel()
 	// Generate HTML with only IMDB and TVDB IDs
 	htmlContent := testutil.GenerateThirdPartyIDHTML("tt12345678", 123456, 0, 0)
 
@@ -89,6 +92,7 @@ func TestThirdPartyIdParser_ParseHtml_PartialLinks(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_InvalidHTML(t *testing.T) {
+	t.Parallel()
 	htmlContent := testutil.GenerateInvalidThirdPartyHTML()
 
 	parser := NewThirdPartyIdParser()
@@ -105,6 +109,7 @@ func TestThirdPartyIdParser_ParseHtml_InvalidHTML(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_extractIMDBIDFromURL(t *testing.T) {
+	t.Parallel()
 	parser := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -139,6 +144,7 @@ func TestThirdPartyIdParser_extractIMDBIDFromURL(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_extractTVDBIDFromURL(t *testing.T) {
+	t.Parallel()
 	parser := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -174,6 +180,7 @@ func TestThirdPartyIdParser_extractTVDBIDFromURL(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_extractTVMazeIDFromURL(t *testing.T) {
+	t.Parallel()
 	parser := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -209,6 +216,7 @@ func TestThirdPartyIdParser_extractTVMazeIDFromURL(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_extractTraktIDFromURL(t *testing.T) {
+	t.Parallel()
 	parser := &ThirdPartyIdParser{}
 
 	tests := []struct {

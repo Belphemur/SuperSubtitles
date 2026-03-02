@@ -34,6 +34,7 @@ func newInstrumentedTestCache(t *testing.T, group string) Cache {
 }
 
 func TestInstrumentedCache_Hits(t *testing.T) {
+	t.Parallel()
 	c := newInstrumentedTestCache(t, "test-hits")
 
 	c.Set("k", []byte("v"))
@@ -48,6 +49,7 @@ func TestInstrumentedCache_Hits(t *testing.T) {
 }
 
 func TestInstrumentedCache_Misses(t *testing.T) {
+	t.Parallel()
 	c := newInstrumentedTestCache(t, "test-misses")
 
 	before := getCounterVecValue(MissesTotal, "test-misses")
@@ -61,6 +63,7 @@ func TestInstrumentedCache_Misses(t *testing.T) {
 }
 
 func TestInstrumentedCache_Evictions(t *testing.T) {
+	t.Parallel()
 	evicted := make([]string, 0)
 	onEvict := func(key string, _ []byte) {
 		evicted = append(evicted, key)
@@ -163,6 +166,7 @@ func TestInstrumentedCache_Close_UnregistersEntries(t *testing.T) {
 }
 
 func TestInstrumentedCache_Contains(t *testing.T) {
+	t.Parallel()
 	c := newInstrumentedTestCache(t, "test-contains")
 
 	if c.Contains("missing") {
@@ -177,6 +181,7 @@ func TestInstrumentedCache_Contains(t *testing.T) {
 }
 
 func TestInstrumentedCache_Len(t *testing.T) {
+	t.Parallel()
 	c := newInstrumentedTestCache(t, "test-len")
 
 	if c.Len() != 0 {

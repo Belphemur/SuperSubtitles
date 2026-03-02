@@ -9,6 +9,7 @@ import (
 
 // TestNewUTF8Reader_AlreadyUTF8 tests that UTF-8 content passes through unchanged
 func TestNewUTF8Reader_AlreadyUTF8(t *testing.T) {
+	t.Parallel()
 	input := []byte("<html><body>Hello World - UTF-8: ☺</body></html>")
 	reader, err := NewUTF8Reader(bytes.NewReader(input))
 	if err != nil {
@@ -27,6 +28,7 @@ func TestNewUTF8Reader_AlreadyUTF8(t *testing.T) {
 
 // TestNewUTF8Reader_ISO88591ToUTF8 tests conversion from ISO-8859-1 to UTF-8
 func TestNewUTF8Reader_ISO88591ToUTF8(t *testing.T) {
+	t.Parallel()
 	// HTML with ISO-8859-1 encoded special characters (é = 0xE9 in ISO-8859-1)
 	// The meta tag tells the charset detector this is ISO-8859-1
 	input := []byte(`<html><head><meta charset="ISO-8859-1"></head><body>Caf` + string([]byte{0xE9}) + `</body></html>`)
@@ -50,6 +52,7 @@ func TestNewUTF8Reader_ISO88591ToUTF8(t *testing.T) {
 
 // TestNewUTF8Reader_Windows1252ToUTF8 tests conversion from Windows-1252 to UTF-8
 func TestNewUTF8Reader_Windows1252ToUTF8(t *testing.T) {
+	t.Parallel()
 	// HTML with Windows-1252 specific character (™ = 0x99 in Windows-1252)
 	// Note: 0x99 is invalid in ISO-8859-1 but valid in Windows-1252
 	input := []byte(`<html><head><meta charset="windows-1252"></head><body>Test` + string([]byte{0x99}) + `</body></html>`)
@@ -73,6 +76,7 @@ func TestNewUTF8Reader_Windows1252ToUTF8(t *testing.T) {
 
 // TestNewUTF8Reader_MetaHttpEquiv tests detection from meta http-equiv tag
 func TestNewUTF8Reader_MetaHttpEquiv(t *testing.T) {
+	t.Parallel()
 	// HTML with http-equiv meta tag (older style)
 	input := []byte(`<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"></head><body>Test</body></html>`)
 
@@ -94,6 +98,7 @@ func TestNewUTF8Reader_MetaHttpEquiv(t *testing.T) {
 
 // TestNewUTF8Reader_NoCharsetDeclaration tests heuristic detection when no charset is declared
 func TestNewUTF8Reader_NoCharsetDeclaration(t *testing.T) {
+	t.Parallel()
 	// HTML without charset declaration - should default to UTF-8 or use heuristics
 	input := []byte("<html><body>Hello World</body></html>")
 
@@ -115,6 +120,7 @@ func TestNewUTF8Reader_NoCharsetDeclaration(t *testing.T) {
 
 // TestNewUTF8Reader_HungarianCharacters tests common Hungarian special characters
 func TestNewUTF8Reader_HungarianCharacters(t *testing.T) {
+	t.Parallel()
 	// HTML with Hungarian accented characters already in UTF-8
 	hungarianText := "Árvíztűrő tükörfúrógép"
 	input := []byte("<html><body>" + hungarianText + "</body></html>")

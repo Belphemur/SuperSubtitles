@@ -13,6 +13,7 @@ import (
 )
 
 func TestClient_GetSubtitles_WithPagination(t *testing.T) {
+	t.Parallel()
 	// Create test HTML for 3 pages with pagination links
 	pageHTML := func(pageNum int, totalPages int) string {
 		var rows []testutil.SubtitleRowOptions
@@ -112,6 +113,7 @@ func TestClient_GetSubtitles_WithPagination(t *testing.T) {
 }
 
 func TestClient_GetSubtitles_SinglePage(t *testing.T) {
+	t.Parallel()
 	// Test with single page (no pagination)
 	singlePageHTML := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
@@ -168,6 +170,7 @@ func TestClient_GetSubtitles_SinglePage(t *testing.T) {
 }
 
 func TestClient_GetSubtitles_NetworkError(t *testing.T) {
+	t.Parallel()
 	// Test error handling for network failure
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)

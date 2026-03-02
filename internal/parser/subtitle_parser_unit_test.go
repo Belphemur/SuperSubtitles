@@ -18,6 +18,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_extractIDFromDownloadLink(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -38,6 +39,7 @@ func TestSubtitleParser_extractIDFromDownloadLink(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parser.extractIDFromDownloadLink(tt.link)
 			if got != tt.want {
 				t.Errorf("extractIDFromDownloadLink(%q) = %d, want %d", tt.link, got, tt.want)
@@ -51,6 +53,7 @@ func TestSubtitleParser_extractIDFromDownloadLink(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_parseDate(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -65,6 +68,7 @@ func TestSubtitleParser_parseDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parser.parseDate(tt.dateStr)
 			if !got.Equal(tt.want) {
 				t.Errorf("parseDate(%q) = %v, want %v", tt.dateStr, got, tt.want)
@@ -78,6 +82,7 @@ func TestSubtitleParser_parseDate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_constructDownloadURL(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -94,6 +99,7 @@ func TestSubtitleParser_constructDownloadURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parser.constructDownloadURL(tt.link)
 			if got != tt.want {
 				t.Errorf("constructDownloadURL(%q) = %q, want %q", tt.link, got, tt.want)
@@ -107,9 +113,11 @@ func TestSubtitleParser_constructDownloadURL(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_normalizeDownloadURL(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	t.Run("valid url is normalized", func(t *testing.T) {
+		t.Parallel()
 		input := "https://feliratok.eu/letolt.php?felirat=42&fnev=test%20file.srt"
 		got := parser.normalizeDownloadURL(input)
 		if got == "" {
@@ -121,6 +129,7 @@ func TestSubtitleParser_normalizeDownloadURL(t *testing.T) {
 	})
 
 	t.Run("unparseable url returns original", func(t *testing.T) {
+		t.Parallel()
 		// A URL with an invalid escape sequence that url.Parse will reject
 		input := "https://feliratok.eu/letolt.php?fnev=%zz"
 		got := parser.normalizeDownloadURL(input)
@@ -137,6 +146,7 @@ func TestSubtitleParser_normalizeDownloadURL(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_extractReleaseInfo(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -152,6 +162,7 @@ func TestSubtitleParser_extractReleaseInfo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parser.extractReleaseInfo(tt.description)
 			if got != tt.want {
 				t.Errorf("extractReleaseInfo(%q) = %q, want %q", tt.description, got, tt.want)
@@ -165,6 +176,7 @@ func TestSubtitleParser_extractReleaseInfo(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_detectQuality(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -183,6 +195,7 @@ func TestSubtitleParser_detectQuality(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := parser.detectQuality(tt.release)
 			if got != tt.want {
 				t.Errorf("detectQuality(%q) = %v, want %v", tt.release, got, tt.want)
@@ -196,6 +209,7 @@ func TestSubtitleParser_detectQuality(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_parseDescription_fallback(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	showName, season, episode, releaseInfo, isSeasonPack := parser.parseDescription("Some Movie Title")
@@ -222,6 +236,7 @@ func TestSubtitleParser_parseDescription_fallback(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestSubtitleParser_extractShowIDFromCategory(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -238,6 +253,7 @@ func TestSubtitleParser_extractShowIDFromCategory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(tt.html))
 			if err != nil {
 				t.Fatalf("failed to parse HTML: %v", err)

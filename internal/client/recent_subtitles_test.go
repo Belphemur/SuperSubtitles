@@ -11,6 +11,7 @@ import (
 )
 
 func TestClient_GetRecentSubtitles(t *testing.T) {
+	t.Parallel()
 	// Create a test server that serves main page and detail pages
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
@@ -82,6 +83,7 @@ func TestClient_GetRecentSubtitles(t *testing.T) {
 }
 
 func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
+	t.Parallel()
 	// Create a test server that serves main page
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
@@ -137,6 +139,7 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 }
 
 func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns empty main page
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
@@ -165,6 +168,7 @@ func TestClient_GetRecentSubtitles_EmptyResult(t *testing.T) {
 }
 
 func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns an error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -185,6 +189,7 @@ func TestClient_GetRecentSubtitles_ServerError(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_ShowInfoSentOncePerShow(t *testing.T) {
+	t.Parallel()
 	// Verify that each show appears exactly once with all its subtitles grouped together
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {

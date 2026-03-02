@@ -12,6 +12,7 @@ import (
 )
 
 func TestNewGRPCServer_ReturnsNonNil(t *testing.T) {
+	t.Parallel()
 	srv := NewGRPCServer(&mockClient{})
 	if srv == nil {
 		t.Fatal("Expected non-nil gRPC server")
@@ -19,6 +20,7 @@ func TestNewGRPCServer_ReturnsNonNil(t *testing.T) {
 }
 
 func TestNewGRPCServer_HealthCheck(t *testing.T) {
+	t.Parallel()
 	srv := NewGRPCServer(&mockClient{})
 
 	lis, err := net.Listen("tcp", "localhost:0")
@@ -59,6 +61,7 @@ func TestNewGRPCServer_HealthCheck(t *testing.T) {
 }
 
 func TestNewGRPCServer_ReflectionEnabled(t *testing.T) {
+	t.Parallel()
 	srv := NewGRPCServer(&mockClient{})
 
 	lis, err := net.Listen("tcp", "localhost:0")
@@ -115,6 +118,7 @@ func TestNewGRPCServer_ReflectionEnabled(t *testing.T) {
 }
 
 func TestNewGRPCServer_CalledMultipleTimes(t *testing.T) {
+	t.Parallel()
 	// Verify sync.Once prevents double-registration panics
 	srv1 := NewGRPCServer(&mockClient{})
 	srv2 := NewGRPCServer(&mockClient{})

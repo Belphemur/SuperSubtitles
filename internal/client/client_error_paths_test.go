@@ -22,6 +22,7 @@ import (
 )
 
 func TestClient_StreamSubtitles_NotFound(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
@@ -47,6 +48,7 @@ func TestClient_StreamSubtitles_NotFound(t *testing.T) {
 }
 
 func TestClient_StreamSubtitles_NonOKStatus(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -72,6 +74,7 @@ func TestClient_StreamSubtitles_NonOKStatus(t *testing.T) {
 }
 
 func TestClient_StreamShowSubtitles_ThirdPartyIdsServerError(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tipus") == "adatlap" {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -119,6 +122,7 @@ func TestClient_StreamShowSubtitles_ThirdPartyIdsServerError(t *testing.T) {
 }
 
 func TestClient_StreamShowSubtitles_InvalidSubtitleIDSkipped(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tipus") == "adatlap" {
 			html := testutil.GenerateThirdPartyIDHTML("", 0, 0, 0)
@@ -168,6 +172,7 @@ func TestClient_StreamShowSubtitles_InvalidSubtitleIDSkipped(t *testing.T) {
 }
 
 func TestClient_StreamShowSubtitles_NoValidSubtitleIDs(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 			{
@@ -214,6 +219,7 @@ func TestClient_StreamShowSubtitles_NoValidSubtitleIDs(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_SinceIDFiltering(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
@@ -254,6 +260,7 @@ func TestClient_StreamRecentSubtitles_SinceIDFiltering(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_SkipMissingShowID(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
@@ -290,6 +297,7 @@ func TestClient_StreamRecentSubtitles_SkipMissingShowID(t *testing.T) {
 }
 
 func TestClient_Close(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer server.Close()
 
@@ -304,6 +312,7 @@ func TestClient_Close(t *testing.T) {
 }
 
 func TestClient_NewClient_InvalidTimeout(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
@@ -330,6 +339,7 @@ func TestClient_NewClient_InvalidTimeout(t *testing.T) {
 }
 
 func TestClient_NewClient_WithProxy(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -355,6 +365,7 @@ func TestClient_NewClient_WithProxy(t *testing.T) {
 }
 
 func TestClient_NewClient_EmptyTimeout(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -371,6 +382,7 @@ func TestClient_NewClient_EmptyTimeout(t *testing.T) {
 }
 
 func TestClient_BuildDownloadURL_InvalidBaseURL(t *testing.T) {
+	t.Parallel()
 	c := &client{
 		baseURL: "://",
 	}
@@ -384,6 +396,7 @@ func TestClient_BuildDownloadURL_InvalidBaseURL(t *testing.T) {
 }
 
 func TestClient_DownloadSubtitle_InvalidBaseURL(t *testing.T) {
+	t.Parallel()
 	c := &client{
 		baseURL: "://",
 	}
@@ -397,6 +410,7 @@ func TestClient_DownloadSubtitle_InvalidBaseURL(t *testing.T) {
 }
 
 func TestClient_StreamSubtitles_ContextCancelDuringPagination(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	var page2Requested atomic.Bool
 
@@ -442,6 +456,7 @@ func TestClient_StreamSubtitles_ContextCancelDuringPagination(t *testing.T) {
 }
 
 func TestClient_StreamSubtitles_PaginationPageError(t *testing.T) {
+	t.Parallel()
 	var mu sync.Mutex
 	requestCount := 0
 
@@ -494,6 +509,7 @@ func TestClient_StreamSubtitles_PaginationPageError(t *testing.T) {
 }
 
 func TestClient_StreamShowList_AllEndpointsFail(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -519,6 +535,7 @@ func TestClient_StreamShowList_AllEndpointsFail(t *testing.T) {
 }
 
 func TestClient_StreamShowList_PartialEndpointFailure(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only the "varakozik" endpoint succeeds
 		if r.URL.Query().Get("sorf") == "varakozik-subrip" {
@@ -553,6 +570,7 @@ func TestClient_StreamShowList_PartialEndpointFailure(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_ContextCancelled(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
@@ -575,6 +593,7 @@ func TestClient_CheckForUpdates_ContextCancelled(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_NonOKStatus(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
@@ -597,6 +616,7 @@ func TestClient_StreamRecentSubtitles_NonOKStatus(t *testing.T) {
 }
 
 func TestClient_StreamRecentSubtitles_AllSubtitlesFiltered(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			// All subtitle IDs are below sinceID
@@ -628,6 +648,7 @@ func TestClient_StreamRecentSubtitles_AllSubtitlesFiltered(t *testing.T) {
 }
 
 func TestClient_StreamShowSubtitles_SubtitleStreamError(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// All subtitle requests return 500
 		w.WriteHeader(http.StatusInternalServerError)
@@ -652,6 +673,7 @@ func TestClient_StreamShowSubtitles_SubtitleStreamError(t *testing.T) {
 }
 
 func TestClient_StreamSubtitles_WithPaginationBatchErrors(t *testing.T) {
+	t.Parallel()
 	// Test pagination with 5 pages where pages 2 and 4 fail.
 	// Pages are fetched in batches of 2, so batch 1 = [2,3], batch 2 = [4,5].
 	pageHTML := func(pageNum, totalPages int) string {
@@ -703,6 +725,7 @@ func TestClient_StreamSubtitles_WithPaginationBatchErrors(t *testing.T) {
 }
 
 func TestClient_StreamShowList_ContextCancelledBetweenBatches(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -734,6 +757,7 @@ func TestClient_StreamShowList_ContextCancelledBetweenBatches(t *testing.T) {
 }
 
 func TestClient_StreamSubtitles_RequestCreationError(t *testing.T) {
+	t.Parallel()
 	// Use a base URL with a control character that makes http.NewRequestWithContext fail
 	testConfig := &config.Config{
 		SuperSubtitleDomain: "http://invalid\x00host",

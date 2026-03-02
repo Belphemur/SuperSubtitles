@@ -12,6 +12,7 @@ import (
 )
 
 func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML content based on the real feliratok.eu website structure
 	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
@@ -113,6 +114,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_ExampleOutlander(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML for a season pack
 	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
@@ -169,6 +171,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML with oldal-based pagination
 	htmlContent := testutil.GenerateSubtitleTableHTMLWithPagination(nil, 1, 3, true)
 
@@ -184,6 +187,7 @@ func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML content
 	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
@@ -212,6 +216,7 @@ func TestSubtitleParser_ParseHtml_ReturnsSubtitlesOnly(t *testing.T) {
 }
 
 func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -242,7 +247,9 @@ func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T)
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := parser.extractFilenameFromDownloadLink(tt.link)
 			if result != tt.expected {
 				t.Errorf("Expected filename %q, got %q", tt.expected, result)
@@ -252,6 +259,7 @@ func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T)
 }
 
 func TestConvertLanguageToISO(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -317,7 +325,9 @@ func TestConvertLanguageToISO(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := convertLanguageToISO(tt.input)
 			if result != tt.expected {
 				t.Errorf("convertLanguageToISO(%q) = %q, expected %q", tt.input, result, tt.expected)
@@ -327,6 +337,7 @@ func TestConvertLanguageToISO(t *testing.T) {
 }
 
 func TestRemoveParentheticalContent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -385,7 +396,9 @@ func TestRemoveParentheticalContent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := removeParentheticalContent(tt.input)
 			if result != tt.expected {
 				t.Errorf("removeParentheticalContent(%q) = %q, expected %q", tt.input, result, tt.expected)
@@ -395,6 +408,7 @@ func TestRemoveParentheticalContent(t *testing.T) {
 }
 
 func TestExtractEpisodeTitle(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		input    string
@@ -468,7 +482,9 @@ func TestExtractEpisodeTitle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := extractEpisodeTitle(tt.input)
 			if result != tt.expected {
 				t.Errorf("extractEpisodeTitle(%q) = %q, expected %q", tt.input, result, tt.expected)
@@ -478,6 +494,7 @@ func TestExtractEpisodeTitle(t *testing.T) {
 }
 
 func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
+	t.Parallel()
 	// Test that show ID is correctly extracted from the main page HTML
 	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
@@ -538,6 +555,7 @@ func TestSubtitleParser_ExtractShowIDFromHTML(t *testing.T) {
 }
 
 func TestSubtitleParser_ParseReleaseInfo_CaseInsensitiveGroupDeduplication(t *testing.T) {
+	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -573,7 +591,9 @@ func TestSubtitleParser_ParseReleaseInfo_CaseInsensitiveGroupDeduplication(t *te
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			qualities, groups := parser.parseReleaseInfo(tt.releaseInfo)
 
 			if !reflect.DeepEqual(groups, tt.expectedGroups) {
