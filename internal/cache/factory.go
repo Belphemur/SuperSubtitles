@@ -73,15 +73,17 @@ func New(name string, cfg ProviderConfig) (Cache, error) {
 		return nil, fmt.Errorf("cache: unknown provider %q (registered: %v)", name, RegisteredProviders())
 	}
 
+	if cfg.Group == "" {
+		return p(cfg)
+	}
+
 	group := cfg.Group
-	if group != "" {
-		// Wrap OnEvict so the cache layer counts evictions itself.
-		original := cfg.OnEvict
-		cfg.OnEvict = func(key string, value []byte) {
-			EvictionsTotal.WithLabelValues(group).Inc()
-			if original != nil {
-				original(key, value)
-			}
+	// Wrap OnEvict so the cache layer counts evictions itself.
+	original := cfg.OnEvict
+	cfg.OnEvict = func(key string, value []byte) {
+		EvictionsTotal.WithLabelValues(group).Inc()
+		if original != nil {
+			original(key, value)
 		}
 	}
 
@@ -90,10 +92,7 @@ func New(name string, cfg ProviderConfig) (Cache, error) {
 		return nil, err
 	}
 
-	if group != "" {
-		return newInstrumentedCache(inner, group), nil
-	}
-	return inner, nil
+	return newInstrumentedCache(inner, group), nil
 }
 
 // RegisteredProviders returns a sorted list of registered provider names.

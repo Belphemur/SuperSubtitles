@@ -119,7 +119,8 @@ func unregisterEntriesCollector(group string, owner *cacheEntriesCollector) {
 	defer entriesCollectorMu.Unlock()
 
 	if c, ok := entriesCollectors[group]; ok && c == owner {
-		entriesReg.Unregister(c)
-		delete(entriesCollectors, group)
+		if entriesReg.Unregister(c) {
+			delete(entriesCollectors, group)
+		}
 	}
 }
