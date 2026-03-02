@@ -54,7 +54,7 @@ html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 - **Stream collection helpers**: `testutil` provides helpers to consume streams in tests (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`)
 - **Streaming-first testing**: Tests consume from client streaming methods and use testutil helpers to collect results
 - **Parallel page fetching**: Tests verify pagination with 2-page parallel batches
-- **`t.Parallel()` throughout**: Most test functions call `t.Parallel()` so Go runs them concurrently within each package. Tests that assert on shared global Prometheus counters are intentionally left sequential to avoid count interference.
+- **`t.Parallel()` throughout**: Most test functions call `t.Parallel()` so Go runs them concurrently within each package. Tests that assert on shared global Prometheus counters are intentionally left sequential to avoid count interference. Redis/Valkey tests are also left sequential because they all share the same test database (DB 15) and call `FlushDB` at startup — running them in parallel would cause tests to flush each other's data mid-test.
 - **Integration test guards**: `client_integration_test.go` checks for `CI` / `SKIP_INTEGRATION_TESTS` env vars to skip live requests
 - **Benchmark coverage**: Performance tests for critical paths (ZIP extraction)
 
