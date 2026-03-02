@@ -7,6 +7,7 @@ import (
 )
 
 func TestQuality_String(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		quality Quality
@@ -24,6 +25,7 @@ func TestQuality_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := tt.quality.String()
 			if got != tt.want {
 				t.Errorf("Quality(%d).String() = %q, want %q", tt.quality, got, tt.want)
@@ -33,6 +35,7 @@ func TestQuality_String(t *testing.T) {
 }
 
 func TestParseQuality(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input string
@@ -52,6 +55,7 @@ func TestParseQuality(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := ParseQuality(tt.input)
 			if got != tt.want {
 				t.Errorf("ParseQuality(%q) = %d, want %d", tt.input, got, tt.want)
@@ -61,6 +65,7 @@ func TestParseQuality(t *testing.T) {
 }
 
 func TestQuality_MarshalJSON(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		quality Quality
@@ -75,6 +80,7 @@ func TestQuality_MarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			data, err := json.Marshal(tt.quality)
 			if err != nil {
 				t.Fatalf("MarshalJSON() unexpected error: %v", err)
@@ -87,6 +93,7 @@ func TestQuality_MarshalJSON(t *testing.T) {
 }
 
 func TestQuality_UnmarshalJSON(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name  string
 		input string
@@ -103,6 +110,7 @@ func TestQuality_UnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var q Quality
 			if err := json.Unmarshal([]byte(tt.input), &q); err != nil {
 				t.Fatalf("UnmarshalJSON(%s) unexpected error: %v", tt.input, err)
@@ -115,6 +123,7 @@ func TestQuality_UnmarshalJSON(t *testing.T) {
 }
 
 func TestQuality_JSONRoundTrip(t *testing.T) {
+	t.Parallel()
 	qualities := []Quality{
 		QualityUnknown,
 		Quality360p,
@@ -126,6 +135,7 @@ func TestQuality_JSONRoundTrip(t *testing.T) {
 
 	for _, original := range qualities {
 		t.Run(original.String(), func(t *testing.T) {
+			t.Parallel()
 			data, err := json.Marshal(original)
 			if err != nil {
 				t.Fatalf("Marshal() unexpected error: %v", err)

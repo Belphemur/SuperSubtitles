@@ -11,6 +11,7 @@ import (
 
 // TestQualityConversion tests quality enum conversion
 func TestQualityConversion(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		modelQuality models.Quality
 		protoQuality pb.Quality
@@ -33,6 +34,7 @@ func TestQualityConversion(t *testing.T) {
 
 // TestConvertShowToProto tests Show model to proto conversion
 func TestConvertShowToProto(t *testing.T) {
+	t.Parallel()
 	show := models.Show{
 		Name:     "Breaking Bad",
 		ID:       42,
@@ -58,6 +60,7 @@ func TestConvertShowToProto(t *testing.T) {
 
 // TestConvertShowFromProto_NilShow tests nil handling in show conversion
 func TestConvertShowFromProto_NilShow(t *testing.T) {
+	t.Parallel()
 	result := convertShowFromProto(nil)
 	if result.ID != 0 || result.Name != "" {
 		t.Errorf("Expected zero value Show, got %+v", result)
@@ -66,6 +69,7 @@ func TestConvertShowFromProto_NilShow(t *testing.T) {
 
 // TestConvertShowFromProto tests proto Show to model conversion
 func TestConvertShowFromProto(t *testing.T) {
+	t.Parallel()
 	pbShow := &pb.Show{
 		Name:     "Game of Thrones",
 		Id:       123,
@@ -91,6 +95,7 @@ func TestConvertShowFromProto(t *testing.T) {
 
 // TestConvertThirdPartyIdsToProto tests ThirdPartyIds conversion
 func TestConvertThirdPartyIdsToProto(t *testing.T) {
+	t.Parallel()
 	ids := models.ThirdPartyIds{
 		IMDBID:   "tt0903747",
 		TVDBID:   81189,
@@ -116,6 +121,7 @@ func TestConvertThirdPartyIdsToProto(t *testing.T) {
 
 // TestConvertSubtitleToProto tests subtitle conversion with valid timestamp
 func TestConvertSubtitleToProto(t *testing.T) {
+	t.Parallel()
 	uploadTime := time.Date(2024, 1, 15, 12, 30, 0, 0, time.UTC)
 	subtitle := models.Subtitle{
 		ID:            101,
@@ -176,6 +182,7 @@ func TestConvertSubtitleToProto(t *testing.T) {
 
 // TestConvertSubtitleToProto_ZeroTimestamp tests zero timestamp handling
 func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
+	t.Parallel()
 	subtitle := models.Subtitle{
 		ID:         101,
 		ShowID:     1,
@@ -190,6 +197,7 @@ func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
 }
 
 func TestConvertShowSubtitlesToProto(t *testing.T) {
+	t.Parallel()
 	uploadTime := time.Date(2024, 2, 5, 8, 15, 0, 0, time.UTC)
 	ss := models.ShowSubtitles{
 		Show: models.Show{
@@ -290,6 +298,7 @@ func TestConvertShowSubtitlesToProto(t *testing.T) {
 
 // TestSanitizeUTF8_ValidString tests that valid UTF-8 strings pass through unchanged
 func TestSanitizeUTF8_ValidString(t *testing.T) {
+	t.Parallel()
 	testCases := []string{
 		"Breaking Bad",
 		"Magyar felirat",
@@ -308,6 +317,7 @@ func TestSanitizeUTF8_ValidString(t *testing.T) {
 
 // TestSanitizeUTF8_InvalidString tests that invalid UTF-8 sequences are replaced
 func TestSanitizeUTF8_InvalidString(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		input    string
@@ -342,6 +352,7 @@ func TestSanitizeUTF8_InvalidString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			result := sanitizeUTF8(tc.input)
 			if result != tc.expected {
 				t.Errorf("Expected %q, got %q", tc.expected, result)
@@ -352,6 +363,7 @@ func TestSanitizeUTF8_InvalidString(t *testing.T) {
 
 // TestSanitizeUTF8Slice_ValidStrings tests that valid UTF-8 strings in slices pass through unchanged
 func TestSanitizeUTF8Slice_ValidStrings(t *testing.T) {
+	t.Parallel()
 	input := []string{"DIMENSION", "LOL", "NTb"}
 	result := sanitizeUTF8Slice(input)
 
@@ -368,6 +380,7 @@ func TestSanitizeUTF8Slice_ValidStrings(t *testing.T) {
 
 // TestSanitizeUTF8Slice_InvalidStrings tests that invalid UTF-8 sequences in slices are sanitized
 func TestSanitizeUTF8Slice_InvalidStrings(t *testing.T) {
+	t.Parallel()
 	input := []string{
 		"Valid",
 		"\xffInvalid",
@@ -394,6 +407,7 @@ func TestSanitizeUTF8Slice_InvalidStrings(t *testing.T) {
 
 // TestSanitizeUTF8Slice_EmptySlice tests that empty slices are handled correctly
 func TestSanitizeUTF8Slice_EmptySlice(t *testing.T) {
+	t.Parallel()
 	input := []string{}
 	result := sanitizeUTF8Slice(input)
 
@@ -404,6 +418,7 @@ func TestSanitizeUTF8Slice_EmptySlice(t *testing.T) {
 
 // TestConvertShowToProto_InvalidUTF8 tests that invalid UTF-8 in show fields is sanitized
 func TestConvertShowToProto_InvalidUTF8(t *testing.T) {
+	t.Parallel()
 	show := models.Show{
 		Name:     "Breaking\xffBad",
 		ID:       42,
@@ -423,6 +438,7 @@ func TestConvertShowToProto_InvalidUTF8(t *testing.T) {
 
 // TestConvertSubtitleToProto_InvalidUTF8 tests that invalid UTF-8 in subtitle fields is sanitized
 func TestConvertSubtitleToProto_InvalidUTF8(t *testing.T) {
+	t.Parallel()
 	subtitle := models.Subtitle{
 		ID:            101,
 		ShowID:        1,
@@ -472,6 +488,7 @@ func TestConvertSubtitleToProto_InvalidUTF8(t *testing.T) {
 
 // TestConvertThirdPartyIdsToProto_InvalidUTF8 tests that invalid UTF-8 in IMDB ID is sanitized
 func TestConvertThirdPartyIdsToProto_InvalidUTF8(t *testing.T) {
+	t.Parallel()
 	ids := models.ThirdPartyIds{
 		IMDBID:   "tt09\xff03747",
 		TVDBID:   81189,
@@ -488,6 +505,7 @@ func TestConvertThirdPartyIdsToProto_InvalidUTF8(t *testing.T) {
 
 // TestSafeInt32_OverflowValues tests that safeInt32 clamps values exceeding int32 bounds
 func TestSafeInt32_OverflowValues(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		input    int
@@ -506,6 +524,7 @@ func TestSafeInt32_OverflowValues(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			result := safeInt32(tc.input)
 			if result != tc.expected {
 				t.Errorf("safeInt32(%d) = %d, expected %d", tc.input, result, tc.expected)

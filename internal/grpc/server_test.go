@@ -180,6 +180,7 @@ func (m *mockServerStream[T]) RecvMsg(msg any) error        { return nil }
 
 // TestGetShowList_Success tests successful show list streaming
 func TestGetShowList_Success(t *testing.T) {
+	t.Parallel()
 	mockShows := []models.Show{
 		{Name: "Breaking Bad", ID: 1, Year: 2008, ImageURL: "http://example.com/image1.jpg"},
 		{Name: "Game of Thrones", ID: 2, Year: 2011, ImageURL: "http://example.com/image2.jpg"},
@@ -216,6 +217,7 @@ func TestGetShowList_Success(t *testing.T) {
 
 // TestGetShowList_Error tests error handling in show list streaming
 func TestGetShowList_Error(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		getShowListFunc: func(ctx context.Context) ([]models.Show, error) {
 			return nil, errors.New("network error")
@@ -233,6 +235,7 @@ func TestGetShowList_Error(t *testing.T) {
 
 // TestGetSubtitles_Success tests successful subtitle streaming
 func TestGetSubtitles_Success(t *testing.T) {
+	t.Parallel()
 	uploadTime := time.Now()
 	mockCollection := &models.SubtitleCollection{
 		ShowName: "Breaking Bad",
@@ -296,6 +299,7 @@ func TestGetSubtitles_Success(t *testing.T) {
 
 // TestGetShowSubtitles_Success tests successful show subtitles streaming
 func TestGetShowSubtitles_Success(t *testing.T) {
+	t.Parallel()
 	mockShowSubtitles := []models.ShowSubtitles{
 		{
 			Show: models.Show{Name: "Breaking Bad", ID: 1, Year: 2008, ImageURL: "http://example.com/image.jpg"},
@@ -379,6 +383,7 @@ func TestGetShowSubtitles_Success(t *testing.T) {
 
 // TestGetShowSubtitles_NoValidShows tests error when no valid shows are provided
 func TestGetShowSubtitles_NoValidShows(t *testing.T) {
+	t.Parallel()
 	srv := NewServer(&mockClient{}).(*server)
 	stream := newMockServerStream[pb.ShowSubtitlesCollection]()
 
@@ -394,6 +399,7 @@ func TestGetShowSubtitles_NoValidShows(t *testing.T) {
 
 // TestCheckForUpdates_Success tests successful update check
 func TestCheckForUpdates_Success(t *testing.T) {
+	t.Parallel()
 	mockResult := &models.UpdateCheckResult{
 		FilmCount:   5,
 		SeriesCount: 10,
@@ -430,6 +436,7 @@ func TestCheckForUpdates_Success(t *testing.T) {
 
 // TestDownloadSubtitle_Success tests successful subtitle download
 func TestDownloadSubtitle_Success(t *testing.T) {
+	t.Parallel()
 	mockResult := &models.DownloadResult{
 		Filename:    "breaking.bad.s01e01.srt",
 		Content:     []byte("subtitle content"),
@@ -474,6 +481,7 @@ func TestDownloadSubtitle_Success(t *testing.T) {
 
 // TestDownloadSubtitle_NoEpisode tests subtitle download without specifying an episode
 func TestDownloadSubtitle_NoEpisode(t *testing.T) {
+	t.Parallel()
 	mockResult := &models.DownloadResult{
 		Filename:    "breaking.bad.season.01.srt",
 		Content:     []byte("season pack content"),
@@ -519,6 +527,7 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 
 // TestDownloadSubtitle_EpisodeNotFoundInZip tests that ErrSubtitleNotFoundInZip results in a NotFound gRPC status
 func TestDownloadSubtitle_EpisodeNotFoundInZip(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, &apperrors.ErrSubtitleNotFoundInZip{Episode: *episode, FileCount: 3})
@@ -549,6 +558,7 @@ func TestDownloadSubtitle_EpisodeNotFoundInZip(t *testing.T) {
 
 // TestDownloadSubtitle_ResourceNotFound tests that ErrSubtitleResourceNotFound (HTTP 404) results in a NotFound gRPC status
 func TestDownloadSubtitle_ResourceNotFound(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 			return nil, fmt.Errorf("failed to download subtitle: %w", &apperrors.ErrSubtitleResourceNotFound{URL: "http://example.com/download/101"})
@@ -576,6 +586,7 @@ func TestDownloadSubtitle_ResourceNotFound(t *testing.T) {
 
 // TestGetSubtitles_ShowNotFound tests that ErrNotFound results in a NotFound gRPC status
 func TestGetSubtitles_ShowNotFound(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamSubtitlesFunc: func(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
 			ch := make(chan models.StreamResult[models.Subtitle], 1)
@@ -602,6 +613,7 @@ func TestGetSubtitles_ShowNotFound(t *testing.T) {
 	}
 }
 func TestGetRecentSubtitles_Success(t *testing.T) {
+	t.Parallel()
 	mockShowSubtitles := []models.ShowSubtitles{
 		{
 			Show: models.Show{Name: "Breaking Bad", ID: 1, Year: 2008},
@@ -698,6 +710,7 @@ func (m *errorOnSendStream[T]) RecvMsg(msg any) error        { return nil }
 
 // TestGetShowList_StreamSendError tests that a stream.Send error returns Internal status
 func TestGetShowList_StreamSendError(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		getShowListFunc: func(ctx context.Context) ([]models.Show, error) {
 			return []models.Show{{Name: "Breaking Bad", ID: 1}}, nil
@@ -723,6 +736,7 @@ func TestGetShowList_StreamSendError(t *testing.T) {
 
 // TestGetShowList_PartialSuccess tests that errors after successful sends are logged and streaming continues
 func TestGetShowList_PartialSuccess(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamShowListFunc: func(ctx context.Context) <-chan models.StreamResult[models.Show] {
 			ch := make(chan models.StreamResult[models.Show], 2)
@@ -751,6 +765,7 @@ func TestGetShowList_PartialSuccess(t *testing.T) {
 
 // TestGetSubtitles_GenericError tests that a non-NotFound error returns Internal status
 func TestGetSubtitles_GenericError(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamSubtitlesFunc: func(ctx context.Context, showID int) <-chan models.StreamResult[models.Subtitle] {
 			ch := make(chan models.StreamResult[models.Subtitle], 1)
@@ -779,6 +794,7 @@ func TestGetSubtitles_GenericError(t *testing.T) {
 
 // TestGetShowSubtitles_ErrorAfterPartialSuccess tests that errors after partial sends are logged and streaming continues
 func TestGetShowSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamShowSubtitlesFunc: func(ctx context.Context, shows []models.Show) <-chan models.StreamResult[models.ShowSubtitles] {
 			ch := make(chan models.StreamResult[models.ShowSubtitles], 2)
@@ -822,6 +838,7 @@ func TestGetShowSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
 
 // TestGetShowSubtitles_StreamSendError tests that a stream.Send error returns Internal status
 func TestGetShowSubtitles_StreamSendError(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		getShowSubtitlesFunc: func(ctx context.Context, shows []models.Show) ([]models.ShowSubtitles, error) {
 			return []models.ShowSubtitles{
@@ -856,6 +873,7 @@ func TestGetShowSubtitles_StreamSendError(t *testing.T) {
 
 // TestCheckForUpdates_Error tests that an error returns Internal status
 func TestCheckForUpdates_Error(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		checkForUpdatesFunc: func(ctx context.Context, contentID int64) (*models.UpdateCheckResult, error) {
 			return nil, errors.New("service unavailable")
@@ -881,6 +899,7 @@ func TestCheckForUpdates_Error(t *testing.T) {
 
 // TestGetRecentSubtitles_ErrorAsFirstResult tests that an error as the first result returns Internal status
 func TestGetRecentSubtitles_ErrorAsFirstResult(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamRecentSubtitlesFunc: func(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
 			ch := make(chan models.StreamResult[models.ShowSubtitles], 1)
@@ -909,6 +928,7 @@ func TestGetRecentSubtitles_ErrorAsFirstResult(t *testing.T) {
 
 // TestGetRecentSubtitles_StreamSendError tests that a stream.Send error returns Internal status
 func TestGetRecentSubtitles_StreamSendError(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		getRecentSubtitlesFunc: func(ctx context.Context, sinceID int) ([]models.ShowSubtitles, error) {
 			return []models.ShowSubtitles{
@@ -939,6 +959,7 @@ func TestGetRecentSubtitles_StreamSendError(t *testing.T) {
 
 // TestGetRecentSubtitles_ErrorAfterPartialSuccess tests that errors after partial sends are logged and streaming continues
 func TestGetRecentSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		streamRecentSubtitlesFunc: func(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
 			ch := make(chan models.StreamResult[models.ShowSubtitles], 2)
@@ -975,6 +996,7 @@ func TestGetRecentSubtitles_ErrorAfterPartialSuccess(t *testing.T) {
 
 // TestDownloadSubtitle_GenericError tests that a non-specific error returns Internal status
 func TestDownloadSubtitle_GenericError(t *testing.T) {
+	t.Parallel()
 	mock := &mockClient{
 		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
 			return nil, errors.New("unexpected server error")

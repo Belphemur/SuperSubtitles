@@ -7,6 +7,7 @@ import (
 )
 
 func TestUpdateCheckResponse_UnmarshalJSON(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		input       string
@@ -85,6 +86,7 @@ func TestUpdateCheckResponse_UnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var resp UpdateCheckResponse
 			err := json.Unmarshal([]byte(tt.input), &resp)
 
@@ -110,6 +112,7 @@ func TestUpdateCheckResponse_UnmarshalJSON(t *testing.T) {
 }
 
 func TestUpdateCheckResponse_UnmarshalJSON_MissingFields(t *testing.T) {
+	t.Parallel()
 	var resp UpdateCheckResponse
 	err := json.Unmarshal([]byte(`{}`), &resp)
 	if err != nil {
@@ -124,6 +127,7 @@ func TestUpdateCheckResponse_UnmarshalJSON_MissingFields(t *testing.T) {
 }
 
 func TestUpdateCheckResult_JSONRoundTrip(t *testing.T) {
+	t.Parallel()
 	original := UpdateCheckResult{
 		FilmCount:   5,
 		SeriesCount: 10,
