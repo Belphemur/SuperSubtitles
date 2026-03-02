@@ -10,6 +10,7 @@ import (
 )
 
 func TestClient_CheckForUpdates(t *testing.T) {
+	t.Parallel()
 	// Sample JSON response for update check - API returns string values
 	jsonResponse := `{"film":"15","sorozat":"5"}`
 
@@ -61,6 +62,7 @@ func TestClient_CheckForUpdates(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
+	t.Parallel()
 	// Sample JSON response for no updates - API returns string values
 	jsonResponse := `{"film":"0","sorozat":"0"}`
 
@@ -109,6 +111,7 @@ func TestClient_CheckForUpdates_NoUpdates(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_ServerError(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns an error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -139,6 +142,7 @@ func TestClient_CheckForUpdates_ServerError(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns invalid JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -170,6 +174,7 @@ func TestClient_CheckForUpdates_InvalidJSON(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_StringValues(t *testing.T) {
+	t.Parallel()
 	// Test API returning string values for film and sorozat instead of integers
 	jsonResponse := `{"film":"3","sorozat":"7"}`
 
@@ -218,6 +223,7 @@ func TestClient_CheckForUpdates_StringValues(t *testing.T) {
 }
 
 func TestClient_CheckForUpdates_MixedTypes(t *testing.T) {
+	t.Parallel()
 	// Test API returning mixed types (int and string)
 	jsonResponse := `{"film":2,"sorozat":"4"}`
 

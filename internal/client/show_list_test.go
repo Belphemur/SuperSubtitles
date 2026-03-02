@@ -12,6 +12,7 @@ import (
 )
 
 func TestClient_GetShowList(t *testing.T) {
+	t.Parallel()
 	// HTML for waiting (varakozik) endpoint
 	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
@@ -106,6 +107,7 @@ func TestClient_GetShowList(t *testing.T) {
 }
 
 func TestClient_GetShowList_ServerError(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns an error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -136,6 +138,7 @@ func TestClient_GetShowList_ServerError(t *testing.T) {
 }
 
 func TestClient_GetShowList_PartialFailure(t *testing.T) {
+	t.Parallel()
 	// One endpoint succeeds, the other fails (500)
 	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 999, ShowName: "Only Show", Year: 2025},
@@ -169,6 +172,7 @@ func TestClient_GetShowList_PartialFailure(t *testing.T) {
 }
 
 func TestClient_GetShowList_Timeout(t *testing.T) {
+	t.Parallel()
 	// Create a test server that delays response
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		<-r.Context().Done() // Delay longer than timeout
@@ -201,6 +205,7 @@ func TestClient_GetShowList_Timeout(t *testing.T) {
 }
 
 func TestClient_GetShowList_InvalidHTML(t *testing.T) {
+	t.Parallel()
 	// Create a test server that returns invalid HTML
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -232,6 +237,7 @@ func TestClient_GetShowList_InvalidHTML(t *testing.T) {
 }
 
 func TestClient_GetShowList_WithProxy(t *testing.T) {
+	t.Parallel()
 	// Sample HTML content
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
@@ -270,6 +276,7 @@ func TestClient_GetShowList_WithProxy(t *testing.T) {
 }
 
 func TestClient_GetShowList_WithPagination(t *testing.T) {
+	t.Parallel()
 	// The "nem-all-forditas-alatt" endpoint has 3 pages.
 	// Page 1 contains pagination showing totalPages=3, pages 2-3 have different shows.
 	page1HTML := testutil.GenerateShowTableHTMLWithPagination([]testutil.ShowRowOptions{

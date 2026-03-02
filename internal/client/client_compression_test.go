@@ -17,6 +17,7 @@ import (
 
 // TestClient_GetShowList_WithGzipCompression tests that the client properly handles gzip-compressed responses
 func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
+	t.Parallel()
 	// HTML for waiting (varakozik) endpoint
 	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
@@ -74,6 +75,7 @@ func TestClient_GetShowList_WithGzipCompression(t *testing.T) {
 
 // TestClient_GetShowList_WithBrotliCompression tests that the client properly handles brotli-compressed responses
 func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
+	t.Parallel()
 	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12347, ShowName: "#1 Happy Family USA", Year: 2025},
 	})
@@ -129,6 +131,7 @@ func TestClient_GetShowList_WithBrotliCompression(t *testing.T) {
 
 // TestClient_GetShowList_WithZstdCompression tests that the client properly handles zstd-compressed responses
 func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
+	t.Parallel()
 	waitingHTML := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12549, ShowName: "A Thousand Blows", Year: 2025},
 	})
@@ -185,6 +188,7 @@ func TestClient_GetShowList_WithZstdCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithGzipCompression tests that GetSubtitles works with gzip compression
 func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
+	t.Parallel()
 	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
@@ -248,6 +252,7 @@ func TestClient_GetSubtitles_WithGzipCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithBrotliCompression tests that GetSubtitles works with brotli compression
 func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
+	t.Parallel()
 	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
@@ -311,6 +316,7 @@ func TestClient_GetSubtitles_WithBrotliCompression(t *testing.T) {
 
 // TestClient_GetSubtitles_WithZstdCompression tests that GetSubtitles works with zstd compression
 func TestClient_GetSubtitles_WithZstdCompression(t *testing.T) {
+	t.Parallel()
 	htmlResponse := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 		{
 			ShowID:           2967,
