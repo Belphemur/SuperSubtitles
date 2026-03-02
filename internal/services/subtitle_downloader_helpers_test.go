@@ -16,6 +16,7 @@ import (
 )
 
 func Test_generateFilename(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		subtitleID  string
@@ -44,6 +45,7 @@ func Test_generateFilename(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := generateFilename(tt.subtitleID, tt.contentType)
 			if got != tt.want {
 				t.Errorf("generateFilename(%q, %q) = %q, want %q", tt.subtitleID, tt.contentType, got, tt.want)
@@ -53,6 +55,7 @@ func Test_generateFilename(t *testing.T) {
 }
 
 func Test_extractSubtitleID(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		url  string
@@ -77,6 +80,7 @@ func Test_extractSubtitleID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := extractSubtitleID(tt.url)
 			if got != tt.want {
 				t.Errorf("extractSubtitleID(%q) = %q, want %q", tt.url, got, tt.want)
@@ -86,6 +90,7 @@ func Test_extractSubtitleID(t *testing.T) {
 }
 
 func Test_getExtensionFromContentType(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		contentType string
@@ -116,6 +121,7 @@ func Test_getExtensionFromContentType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := getExtensionFromContentType(tt.contentType)
 			if got != tt.want {
 				t.Errorf("getExtensionFromContentType(%q) = %q, want %q", tt.contentType, got, tt.want)
@@ -125,6 +131,7 @@ func Test_getExtensionFromContentType(t *testing.T) {
 }
 
 func Test_isZipContentType(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		contentType string
@@ -145,6 +152,7 @@ func Test_isZipContentType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := isZipContentType(tt.contentType)
 			if got != tt.want {
 				t.Errorf("isZipContentType(%q) = %v, want %v", tt.contentType, got, tt.want)
@@ -154,6 +162,7 @@ func Test_isZipContentType(t *testing.T) {
 }
 
 func Test_getContentTypeFromFilename(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		filename string
@@ -171,6 +180,7 @@ func Test_getContentTypeFromFilename(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := getContentTypeFromFilename(tt.filename)
 			if got != tt.want {
 				t.Errorf("getContentTypeFromFilename(%q) = %q, want %q", tt.filename, got, tt.want)
@@ -180,6 +190,7 @@ func Test_getContentTypeFromFilename(t *testing.T) {
 }
 
 func Test_isTextSubtitleContentType(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		contentType string
@@ -208,6 +219,7 @@ func Test_isTextSubtitleContentType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := isTextSubtitleContentType(tt.contentType)
 			if got != tt.want {
 				t.Errorf("isTextSubtitleContentType(%q) = %v, want %v", tt.contentType, got, tt.want)
@@ -217,7 +229,9 @@ func Test_isTextSubtitleContentType(t *testing.T) {
 }
 
 func TestDefaultSubtitleDownloader_Close(t *testing.T) {
+	t.Parallel()
 	t.Run("close with cache", func(t *testing.T) {
+		t.Parallel()
 		zipCache, err := cache.New("memory", cache.ProviderConfig{
 			Size: 10,
 			TTL:  time.Hour,
@@ -237,6 +251,7 @@ func TestDefaultSubtitleDownloader_Close(t *testing.T) {
 	})
 
 	t.Run("close with nil cache", func(t *testing.T) {
+		t.Parallel()
 		d := &DefaultSubtitleDownloader{
 			httpClient: &http.Client{},
 			zipCache:   nil,
@@ -249,6 +264,7 @@ func TestDefaultSubtitleDownloader_Close(t *testing.T) {
 }
 
 func Test_zerologCacheLogger_Error(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.New(io.Discard)
 	cacheLogger := &zerologCacheLogger{logger: logger}
 	// Should not panic
@@ -256,7 +272,9 @@ func Test_zerologCacheLogger_Error(t *testing.T) {
 }
 
 func Test_convertToUTF8(t *testing.T) {
+	t.Parallel()
 	t.Run("empty content returns empty", func(t *testing.T) {
+		t.Parallel()
 		got := convertToUTF8([]byte{})
 		if len(got) != 0 {
 			t.Errorf("convertToUTF8(empty) returned %d bytes, want 0", len(got))
@@ -264,6 +282,7 @@ func Test_convertToUTF8(t *testing.T) {
 	})
 
 	t.Run("nil content returns nil", func(t *testing.T) {
+		t.Parallel()
 		got := convertToUTF8(nil)
 		if got != nil {
 			t.Errorf("convertToUTF8(nil) returned non-nil")
@@ -271,6 +290,7 @@ func Test_convertToUTF8(t *testing.T) {
 	})
 
 	t.Run("valid UTF-8 content returned as-is", func(t *testing.T) {
+		t.Parallel()
 		input := []byte("Hello, world! Héllo àccénts")
 		got := convertToUTF8(input)
 		if string(got) != string(input) {
@@ -279,6 +299,7 @@ func Test_convertToUTF8(t *testing.T) {
 	})
 
 	t.Run("non-UTF-8 content is converted", func(t *testing.T) {
+		t.Parallel()
 		// Latin-1 encoded "café" (0xe9 = é in Latin-1)
 		input := []byte{0x63, 0x61, 0x66, 0xe9}
 		got := convertToUTF8(input)

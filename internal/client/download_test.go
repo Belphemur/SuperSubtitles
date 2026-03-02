@@ -10,6 +10,7 @@ import (
 )
 
 func TestClient_DownloadSubtitle(t *testing.T) {
+	t.Parallel()
 	// Test download of a regular (non-ZIP) subtitle file
 	subtitleContent := "1\n00:00:01,000 --> 00:00:02,000\nTest subtitle line\n"
 	expectedSubtitleID := "1234567890"

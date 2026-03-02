@@ -54,6 +54,7 @@ html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 - **Stream collection helpers**: `testutil` provides helpers to consume streams in tests (`CollectShows`, `CollectSubtitles`, `CollectShowSubtitles`)
 - **Streaming-first testing**: Tests consume from client streaming methods and use testutil helpers to collect results
 - **Parallel page fetching**: Tests verify pagination with 2-page parallel batches
+- **`t.Parallel()` throughout**: Most test functions call `t.Parallel()` so Go runs them concurrently within each package. Tests that assert on shared global Prometheus counters are intentionally left sequential to avoid count interference. Redis/Valkey tests are also left sequential because they all share the same test database (DB 15) and call `FlushDB` at startup — running them in parallel would cause tests to flush each other's data mid-test.
 - **Integration test guards**: `client_integration_test.go` checks for `CI` / `SKIP_INTEGRATION_TESTS` env vars to skip live requests
 - **Benchmark coverage**: Performance tests for critical paths (ZIP extraction)
 
@@ -152,12 +153,24 @@ results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ct
 
 ## Running Tests
 
+> **Note:** Some cache tests require a running Valkey (or Redis-compatible) server. The
+> `internal/cache/redis_test.go` tests are automatically skipped unless the `REDIS_ADDRESS`
+> environment variable is set (e.g., `REDIS_ADDRESS=localhost:6379`). Valkey 8+ (or Redis 7.4+)
+> is required for the HPEXPIRE command used by the Redis cache provider. Without Valkey running
+> locally you can still run all other tests — only the Redis-specific tests will be skipped.
+
 ```bash
-# All tests
+# All tests (Redis tests are skipped without REDIS_ADDRESS)
 go test ./...
 
 # With race detector (required before commits)
 go test -race ./...
+
+# With Valkey/Redis running locally (enables all cache tests)
+REDIS_ADDRESS=localhost:6379 go test ./internal/cache/...
+
+# Start Valkey with Docker for local development
+# docker run -d -p 6379:6379 valkey/valkey:latest
 
 # Specific package
 go test ./internal/parser/...

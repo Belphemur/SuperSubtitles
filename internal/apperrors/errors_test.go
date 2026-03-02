@@ -15,6 +15,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestErrNotFound_Error(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		err      *ErrNotFound
@@ -44,6 +45,7 @@ func TestErrNotFound_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := tt.err.Error()
 			if got != tt.expected {
 				t.Errorf("Error() = %q, want %q", got, tt.expected)
@@ -53,6 +55,7 @@ func TestErrNotFound_Error(t *testing.T) {
 }
 
 func TestErrNotFound_Is(t *testing.T) {
+	t.Parallel()
 	err := &ErrNotFound{Resource: "show", ID: 1}
 
 	t.Run("matches another ErrNotFound", func(t *testing.T) {
@@ -106,6 +109,7 @@ func TestErrNotFound_Is(t *testing.T) {
 }
 
 func TestNewNotFoundError(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		resource string
@@ -134,6 +138,7 @@ func TestNewNotFoundError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := NewNotFoundError(tt.resource, tt.id)
 			if err.Resource != tt.resource {
 				t.Errorf("Resource = %q, want %q", err.Resource, tt.resource)
@@ -152,6 +157,7 @@ func TestNewNotFoundError(t *testing.T) {
 }
 
 func TestNewSubtitlesNotFoundError(t *testing.T) {
+	t.Parallel()
 	showID := 123
 	err := NewSubtitlesNotFoundError(showID)
 
@@ -177,6 +183,7 @@ func TestNewSubtitlesNotFoundError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		episode   int
@@ -199,6 +206,7 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := &ErrSubtitleNotFoundInZip{Episode: tt.episode, FileCount: tt.fileCount}
 			got := err.Error()
 			if got != tt.expected {
@@ -209,6 +217,7 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 }
 
 func TestErrSubtitleNotFoundInZip_Is(t *testing.T) {
+	t.Parallel()
 	err := &ErrSubtitleNotFoundInZip{Episode: 3, FileCount: 10}
 
 	t.Run("matches another ErrSubtitleNotFoundInZip", func(t *testing.T) {
@@ -265,6 +274,7 @@ func TestErrSubtitleNotFoundInZip_Is(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrSubtitleResourceNotFound_Error(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		url      string
@@ -284,6 +294,7 @@ func TestErrSubtitleResourceNotFound_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := &ErrSubtitleResourceNotFound{URL: tt.url}
 			got := err.Error()
 			if got != tt.expected {
@@ -294,6 +305,7 @@ func TestErrSubtitleResourceNotFound_Error(t *testing.T) {
 }
 
 func TestErrSubtitleResourceNotFound_Is(t *testing.T) {
+	t.Parallel()
 	err := &ErrSubtitleResourceNotFound{URL: "https://example.com/sub/1"}
 
 	t.Run("matches another ErrSubtitleResourceNotFound", func(t *testing.T) {
@@ -348,6 +360,7 @@ func TestErrSubtitleResourceNotFound_Is(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorTypes_CrossTypeIsolation(t *testing.T) {
+	t.Parallel()
 	errs := []error{
 		&ErrNotFound{Resource: "x", ID: 1},
 		&ErrSubtitleNotFoundInZip{Episode: 1, FileCount: 1},
@@ -371,6 +384,7 @@ func TestErrorTypes_CrossTypeIsolation(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestErrorTypes_ImplementErrorInterface(t *testing.T) {
+	t.Parallel()
 	var _ error = &ErrNotFound{}
 	var _ error = &ErrSubtitleNotFoundInZip{}
 	var _ error = &ErrSubtitleResourceNotFound{}

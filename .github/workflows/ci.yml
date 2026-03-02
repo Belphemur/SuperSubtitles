@@ -40,7 +40,52 @@ jobs:
         uses: golangci/golangci-lint-action@v9
 
   test:
-    name: Test
+    name: Test (${{ matrix.group.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - name: parser-models-errors
+            packages: "./internal/parser/... ./internal/models/... ./internal/apperrors/..."
+          - name: client
+            packages: "./internal/client/..."
+          - name: services-grpc-metrics
+            packages: "./internal/services/... ./internal/grpc/... ./internal/metrics/..."
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
+      - name: Run tests
+        run: |
+          mkdir -p test-results
+          gotestsum --junitfile test-results/junit-${{ matrix.group.name }}.xml --format testname -- -race -coverprofile=coverage-${{ matrix.group.name }}.txt -covermode=atomic ${{ matrix.group.packages }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-results/junit-${{ matrix.group.name }}.xml
+
+      - name: Upload coverage reports to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-${{ matrix.group.name }}.txt
+          flags: ${{ matrix.group.name }}
+
+  test-cache:
+    name: Test (cache)
     runs-on: ubuntu-latest
     services:
       valkey:
@@ -69,20 +114,22 @@ jobs:
           REDIS_ADDRESS: localhost:6379
         run: |
           mkdir -p test-results
-          gotestsum --junitfile test-results/junit.xml --format testname -- -race -coverprofile=coverage.txt -covermode=atomic ./...
+          gotestsum --junitfile test-results/junit-cache.xml --format testname -- -race -coverprofile=coverage-cache.txt -covermode=atomic ./internal/cache/...
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: test-results/junit.xml
+          files: test-results/junit-cache.xml
 
       - name: Upload coverage reports to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-cache.txt
+          flags: cache
 
   build:
     name: Build

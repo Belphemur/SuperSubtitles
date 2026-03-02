@@ -13,6 +13,7 @@ import (
 )
 
 func TestCompressionTransport_Gzip(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is test data that should be compressed with gzip")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +59,7 @@ func TestCompressionTransport_Gzip(t *testing.T) {
 }
 
 func TestCompressionTransport_Brotli(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is test data that should be compressed with brotli")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,6 +105,7 @@ func TestCompressionTransport_Brotli(t *testing.T) {
 }
 
 func TestCompressionTransport_Zstd(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is test data that should be compressed with zstd")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -149,6 +152,7 @@ func TestCompressionTransport_Zstd(t *testing.T) {
 }
 
 func TestCompressionTransport_NoCompression(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is uncompressed test data")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +189,7 @@ func TestCompressionTransport_NoCompression(t *testing.T) {
 }
 
 func TestCompressionTransport_PreserveExistingAcceptEncoding(t *testing.T) {
+	t.Parallel()
 	testData := []byte("Test data")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,6 +233,7 @@ func TestCompressionTransport_PreserveExistingAcceptEncoding(t *testing.T) {
 }
 
 func TestCompressionTransport_UnknownEncoding(t *testing.T) {
+	t.Parallel()
 	testData := []byte("Test data with unknown encoding")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -265,6 +271,7 @@ func TestCompressionTransport_UnknownEncoding(t *testing.T) {
 }
 
 func TestCompressionTransport_NoBody(t *testing.T) {
+	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Simulate a HEAD or 204 response with Content-Encoding but no body
 		w.Header().Set("Content-Encoding", "gzip")
@@ -290,6 +297,7 @@ func TestCompressionTransport_NoBody(t *testing.T) {
 }
 
 func TestCompressionTransport_CommaListEncoding(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is test data with multiple encodings")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -326,6 +334,7 @@ func TestCompressionTransport_CommaListEncoding(t *testing.T) {
 }
 
 func TestCompressionTransport_WhitespaceEncoding(t *testing.T) {
+	t.Parallel()
 	testData := []byte("This is test data with whitespace in encoding header")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -362,6 +371,7 @@ func TestCompressionTransport_WhitespaceEncoding(t *testing.T) {
 }
 
 func TestParseContentEncoding(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		header   string
@@ -384,6 +394,7 @@ func TestParseContentEncoding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result := parseContentEncoding(tt.header)
 			if result != tt.expected {
 				t.Errorf("parseContentEncoding(%q) = %q, expected %q", tt.header, result, tt.expected)

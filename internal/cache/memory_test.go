@@ -6,6 +6,7 @@ import (
 )
 
 func TestMemoryCache_GetSet(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 10, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New memory cache: %v", err)
@@ -33,6 +34,7 @@ func TestMemoryCache_GetSet(t *testing.T) {
 }
 
 func TestMemoryCache_Contains(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 10, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -50,6 +52,7 @@ func TestMemoryCache_Contains(t *testing.T) {
 }
 
 func TestMemoryCache_Len(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 10, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -68,6 +71,7 @@ func TestMemoryCache_Len(t *testing.T) {
 }
 
 func TestMemoryCache_Eviction(t *testing.T) {
+	t.Parallel()
 	evictedKeys := make([]string, 0)
 	onEvict := func(key string, _ []byte) {
 		evictedKeys = append(evictedKeys, key)
@@ -99,6 +103,7 @@ func TestMemoryCache_Eviction(t *testing.T) {
 }
 
 func TestMemoryCache_Overwrite(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 10, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New: %v", err)
@@ -122,6 +127,7 @@ func TestMemoryCache_Overwrite(t *testing.T) {
 }
 
 func TestMemoryCache_Close(t *testing.T) {
+	t.Parallel()
 	c, err := New("memory", ProviderConfig{Size: 10, TTL: time.Hour})
 	if err != nil {
 		t.Fatalf("New: %v", err)
