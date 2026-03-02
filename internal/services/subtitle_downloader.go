@@ -13,6 +13,22 @@ type ErrSubtitleNotFoundInZip struct {
 	FileCount int
 }
 
+// ErrSubtitleResourceNotFound is returned when the subtitle download URL returns HTTP 404.
+type ErrSubtitleResourceNotFound struct {
+	URL string
+}
+
+// Error implements the error interface.
+func (e *ErrSubtitleResourceNotFound) Error() string {
+	return fmt.Sprintf("subtitle resource not found at URL: %s", e.URL)
+}
+
+// Is allows for error checking with errors.Is().
+func (e *ErrSubtitleResourceNotFound) Is(target error) bool {
+	_, ok := target.(*ErrSubtitleResourceNotFound)
+	return ok
+}
+
 // Error implements the error interface.
 func (e *ErrSubtitleNotFoundInZip) Error() string {
 	return fmt.Sprintf("episode %d not found in season pack ZIP (searched %d files)", e.Episode, e.FileCount)

@@ -435,6 +435,10 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, "", &ErrSubtitleResourceNotFound{URL: url}
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
