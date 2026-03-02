@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifacts-${{ matrix.group.name }}
           path: |
@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload test artifacts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifacts-cache
           path: |
@@ -124,7 +124,7 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - name: Download all test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: test-artifacts-*
           merge-multiple: true
