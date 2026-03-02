@@ -7,22 +7,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
-func getCounterValue(c prometheus.Counter) float64 {
-	var m dto.Metric
-	if err := c.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetCounter().GetValue()
-}
-
-func getGaugeValue(g prometheus.Gauge) float64 {
-	var m dto.Metric
-	if err := g.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetGauge().GetValue()
-}
-
 func getCounterVecValue(cv *prometheus.CounterVec, labels ...string) float64 {
 	c, err := cv.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -53,47 +37,6 @@ func TestMetrics_SubtitleDownloadsTotal_Error(t *testing.T) {
 	if after != before+1 {
 		t.Errorf("Expected error counter to increment by 1, got diff %.0f", after-before)
 	}
-}
-
-func TestMetrics_CacheHitsTotal(t *testing.T) {
-	before := getCounterValue(CacheHitsTotal)
-	CacheHitsTotal.Inc()
-	after := getCounterValue(CacheHitsTotal)
-
-	if after != before+1 {
-		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", after-before)
-	}
-}
-
-func TestMetrics_CacheMissesTotal(t *testing.T) {
-	before := getCounterValue(CacheMissesTotal)
-	CacheMissesTotal.Inc()
-	after := getCounterValue(CacheMissesTotal)
-
-	if after != before+1 {
-		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", after-before)
-	}
-}
-
-func TestMetrics_CacheEvictionsTotal(t *testing.T) {
-	before := getCounterValue(CacheEvictionsTotal)
-	CacheEvictionsTotal.Inc()
-	after := getCounterValue(CacheEvictionsTotal)
-
-	if after != before+1 {
-		t.Errorf("Expected cache evictions to increment by 1, got diff %.0f", after-before)
-	}
-}
-
-func TestMetrics_CacheEntries(t *testing.T) {
-	CacheEntries.Set(42)
-	val := getGaugeValue(CacheEntries)
-
-	if val != 42 {
-		t.Errorf("Expected cache entries to be 42, got %.0f", val)
-	}
-
-	CacheEntries.Set(0)
 }
 
 func TestMetrics_NewHTTPServer(t *testing.T) {

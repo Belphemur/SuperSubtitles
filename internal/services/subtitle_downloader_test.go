@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/cache"
 	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
@@ -1364,22 +1365,6 @@ func TestIsTextSubtitleContentType(t *testing.T) {
 
 // Metric helper functions for integration tests
 
-func getCounterValue(c prometheus.Counter) float64 {
-	var m dto.Metric
-	if err := c.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetCounter().GetValue()
-}
-
-func getGaugeValue(g prometheus.Gauge) float64 {
-	var m dto.Metric
-	if err := g.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetGauge().GetValue()
-}
-
 func getCounterVecValue(cv *prometheus.CounterVec, labels ...string) float64 {
 	c, err := cv.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -1457,8 +1442,8 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 
 	downloader := NewSubtitleDownloader(server.Client())
 
-	missBeforeFirst := getCounterValue(metrics.CacheMissesTotal)
-	hitBeforeFirst := getCounterValue(metrics.CacheHitsTotal)
+	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "zip")
+	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "zip")
 
 	// First request — cache miss
 	_, err := downloader.DownloadSubtitle(
@@ -1470,7 +1455,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("First request failed: %v", err)
 	}
 
-	missAfterFirst := getCounterValue(metrics.CacheMissesTotal)
+	missAfterFirst := getCounterVecValue(cache.MissesTotal, "zip")
 	if missAfterFirst != missBeforeFirst+1 {
 		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", missAfterFirst-missBeforeFirst)
 	}
@@ -1485,7 +1470,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("Second request failed: %v", err)
 	}
 
-	hitAfterSecond := getCounterValue(metrics.CacheHitsTotal)
+	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "zip")
 	if hitAfterSecond != hitBeforeFirst+1 {
 		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", hitAfterSecond-hitBeforeFirst)
 	}
@@ -1504,8 +1489,11 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 	defer server.Close()
 
 	downloader := NewSubtitleDownloader(server.Client())
+	d := downloader.(*DefaultSubtitleDownloader)
 
-	entriesBefore := getGaugeValue(metrics.CacheEntries)
+	if d.zipCache.Len() != 0 {
+		t.Fatalf("Expected 0 cache entries before download, got %d", d.zipCache.Len())
+	}
 
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
@@ -1516,9 +1504,8 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("Download failed: %v", err)
 	}
 
-	entriesAfter := getGaugeValue(metrics.CacheEntries)
-	if entriesAfter != entriesBefore+1 {
-		t.Errorf("Expected cache entries gauge to increment by 1, got diff %.0f", entriesAfter-entriesBefore)
+	if d.zipCache.Len() != 1 {
+		t.Errorf("Expected 1 cache entry after download, got %d", d.zipCache.Len())
 	}
 }
 

@@ -2,6 +2,18 @@
 
 This document explains key architectural and design decisions made in the SuperSubtitles project.
 
+## Cache-Layer Metrics with Group Label
+
+**Decision**: Prometheus metrics for cache operations (`cache_hits_total`, `cache_misses_total`, `cache_evictions_total`, `cache_entries`) are owned and emitted by the `internal/cache` package, not by callers. All four metrics carry a `cache` label whose value is the `Group` set in `ProviderConfig`. The entry-count gauge uses lazy evaluation (`GaugeFunc`-style `cacheEntriesCollector`) that calls `Len()` at scrape time rather than maintaining an in-process counter.
+
+**Rationale**:
+
+- **Correctness with Redis TTL**: Redis removes expired entries automatically, so an in-process `Inc`/`Dec` counter inevitably drifts. Querying `Len()` at scrape time always reflects the true count.
+- **Labels over name prefixes**: Using a `cache` label (e.g., `cache="zip"`) instead of a per-service metric prefix (`subtitle_cache_hits_total`) keeps metric names generic and allows the same cache infrastructure to be reused for other purposes (different groups) without renaming metrics or adding new registrations.
+- **Separation of concerns**: Callers create a cache with a `Group` name; all instrumentation is handled transparently by the cache layer via `instrumentedCache`. No metric code leaks into service or downloader layers.
+
+**Implementation**: `internal/cache/metrics.go` (CounterVec definitions + `cacheEntriesCollector`), `internal/cache/instrumented.go` (`instrumentedCache` wrapper), `internal/cache/factory.go` (`New()` wraps the result and injects the eviction counter hook when `Group != ""`).
+
 ## Partial Failure Resilience
 
 **Decision**: The client returns whatever data it successfully fetched, logging warnings for failed endpoints rather than failing the entire operation.
