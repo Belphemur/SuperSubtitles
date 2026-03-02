@@ -205,6 +205,15 @@ Streams recently uploaded subtitles since a given subtitle ID.
 
 - `since_id` (int32): Subtitle ID to fetch from
 
+**Response:** Stream of `ShowSubtitlesCollection` messages. Each message contains a show's complete information (with third-party IDs) and all its recent subtitles.
+
+**Example:**
+
+```bash
+grpcurl -plaintext -d '{"since_id": 1000}' \
+  localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetRecentSubtitles
+```
+
 ### 7. Health Check
 
 Checks the health status of the server using the standard gRPC health checking protocol.
@@ -232,15 +241,6 @@ grpcurl -plaintext localhost:8080 grpc.health.v1.Health/Check
 # Check specific service with grpcurl
 grpcurl -plaintext -d '{"service": "supersubtitles.v1.SuperSubtitlesService"}' \
   localhost:8080 grpc.health.v1.Health/Check
-```
-
-**Response:** Stream of `ShowSubtitlesCollection` messages. Each message contains a show's complete information (with third-party IDs) and all its recent subtitles.
-
-**Example:**
-
-```bash
-grpcurl -plaintext -d '{"since_id": 1000}' \
-  localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetRecentSubtitles
 ```
 
 ## Data Models
@@ -338,165 +338,21 @@ All errors are logged with structured logging using zerolog.
 Comprehensive unit tests are in [`internal/grpc/server_test.go`](../internal/grpc/server_test.go):
 
 - Mock client implementation for isolated testing
-- Tests for all 6 RPC methods
-- Error handling tests
-- Model conversion tests (including Quality enum)
+- Tests for all 6 RPC methods + error handling + model conversion (including Quality enum)
 - No external dependencies (standard Go `testing` package)
-
-Run tests:
 
 ```bash
 go test ./internal/grpc/...
 go test -race ./internal/grpc/...  # with race detector
 ```
 
-## Configuration
+## Prometheus Metrics
 
-Server configuration is in [`config/config.yaml`](../config/config.yaml):
-
-```yaml
-server:
-  port: 8080
-  address: "0.0.0.0"
-```
-
-Override via environment variables:
-
-```bash
-APP_SERVER_PORT=9090 APP_SERVER_ADDRESS=127.0.0.1 ./proxy
-```
-
-## Deployment
-
-### Local Development
-
-```bash
-# Build
-go build -o proxy ./cmd/proxy
-
-# Run
-./proxy
-```
-
-Server runs on configured address:port with gRPC reflection enabled.
-
-### Docker
-
-The Dockerfile in [`build/Dockerfile`](../build/Dockerfile) builds a multi-platform image:
-
-```bash
-docker build -f build/Dockerfile -t supersubtitles .
-docker run -p 8080:8080 supersubtitles
-```
-
-### Testing with grpcurl
-
-List services:
-
-```bash
-grpcurl -plaintext localhost:8080 list
-```
-
-Describe service:
-
-```bash
-grpcurl -plaintext localhost:8080 describe supersubtitles.v1.SuperSubtitlesService
-```
-
-Call method:
-
-```bash
-grpcurl -plaintext localhost:8080 supersubtitles.v1.SuperSubtitlesService/GetShowList
-```
-
-## Design Decisions
-
-### No TLS/SSL in Server
-
-The gRPC server does **not** implement TLS/SSL. This is intentional:
-
-- TLS termination should be handled by a reverse proxy (nginx, Envoy, cloud load balancer)
-- Keeps the service focused on business logic
-- Simplifies deployment in containerized environments
-- Follows the single-responsibility principle
-
-### Model Conversion Layer
-
-The gRPC server includes explicit conversion functions between proto messages and internal models:
-
-- `convertShowToProto` / `convertShowFromProto`
-- `convertQualityToProto`
-- `convertSubtitleToProto`
-- `convertShowSubtitlesToProto`
-- `convertThirdPartyIdsToProto`
-
-**Rationale:**
-
-- Decouples proto definitions from internal models
-- Allows independent evolution of API and internal structures
-- Makes conversions explicit and testable
-- Centralizes conversion logic
-
-### gRPC Reflection
-
-The server enables gRPC reflection, allowing tools like grpcurl, Postman, and BloomRPC to introspect the API without access to proto files.
-
-### Graceful Shutdown
-
-The server handles SIGTERM and SIGINT signals, calling `GracefulStop()` to:
-
-- Complete in-flight requests
-- Refuse new requests
-- Clean up resources properly
+The gRPC server is instrumented with Prometheus metrics via `go-grpc-middleware/providers/prometheus` interceptors. Custom application metrics track subtitle downloads and cache performance. See [Deployment](./deployment.md) for configuration details and the full metrics reference.
 
 ## Related Documentation
 
 - [Overview](./overview.md) - High-level architecture
 - [Data Flow](./data-flow.md) - Operation flows
-- [Testing](./testing.md) - Testing infrastructure
 - [Design Decisions](./design-decisions.md) - Architectural decisions
-- [Deployment](./deployment.md) - CI/CD and deployment
-
-## Prometheus Metrics
-
-The gRPC server is instrumented with Prometheus metrics via `go-grpc-middleware/providers/prometheus` interceptors. Additionally, custom application metrics track subtitle downloads and cache performance.
-
-### Metrics Endpoint
-
-When enabled (`metrics.enabled: true` in config, default), an HTTP server exposes Prometheus metrics at `/metrics` on a separate port (default `9090`):
-
-```bash
-curl http://localhost:9090/metrics
-```
-
-Disable metrics or change the port via configuration:
-
-```yaml
-metrics:
-  enabled: false # disable metrics endpoint
-  port: 9091 # or change the port
-```
-
-### Available Metrics
-
-**gRPC server metrics** (via interceptors):
-
-| Metric                           | Type      | Labels                      | Description              |
-| -------------------------------- | --------- | --------------------------- | ------------------------ |
-| `grpc_server_started_total`      | Counter   | type, service, method       | RPCs started             |
-| `grpc_server_handled_total`      | Counter   | type, service, method, code | RPCs completed           |
-| `grpc_server_handling_seconds`   | Histogram | type, service, method       | RPC latency              |
-| `grpc_server_msg_received_total` | Counter   | type, service, method       | Stream messages received |
-| `grpc_server_msg_sent_total`     | Counter   | type, service, method       | Stream messages sent     |
-
-**Application metrics** (custom):
-
-| Metric                           | Type    | Labels                 | Description                |
-| -------------------------------- | ------- | ---------------------- | -------------------------- |
-| `subtitle_downloads_total`       | Counter | status (success/error) | Subtitle download attempts |
-| `subtitle_cache_hits_total`      | Counter | —                      | ZIP cache hits             |
-| `subtitle_cache_misses_total`    | Counter | —                      | ZIP cache misses           |
-| `subtitle_cache_evictions_total` | Counter | —                      | ZIP cache evictions        |
-| `subtitle_cache_entries`         | Gauge   | —                      | Current ZIP cache size     |
-
-Go runtime metrics (goroutines, memory, GC) are included automatically by the default Prometheus registry.
+- [Deployment](./deployment.md) - Configuration, CI/CD, and deployment
