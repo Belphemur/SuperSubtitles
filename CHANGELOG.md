@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.0...v2.4.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* return NotFound gRPC status for missing subtitles and episodes ([#65](https://github.com/Belphemur/SuperSubtitles/issues/65)) ([c5a8d8d](https://github.com/Belphemur/SuperSubtitles/commit/c5a8d8d1b2f9a9239240140183b5918ac5d76b2c))
+
 # [2.4.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.3.0...v2.4.0) (2026-03-01)
 
 
