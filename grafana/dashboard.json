@@ -709,7 +709,7 @@
         "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "targets": [
-        { "expr": "subtitle_cache_entries", "legendFormat": "Entries", "refId": "A" }
+        { "expr": "cache_entries", "legendFormat": "{{cache}}", "refId": "A" }
       ]
     },
     {
@@ -740,8 +740,8 @@
       },
       "targets": [
         {
-          "expr": "100 * rate(subtitle_cache_hits_total[$__rate_interval]) / clamp_min(rate(subtitle_cache_hits_total[$__rate_interval]) + rate(subtitle_cache_misses_total[$__rate_interval]), 1)",
-          "legendFormat": "Hit Rate",
+          "expr": "100 * sum by (cache)(rate(cache_hits_total[$__rate_interval])) / clamp_min(sum by (cache)(rate(cache_hits_total[$__rate_interval])) + sum by (cache)(rate(cache_misses_total[$__rate_interval])), 1)",
+          "legendFormat": "{{cache}}",
           "refId": "A"
         }
       ]
@@ -764,8 +764,8 @@
         "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "targets": [
-        { "expr": "subtitle_cache_hits_total", "legendFormat": "Hits", "refId": "A" },
-        { "expr": "subtitle_cache_misses_total", "legendFormat": "Misses", "refId": "B" }
+        { "expr": "sum by (cache)(cache_hits_total)", "legendFormat": "Hits ({{cache}})", "refId": "A" },
+        { "expr": "sum by (cache)(cache_misses_total)", "legendFormat": "Misses ({{cache}})", "refId": "B" }
       ]
     },
     {
@@ -786,7 +786,7 @@
         "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "targets": [
-        { "expr": "subtitle_cache_evictions_total", "legendFormat": "Evictions", "refId": "A" }
+        { "expr": "sum by (cache)(cache_evictions_total)", "legendFormat": "{{cache}}", "refId": "A" }
       ]
     },
     {
@@ -817,8 +817,8 @@
         "tooltip": { "mode": "multi", "sort": "desc" }
       },
       "targets": [
-        { "expr": "rate(subtitle_cache_hits_total[$__rate_interval])", "legendFormat": "Hits", "refId": "A" },
-        { "expr": "rate(subtitle_cache_misses_total[$__rate_interval])", "legendFormat": "Misses", "refId": "B" }
+        { "expr": "sum by (cache)(rate(cache_hits_total[$__rate_interval]))", "legendFormat": "Hits ({{cache}})", "refId": "A" },
+        { "expr": "sum by (cache)(rate(cache_misses_total[$__rate_interval]))", "legendFormat": "Misses ({{cache}})", "refId": "B" }
       ]
     },
     {
@@ -845,7 +845,7 @@
         "tooltip": { "mode": "single" }
       },
       "targets": [
-        { "expr": "subtitle_cache_entries", "legendFormat": "Cache Entries", "refId": "A" }
+        { "expr": "cache_entries", "legendFormat": "{{cache}}", "refId": "A" }
       ]
     }
   ],

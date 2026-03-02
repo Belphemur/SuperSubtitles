@@ -29,6 +29,11 @@ type ProviderConfig struct {
 
 	// RedisDB is the Redis/Valkey database number.
 	RedisDB int
+
+	// Group is an optional label value used to namespace Prometheus metrics
+	// (cache_hits_total, cache_misses_total, etc.).
+	// When non-empty the cache is automatically wrapped with metric instrumentation.
+	Group string
 }
 
 // Provider is a constructor function that creates a Cache from config.
@@ -55,6 +60,10 @@ func Register(name string, p Provider) {
 }
 
 // New creates a new Cache using the named provider and the given config.
+// When cfg.Group is non-empty the resulting cache is wrapped with metric
+// instrumentation: hits, misses, and evictions are tracked with a
+// "cache" label equal to Group, and a lazy entries collector is registered
+// that queries Len() at scrape time instead of maintaining an in-process counter.
 func New(name string, cfg ProviderConfig) (Cache, error) {
 	mu.RLock()
 	p, ok := providers[name]
@@ -63,7 +72,27 @@ func New(name string, cfg ProviderConfig) (Cache, error) {
 	if !ok {
 		return nil, fmt.Errorf("cache: unknown provider %q (registered: %v)", name, RegisteredProviders())
 	}
-	return p(cfg)
+
+	if cfg.Group == "" {
+		return p(cfg)
+	}
+
+	group := cfg.Group
+	// Wrap OnEvict so the cache layer counts evictions itself.
+	original := cfg.OnEvict
+	cfg.OnEvict = func(key string, value []byte) {
+		EvictionsTotal.WithLabelValues(group).Inc()
+		if original != nil {
+			original(key, value)
+		}
+	}
+
+	inner, err := p(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return newInstrumentedCache(inner, group), nil
 }
 
 // RegisteredProviders returns a sorted list of registered provider names.

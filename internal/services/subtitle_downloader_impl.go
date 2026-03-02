@@ -81,11 +81,6 @@ func resolveCacheConfig(cfg *config.Config) (size int, ttl time.Duration) {
 func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	cfg := config.GetConfig()
 	cacheSize, cacheTTL := resolveCacheConfig(cfg)
-	onEvict := func(_ string, _ []byte) {
-		metrics.CacheEvictionsTotal.Inc()
-		metrics.CacheEntries.Dec()
-	}
-	metrics.CacheEntries.Set(0)
 
 	cacheType := "memory"
 	if cfg != nil && cfg.Cache.Type != "" {
@@ -93,10 +88,10 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	}
 
 	providerCfg := cache.ProviderConfig{
-		Size:    cacheSize,
-		TTL:     cacheTTL,
-		OnEvict: onEvict,
-		Logger:  &zerologCacheLogger{logger: config.GetLogger()},
+		Size:   cacheSize,
+		TTL:    cacheTTL,
+		Group:  "zip",
+		Logger: &zerologCacheLogger{logger: config.GetLogger()},
 	}
 	if cfg != nil {
 		providerCfg.RedisAddress = cfg.Cache.Redis.Address
@@ -417,10 +412,8 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 		logger.Debug().
 			Str("url", url).
 			Msg("Retrieved file from cache")
-		metrics.CacheHitsTotal.Inc()
 		return cached, "application/zip", nil
 	}
-	metrics.CacheMissesTotal.Inc()
 
 	// Download from URL
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -469,11 +462,7 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 
 	// Cache ZIP files based on magic number detection (more reliable than content-type)
 	if isZipFile(content) {
-		isNewEntry := !d.zipCache.Contains(url)
 		d.zipCache.Set(url, content)
-		if isNewEntry {
-			metrics.CacheEntries.Inc()
-		}
 		logger.Debug().
 			Str("url", url).
 			Int("size", len(content)).

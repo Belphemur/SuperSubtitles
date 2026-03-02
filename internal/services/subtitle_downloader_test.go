@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/cache"
 	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
@@ -1364,22 +1365,6 @@ func TestIsTextSubtitleContentType(t *testing.T) {
 
 // Metric helper functions for integration tests
 
-func getCounterValue(c prometheus.Counter) float64 {
-	var m dto.Metric
-	if err := c.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetCounter().GetValue()
-}
-
-func getGaugeValue(g prometheus.Gauge) float64 {
-	var m dto.Metric
-	if err := g.(prometheus.Metric).Write(&m); err != nil {
-		return 0
-	}
-	return m.GetGauge().GetValue()
-}
-
 func getCounterVecValue(cv *prometheus.CounterVec, labels ...string) float64 {
 	c, err := cv.GetMetricWithLabelValues(labels...)
 	if err != nil {
@@ -1457,8 +1442,8 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 
 	downloader := NewSubtitleDownloader(server.Client())
 
-	missBeforeFirst := getCounterValue(metrics.CacheMissesTotal)
-	hitBeforeFirst := getCounterValue(metrics.CacheHitsTotal)
+	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "zip")
+	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "zip")
 
 	// First request — cache miss
 	_, err := downloader.DownloadSubtitle(
@@ -1470,7 +1455,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("First request failed: %v", err)
 	}
 
-	missAfterFirst := getCounterValue(metrics.CacheMissesTotal)
+	missAfterFirst := getCounterVecValue(cache.MissesTotal, "zip")
 	if missAfterFirst != missBeforeFirst+1 {
 		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", missAfterFirst-missBeforeFirst)
 	}
@@ -1485,7 +1470,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("Second request failed: %v", err)
 	}
 
-	hitAfterSecond := getCounterValue(metrics.CacheHitsTotal)
+	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "zip")
 	if hitAfterSecond != hitBeforeFirst+1 {
 		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", hitAfterSecond-hitBeforeFirst)
 	}
@@ -1504,8 +1489,17 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 	defer server.Close()
 
 	downloader := NewSubtitleDownloader(server.Client())
+	d, ok := downloader.(*DefaultSubtitleDownloader)
+	if !ok {
+		t.Fatalf("NewSubtitleDownloader returned %T, want *DefaultSubtitleDownloader", downloader)
+	}
 
-	entriesBefore := getGaugeValue(metrics.CacheEntries)
+	if d.zipCache.Len() != 0 {
+		t.Fatalf("Expected 0 cache entries before download, got %d", d.zipCache.Len())
+	}
+	if v := gatherCacheEntriesMetric("zip"); v != 0 {
+		t.Fatalf("Expected cache_entries{cache=\"zip\"} == 0 before download, got %.0f", v)
+	}
 
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
@@ -1516,10 +1510,31 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("Download failed: %v", err)
 	}
 
-	entriesAfter := getGaugeValue(metrics.CacheEntries)
-	if entriesAfter != entriesBefore+1 {
-		t.Errorf("Expected cache entries gauge to increment by 1, got diff %.0f", entriesAfter-entriesBefore)
+	if d.zipCache.Len() != 1 {
+		t.Errorf("Expected 1 cache entry after download, got %d", d.zipCache.Len())
 	}
+	if v := gatherCacheEntriesMetric("zip"); v != 1 {
+		t.Errorf("Expected cache_entries{cache=\"zip\"} == 1 after download, got %.0f", v)
+	}
+}
+
+// gatherCacheEntriesMetric reads the current value of cache_entries{cache=group}
+// from the default Prometheus registry, returning -1 if the metric is not found.
+func gatherCacheEntriesMetric(group string) float64 {
+	mfs, _ := prometheus.DefaultGatherer.Gather()
+	for _, mf := range mfs {
+		if mf.GetName() != "cache_entries" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, lp := range m.GetLabel() {
+				if lp.GetName() == "cache" && lp.GetValue() == group {
+					return m.GetGauge().GetValue()
+				}
+			}
+		}
+	}
+	return -1
 }
 
 func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionSuccess(t *testing.T) {

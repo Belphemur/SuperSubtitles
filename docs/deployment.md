@@ -344,15 +344,17 @@ curl http://localhost:9090/metrics
 | `grpc_server_msg_received_total` | Counter   | type, service, method       | Stream messages received |
 | `grpc_server_msg_sent_total`     | Counter   | type, service, method       | Stream messages sent     |
 
-**Application metrics** (custom, registered in `internal/metrics/metrics.go`):
+**Application metrics** (custom):
 
-| Metric                           | Type    | Labels                 | Description                |
-| -------------------------------- | ------- | ---------------------- | -------------------------- |
-| `subtitle_downloads_total`       | Counter | status (success/error) | Subtitle download attempts |
-| `subtitle_cache_hits_total`      | Counter | —                      | ZIP cache hits             |
-| `subtitle_cache_misses_total`    | Counter | —                      | ZIP cache misses           |
-| `subtitle_cache_evictions_total` | Counter | —                      | ZIP cache evictions        |
-| `subtitle_cache_entries`         | Gauge   | —                      | Current ZIP cache size     |
+| Metric                     | Type    | Labels                 | Source                    | Description                |
+| -------------------------- | ------- | ---------------------- | ------------------------- | -------------------------- |
+| `subtitle_downloads_total` | Counter | status (success/error) | `internal/metrics`        | Subtitle download attempts |
+| `cache_hits_total`         | Counter | cache                  | `internal/cache`          | Cache hits per group       |
+| `cache_misses_total`       | Counter | cache                  | `internal/cache`          | Cache misses per group     |
+| `cache_evictions_total`    | Counter | cache                  | `internal/cache`          | Evictions per group        |
+| `cache_entries`            | Gauge   | cache                  | `internal/cache`          | Current entries per group (lazily evaluated at scrape time) |
+
+The `cache` label value is the **group** set via `ProviderConfig.Group` when the cache is created (e.g., `"zip"` for the subtitle ZIP cache). Using a label instead of a metric-name prefix allows the same cache infrastructure to be reused for other purposes without renaming metrics.
 
 Go runtime metrics (goroutines, memory, GC) are included automatically by the default Prometheus registry.
 
