@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.1...v2.4.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* **cache:** move metrics to cache layer with label-based grouping, fix Redis entry count ([#69](https://github.com/Belphemur/SuperSubtitles/issues/69)) ([5bdc146](https://github.com/Belphemur/SuperSubtitles/commit/5bdc146e1e6b4624bd651ecc0a20ea803e44d8aa))
+
 ## [2.4.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.0...v2.4.1) (2026-03-02)
 
 
