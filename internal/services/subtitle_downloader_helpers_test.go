@@ -44,6 +44,7 @@ func Test_generateFilename(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := generateFilename(tt.subtitleID, tt.contentType)
@@ -79,6 +80,7 @@ func Test_extractSubtitleID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := extractSubtitleID(tt.url)
@@ -120,6 +122,7 @@ func Test_getExtensionFromContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := getExtensionFromContentType(tt.contentType)
@@ -151,6 +154,7 @@ func Test_isZipContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := isZipContentType(tt.contentType)
@@ -179,6 +183,7 @@ func Test_getContentTypeFromFilename(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := getContentTypeFromFilename(tt.filename)
@@ -218,6 +223,7 @@ func Test_isTextSubtitleContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := isTextSubtitleContentType(tt.contentType)

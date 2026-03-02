@@ -246,6 +246,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			// Create test ZIP
@@ -532,6 +533,7 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			content := "Test content"
@@ -604,6 +606,7 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			zipContent := createTestZip(t, map[string]string{
@@ -680,6 +683,7 @@ func TestGetExtensionFromContentType_EdgeCases(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := getExtensionFromContentType(tt.contentType)
@@ -735,6 +739,7 @@ func TestIsZipFile_MagicNumber(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := isZipFile(tt.content)
@@ -795,6 +800,7 @@ func TestIsZipContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := isZipContentType(tt.contentType)
@@ -835,6 +841,7 @@ func TestGetExtensionFromContentType_GzipEdgeCase(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := getExtensionFromContentType(tt.contentType)
@@ -889,6 +896,7 @@ func TestDetectZipBomb(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			zipContent := createTestZip(t, tt.files)
@@ -1394,6 +1402,7 @@ func TestIsTextSubtitleContentType(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.contentType, func(t *testing.T) {
 			t.Parallel()
 			result := isTextSubtitleContentType(tc.contentType)

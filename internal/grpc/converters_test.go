@@ -351,6 +351,7 @@ func TestSanitizeUTF8_InvalidString(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			result := sanitizeUTF8(tc.input)
@@ -523,6 +524,7 @@ func TestSafeInt32_OverflowValues(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeInt32(tc.input)

@@ -27,6 +27,7 @@ func TestThirdPartyIdParser_extractTVDBIDFromURL_NonNumeric(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result, err := p.extractTVDBIDFromURL(tt.href)
@@ -55,6 +56,7 @@ func TestThirdPartyIdParser_extractTVMazeIDFromURL_NonNumeric(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result, err := p.extractTVMazeIDFromURL(tt.href)
@@ -83,6 +85,7 @@ func TestThirdPartyIdParser_extractTraktIDFromURL_NonNumeric(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result, err := p.extractTraktIDFromURL(tt.href)
