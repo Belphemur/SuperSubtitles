@@ -14,6 +14,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestThirdPartyIdParser_extractTVDBIDFromURL_NonNumeric(t *testing.T) {
+	t.Parallel()
 	p := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -27,6 +28,7 @@ func TestThirdPartyIdParser_extractTVDBIDFromURL_NonNumeric(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := p.extractTVDBIDFromURL(tt.href)
 			if err == nil {
 				t.Errorf("extractTVDBIDFromURL(%q) = %d, expected error", tt.href, result)
@@ -40,6 +42,7 @@ func TestThirdPartyIdParser_extractTVDBIDFromURL_NonNumeric(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestThirdPartyIdParser_extractTVMazeIDFromURL_NonNumeric(t *testing.T) {
+	t.Parallel()
 	p := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -53,6 +56,7 @@ func TestThirdPartyIdParser_extractTVMazeIDFromURL_NonNumeric(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := p.extractTVMazeIDFromURL(tt.href)
 			if err == nil {
 				t.Errorf("extractTVMazeIDFromURL(%q) = %d, expected error", tt.href, result)
@@ -66,6 +70,7 @@ func TestThirdPartyIdParser_extractTVMazeIDFromURL_NonNumeric(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestThirdPartyIdParser_extractTraktIDFromURL_NonNumeric(t *testing.T) {
+	t.Parallel()
 	p := &ThirdPartyIdParser{}
 
 	tests := []struct {
@@ -79,6 +84,7 @@ func TestThirdPartyIdParser_extractTraktIDFromURL_NonNumeric(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			result, err := p.extractTraktIDFromURL(tt.href)
 			if err == nil {
 				t.Errorf("extractTraktIDFromURL(%q) = %d, expected error", tt.href, result)
@@ -92,6 +98,7 @@ func TestThirdPartyIdParser_extractTraktIDFromURL_NonNumeric(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestThirdPartyIdParser_ParseHtml_InvalidServiceURLs(t *testing.T) {
+	t.Parallel()
 	p := &ThirdPartyIdParser{}
 
 	// HTML with links that contain recognized service domains but have
@@ -126,6 +133,7 @@ func TestThirdPartyIdParser_ParseHtml_InvalidServiceURLs(t *testing.T) {
 }
 
 func TestThirdPartyIdParser_ParseHtml_MixedValidAndInvalidURLs(t *testing.T) {
+	t.Parallel()
 	p := &ThirdPartyIdParser{}
 
 	// One valid IMDB link, rest have invalid IDs

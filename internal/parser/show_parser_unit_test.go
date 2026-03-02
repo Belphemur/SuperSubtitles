@@ -15,6 +15,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestShowParser_extractShowNameFromGoquery(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -56,6 +57,7 @@ func TestShowParser_extractShowNameFromGoquery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(tt.html))
 			if err != nil {
 				t.Fatalf("failed to parse HTML: %v", err)
@@ -74,6 +76,7 @@ func TestShowParser_extractShowNameFromGoquery(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestShowParser_ExtractLastPage_NoPaginationDiv(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	html := `<html><body><p>No pagination here</p></body></html>`
@@ -84,6 +87,7 @@ func TestShowParser_ExtractLastPage_NoPaginationDiv(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_NonNumericLinkText(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	// Navigation links like ">" contain oldal= in href but non-numeric text
@@ -102,6 +106,7 @@ func TestShowParser_ExtractLastPage_NonNumericLinkText(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_MultiplePages(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	html := `<html><body>
@@ -121,6 +126,7 @@ func TestShowParser_ExtractLastPage_MultiplePages(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_LinkWithoutOldal(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	// Links in pagination div that don't contain "oldal=" should be ignored
@@ -142,6 +148,7 @@ func TestShowParser_ExtractLastPage_LinkWithoutOldal(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestShowParser_extractShowFromGoquery(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -205,6 +212,7 @@ func TestShowParser_extractShowFromGoquery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			doc, err := goquery.NewDocumentFromReader(strings.NewReader(tt.html))
 			if err != nil {
 				t.Fatalf("failed to parse HTML: %v", err)

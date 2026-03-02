@@ -9,6 +9,7 @@ import (
 )
 
 func TestShowParser_ParseHtml(t *testing.T) {
+	t.Parallel()
 	// Generate proper HTML content based on the real feliratok.eu website structure
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12190, ShowName: "7 Bears", Year: 2025},
@@ -64,6 +65,7 @@ func TestShowParser_ParseHtml(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_EmptyHTML(t *testing.T) {
+	t.Parallel()
 	htmlContent := testutil.GenerateEmptyHTML()
 
 	parser := NewShowParser("https://feliratok.eu")
@@ -79,6 +81,7 @@ func TestShowParser_ParseHtml_EmptyHTML(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_InvalidHTML(t *testing.T) {
+	t.Parallel()
 	htmlContent := testutil.GenerateInvalidShowTableHTML()
 
 	parser := NewShowParser("https://feliratok.eu")
@@ -95,6 +98,7 @@ func TestShowParser_ParseHtml_InvalidHTML(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
+	t.Parallel()
 	// Generate HTML with a malformed year by using a custom header label
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{
@@ -123,6 +127,7 @@ func TestShowParser_ParseHtml_MalformedYear(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
+	t.Parallel()
 	// Generate HTML with missing image src attribute
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{
@@ -147,6 +152,7 @@ func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MissingName(t *testing.T) {
+	t.Parallel()
 	// Generate HTML with missing show name
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{
@@ -176,6 +182,7 @@ func TestShowParser_ParseHtml_MissingName(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_Simple(t *testing.T) {
+	t.Parallel()
 	// Generate simple proper HTML content
 	htmlContent := testutil.GenerateShowTableHTML([]testutil.ShowRowOptions{
 		{ShowID: 12345, ShowName: "Test Show", Year: 2025},
@@ -215,6 +222,7 @@ func TestShowParser_ParseHtml_Simple(t *testing.T) {
 }
 
 func TestShowParser_ParseHtml_MultipleShowsPerRow(t *testing.T) {
+	t.Parallel()
 	// Test HTML structure with multiple shows per row, as seen in the actual website
 	// This includes shows with parenthetical alternate titles
 	htmlContent := testutil.GenerateShowTableHTMLMultiColumn([]testutil.ShowRowOptions{
@@ -267,6 +275,7 @@ func TestShowParser_ParseHtml_MultipleShowsPerRow(t *testing.T) {
 }
 
 func TestShowParser_extractIDFromHref(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -290,6 +299,7 @@ func TestShowParser_extractIDFromHref(t *testing.T) {
 }
 
 func TestShowParser_extractImageURL(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	tests := []struct {
@@ -312,6 +322,7 @@ func TestShowParser_extractImageURL(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_WithPagination(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	htmlContent := testutil.GenerateShowTableHTMLWithPagination([]testutil.ShowRowOptions{
@@ -326,6 +337,7 @@ func TestShowParser_ExtractLastPage_WithPagination(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_MiddlePage(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	// Viewing page 5 of 42 — should still extract 42 as the last page
@@ -341,6 +353,7 @@ func TestShowParser_ExtractLastPage_MiddlePage(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_SinglePage(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	// No pagination at all
@@ -356,6 +369,7 @@ func TestShowParser_ExtractLastPage_SinglePage(t *testing.T) {
 }
 
 func TestShowParser_ExtractLastPage_EmptyHTML(t *testing.T) {
+	t.Parallel()
 	parser := NewShowParser("https://feliratok.eu")
 
 	htmlContent := testutil.GenerateEmptyHTML()
