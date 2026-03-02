@@ -124,7 +124,6 @@ results, err := testutil.CollectShowSubtitles(ctx, client.StreamShowSubtitles(ct
   - Caching behavior
   - Multi-format support
   - Benchmark tests for performance
-
 ### Cache Tests
 
 - `internal/cache/memory_test.go` - In-memory LRU cache tests:

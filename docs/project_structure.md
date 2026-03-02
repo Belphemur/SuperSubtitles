@@ -5,248 +5,178 @@
 ```
 SuperSubtitles/
 ├── cmd/proxy/
-│   └── main.go                    # CLI entry point
+│   └── main.go                    # Application entry point
 ├── internal/
+│   ├── apperrors/
+│   │   └── errors.go              # ErrNotFound, ErrSubtitleNotFoundInZip, ErrSubtitleResourceNotFound
+│   ├── cache/
+│   │   ├── cache.go               # Cache interface: Get, Set, Contains, Len, Close
+│   │   ├── factory.go             # Provider registry: Register, New, RegisteredProviders
+│   │   ├── memory.go              # In-memory LRU provider (hashicorp/golang-lru)
+│   │   ├── redis.go               # Redis/Valkey provider (hash + sorted set + HPEXPIRE)
+│   │   ├── memory_test.go
+│   │   ├── factory_test.go
+│   │   └── redis_test.go
 │   ├── client/
-│   │   ├── client.go              # HTTP client interface & constructor
-│   │   ├── show_list.go           # Show list fetching implementation
+│   │   ├── client.go              # Client interface & constructor
+│   │   ├── show_list.go           # Show list fetching from parallel endpoints
 │   │   ├── subtitles.go           # Subtitle fetching with pagination
 │   │   ├── show_subtitles.go      # Show subtitles with third-party IDs
-│   │   ├── updates.go             # Update checking implementation
+│   │   ├── updates.go             # Update checking
 │   │   ├── download.go            # Subtitle download delegation
 │   │   ├── recent_subtitles.go    # Recent subtitles fetching
-│   │   ├── show_list_test.go      # Show list tests
-│   │   ├── subtitles_test.go      # Subtitle fetching tests
-│   │   ├── show_subtitles_test.go # Show subtitles tests
-│   │   ├── updates_test.go        # Update check tests
-│   │   ├── download_test.go       # Download tests
-│   │   ├── recent_subtitles_test.go # Recent subtitles tests
-│   │   ├── client_integration_test.go  # Integration tests (skipped in CI)
-│   │   ├── client_compression_test.go  # Compression support tests
-│   │   ├── compression_transport.go    # GZIP/Brotli/Zstd support
-│   │   └── errors.go              # Custom error types
+│   │   ├── compression_transport.go       # GZIP/Brotli/Zstd transport
+│   │   ├── show_list_test.go
+│   │   ├── subtitles_test.go
+│   │   ├── show_subtitles_test.go
+│   │   ├── updates_test.go
+│   │   ├── download_test.go
+│   │   ├── recent_subtitles_test.go
+│   │   ├── client_compression_test.go
+│   │   ├── compression_transport_test.go
+│   │   └── client_integration_test.go     # Live integration tests (skipped in CI)
 │   ├── config/
-│   │   └── config.go              # Viper configuration & zerolog logger
+│   │   └── config.go              # Viper configuration & zerolog singleton logger
 │   ├── grpc/
-│   │   ├── server.go              # gRPC service implementation
-│   │   ├── setup.go               # gRPC server factory with Prometheus interceptors
-│   │   ├── converters.go          # Proto ↔ model converters
-│   │   ├── converters_test.go     # Converter tests
-│   │   └── server_test.go         # gRPC server tests
+│   │   ├── server.go              # SuperSubtitlesServiceServer implementation (6 RPCs)
+│   │   ├── setup.go               # NewGRPCServer factory (Prometheus interceptors, health, reflection)
+│   │   ├── converters.go          # Proto ↔ model conversion functions
+│   │   ├── converters_test.go
+│   │   └── server_test.go
 │   ├── metrics/
 │   │   ├── metrics.go             # Custom Prometheus metric definitions
-│   │   ├── metrics_test.go        # Metrics unit tests
-│   │   └── server.go              # HTTP server for /metrics endpoint
+│   │   ├── server.go              # HTTP server for /metrics endpoint
+│   │   └── metrics_test.go
 │   ├── models/
 │   │   ├── show.go                # Show struct
 │   │   ├── subtitle.go            # Subtitle & SubtitleCollection
-│   │   ├── show_subtitles.go      # ShowSubtitles composite
+│   │   ├── show_subtitles.go      # ShowSubtitles composite model
 │   │   ├── third_party_ids.go     # IMDB/TVDB/TVMaze/Trakt IDs
 │   │   ├── quality.go             # Quality enum (360p–2160p)
+│   │   ├── stream_result.go       # StreamResult[T] generic streaming type
 │   │   ├── download_request.go    # Download request/response models
 │   │   └── update_check.go        # Update check models
 │   ├── parser/
-│   │   ├── interfaces.go          # Generic Parser[T] interfaces
-│   │   ├── show_parser.go         # HTML parser for shows
-│   │   ├── show_parser_test.go    # Show parser tests
+│   │   ├── interfaces.go          # Generic Parser[T] and SingleResultParser[T] interfaces
+│   │   ├── charset.go             # NewUTF8Reader for automatic charset detection
+│   │   ├── show_parser.go         # HTML parser for show listings
 │   │   ├── subtitle_parser.go     # HTML parser for subtitles + pagination
-│   │   ├── subtitle_parser_test.go # Subtitle parser tests
 │   │   ├── third_party_parser.go  # HTML parser for third-party IDs
+│   │   ├── show_parser_test.go
+│   │   ├── subtitle_parser_test.go
 │   │   └── third_party_parser_test.go
-│   └── services/
-│       ├── subtitle_converter.go              # Conversion interface
-│       ├── subtitle_converter_impl.go         # Language/quality/URL normalization
-│       ├── subtitle_converter_test.go         # Converter tests
-│       ├── subtitle_downloader.go             # Download interface
-│       ├── subtitle_downloader_impl.go        # Download with ZIP extraction & caching
-│       └── subtitle_downloader_test.go        # Download tests with benchmarks
+│   ├── services/
+│   │   ├── subtitle_downloader.go          # SubtitleDownloader interface
+│   │   └── subtitle_downloader_impl.go     # ZIP extraction, caching, format detection, metrics
+│   └── testutil/
+│       ├── html_fixtures.go       # Programmatic HTML test fixture generators
+│       └── stream_helpers.go      # CollectShows / CollectSubtitles / CollectShowSubtitles helpers
+├── api/proto/v1/
+│   ├── supersubtitles.proto
+│   ├── supersubtitles.pb.go
+│   ├── supersubtitles_grpc.pb.go
+│   └── generate.go
 ├── config/
 │   └── config.yaml                # Default configuration
-├── docs/
-│   ├── architecture.md            # Detailed architecture & design decisions
-│   └── project_structure.md       # This file
+├── grafana/
+│   └── dashboard.json             # Grafana dashboard for gRPC + subtitle metrics
 ├── build/
-│   └── Dockerfile                 # Multi-platform Docker build support
-├── go.mod / go.sum                # Go dependencies
-├── .golangci.yml                  # Linter configuration
-├── .goreleaser.yml                # Release binary configuration
-├── .releaserc.yml                 # Semantic versioning configuration
-├── renovate.json                  # Dependency update automation
-└── .github/
-    ├── copilot-instructions.md    # Copilot agent guidelines
-    ├── dependabot.yml             # GitHub dependency updates
-    └── workflows/
-        ├── ci.yml                 # CI: lint, test, build
-        ├── release.yml            # Release: semantic-release + GoReleaser
-        └── copilot-setup-steps.yml # Copilot environment setup
+│   └── Dockerfile                 # Multi-platform Docker image
+├── go.mod / go.sum
+├── .golangci.yml
+├── .goreleaser.yml
+├── .releaserc.yml
+├── renovate.json
+└── .github/workflows/
+    ├── ci.yml                     # Lint, test, build
+    ├── release.yml                # Semantic-release + GoReleaser
+    └── copilot-setup-steps.yml
 ```
 
-## Module Organization
+## Package Descriptions
 
 ### `cmd/proxy/`
 
-Application entry point. Orchestrates application startup:
-- Creates the HTTP client
-- Creates the gRPC server (via `grpc.NewGRPCServer()`)
-- Starts the Prometheus metrics HTTP server (if enabled)
-- Handles graceful shutdown on SIGTERM/SIGINT
+Application entry point. Creates the HTTP client, starts the gRPC server (via `grpc.NewGRPCServer()`), starts the Prometheus metrics HTTP server (if enabled), and handles graceful shutdown on SIGTERM/SIGINT.
 
-### `internal/client/`
+### `internal/apperrors/`
 
-**HTTP client with feliratok.eu integration**
+Custom error types with `Is()` method support:
 
-The client package is organized by feature with each file containing related functionality:
+- `ErrNotFound` — resource or show not found
+- `ErrSubtitleNotFoundInZip` — requested episode missing from a season pack ZIP
+- `ErrSubtitleResourceNotFound` — subtitle download URL returned HTTP 404
 
-- `client.go` — `Client` interface definition and constructor (`NewClient`)
-- `show_list.go` — Show list fetching from multiple endpoints in parallel
-- `subtitles.go` — Subtitle fetching via HTML parsing with pagination support
-- `show_subtitles.go` — Fetching show subtitles with third-party ID extraction
-- `updates.go` — Update checking implementation
-- `download.go` — Subtitle download delegation to SubtitleDownloader service
-- `recent_subtitles.go` — Recent subtitles fetching and filtering
-- `compression_transport.go` — HTTP transport supporting GZIP, Brotli, and Zstd compression
-- `*_test.go` — Unit tests for each feature (one test file per implementation file)
-- `client_integration_test.go` — Real API tests (skipped in CI)
-- `client_compression_test.go` — Compression support tests
-- `errors.go` — Custom error types (e.g., `ErrNotFound`)
-
-### `internal/config/`
-
-**Configuration & Logging**
-
-- `config.go` — Viper-based configuration loader from `config/config.yaml`
-  - Supports environment variable overrides (`APP_*` prefix)
-  - Singleton `zerolog` logger instance (console output)
-  - HTTP client timeout configuration
-  - Server address and port settings
-  - Log level control
+All three are mapped to `codes.NotFound` by the gRPC server.
 
 ### `internal/cache/`
 
-**Pluggable LRU cache abstraction** with a factory + provider registry pattern:
+Pluggable LRU cache abstraction using a factory + provider registry pattern:
 
 - `cache.go` — `Cache` interface: `Get`, `Set`, `Contains`, `Len`, `Close`
 - `factory.go` — Provider registry: `Register`, `New`, `RegisteredProviders`
 - `memory.go` — In-memory LRU provider (wraps `hashicorp/golang-lru/v2/expirable`)
-- `redis.go` — Redis/Valkey provider using hash + sorted set + `HPEXPIRE` for per-field TTL with atomic Lua scripts
-- Test files for each provider and the factory
+- `redis.go` — Redis/Valkey provider using a hash + sorted set + `HPEXPIRE` with atomic Lua scripts
 
-### `internal/models/`
+### `internal/client/`
 
-**Data structures** representing all entities:
+HTTP client for feliratok.eu, organized by feature:
 
-- `show.go` — TV show with ID, name, year, image URL
-- `subtitle.go` — Individual subtitle with language, quality, season/episode, download URL
-- `subtitle.go` — `SubtitleCollection` grouping subtitles by show
-- `show_subtitles.go` — Composite model combining show, subtitles, and third-party IDs
-- `quality.go` — Quality enum (360p, 480p, 720p, 1080p, 2160p, Unknown) with JSON marshaling
-- `third_party_ids.go` — IMDB, TVDB, TVMaze, Trakt IDs
-- `download_request.go` — Request/response models for subtitle downloads
-- `update_check.go` — Update check request/response models
+- `client.go` — `Client` interface and `NewClient` constructor
+- `show_list.go` — Parallel fetch from 3 endpoints with batch pagination
+- `subtitles.go` — Subtitle fetching with 2-page parallel pagination
+- `show_subtitles.go` — Subtitle fetch + third-party ID extraction, batched in groups of 20
+- `updates.go` — Update checking via recheck endpoint
+- `download.go` — Delegates to `SubtitleDownloader` service
+- `recent_subtitles.go` — Main page scraping with ID-based filtering and per-show grouping
+- `compression_transport.go` — HTTP transport with GZIP, Brotli, Zstd support
 
-### `internal/parser/`
+### `internal/config/`
 
-**HTML & JSON Parsing**
-
-- `interfaces.go` — Generic interfaces:
-  - `Parser[T]` — Parses HTML and returns `[]T`
-  - `SingleResultParser[T]` — Parses HTML and returns single `T` result
-- `show_parser.go` — Parses show listings from HTML tables using `goquery`
-  - Extracts show ID, name, year, image URL
-  - Handles year header rows
-- `third_party_parser.go` — Extracts third-party IDs (IMDB, TVDB, TVMaze, Trakt) from show detail page HTML
-  - Uses regex and URL parsing to extract IDs from links
-- `subtitle_parser.go` — Parses subtitle tables and pagination links from HTML
-- Test files with inline HTML fixtures for comprehensive coverage
-
-### `internal/services/`
-
-**Data Transformation & Downloads**
-
-- **SubtitleConverter** — Normalizes subtitle data
-  - `subtitle_converter.go` — Interface definition
-  - `subtitle_converter_impl.go` — Implementation:
-    - Language conversion: Hungarian → ISO 639-1 codes
-    - Quality extraction from subtitle name strings
-    - Season/episode number parsing
-    - Download URL construction
-    - Upload timestamp conversion
-  - `subtitle_converter_test.go` — Unit and benchmark tests
-
-- **SubtitleDownloader** — Handles subtitle file downloads
-  - `subtitle_downloader.go` — Interface definition
-  - `subtitle_downloader_impl.go` — Implementation:
-    - Downloads files with content-type detection (magic numbers + MIME types)
-    - ZIP file detection and extraction
-    - Episode extraction from season packs using regex pattern matching
-    - Pluggable LRU cache via `cache.Cache` interface (memory or Redis/Valkey backend, configurable size/TTL)
-    - ZIP bomb detection to prevent malicious archives
-    - Support for multiple subtitle formats (SRT, ASS, VTT, SUB)
-    - Prometheus metrics for cache hits/misses/evictions and download counts
-  - `subtitle_downloader_test.go` — Comprehensive tests covering:
-    - ZIP detection and extraction
-    - Cache behavior
-    - Episode matching with edge cases
-    - ZIP bomb detection
+Viper-based configuration from `config/config.yaml`. Supports `APP_*` env var overrides. Provides a zerolog singleton logger via `config.GetLogger()`.
 
 ### `internal/grpc/`
 
-**gRPC Server**
+gRPC server layer:
 
-- `setup.go` — `NewGRPCServer()` factory:
-  - Creates `grpc.Server` with Prometheus unary and stream interceptors
-  - Registers SuperSubtitles service, health check, and reflection
-  - Pre-populates gRPC metric labels via `InitializeMetrics()`
-- `server.go` — `SuperSubtitlesServiceServer` implementation with 6 RPCs
-- `converters.go` — Proto ↔ model conversion functions
+- `setup.go` — `NewGRPCServer()`: Prometheus interceptors, health check, gRPC reflection
+- `server.go` — 6 RPC implementations (4 streaming, 2 unary)
+- `converters.go` — Proto ↔ internal model conversion functions
 
 ### `internal/metrics/`
 
-**Prometheus Metrics**
+Prometheus metrics:
 
-- `metrics.go` — Custom metric definitions registered via `init()`:
-  - `subtitle_downloads_total` (counter, labels: success/error)
-  - `subtitle_cache_hits_total`, `subtitle_cache_misses_total`, `subtitle_cache_evictions_total` (counters)
-  - `subtitle_cache_entries` (gauge)
-- `server.go` — `NewHTTPServer()` creates an HTTP server serving `promhttp.Handler()` at `/metrics`
-- `metrics_test.go` — Verifies metric registration and increment behavior
+- `metrics.go` — Custom counters/gauges registered via `init()`
+- `server.go` — `NewHTTPServer()` serving `promhttp.Handler()` at `/metrics`
 
-## File Relationships
+### `internal/models/`
 
-```
-cmd/proxy/main.go
-    ↓
-grpc.NewGRPCServer(client)
-    ├─→ Prometheus interceptors (unary + stream)
-    ├─→ Health check + reflection
-    └─→ server.go (service implementation)
-         ↓
-client.NewClient()
-    ├─→ ShowParser (parses HTML)
-    ├─→ SubtitleParser (parses subtitles with pagination)
-    ├─→ ThirdPartyIdParser (extracts IDs)
-    └─→ SubtitleDownloader (downloads & caches files, emits metrics)
+Core data structures used across all packages:
 
-metrics.NewHTTPServer() → HTTP /metrics endpoint
+- `Show`, `Subtitle`, `SubtitleCollection`, `ShowSubtitles`, `ThirdPartyIds`
+- `Quality` enum (360p–2160p) with JSON marshaling
+- `StreamResult[T]` — generic streaming result carrier with `Value` and `Err` fields
+- `DownloadRequest`/`DownloadResult`, `UpdateCheckResult`
 
-All depend on:
-    • config.GetConfig() — Configuration
-    • config.GetLogger() — Logging
-    • models/* — Data structures
-```
+### `internal/parser/`
 
-## Testing Strategy
+HTML parsers using `goquery`:
 
-- **Unit tests** — All packages except `models` have `*_test.go` files
-- **No external frameworks** — Uses only Go's standard `testing` package
-- **HTTP mocking** — Uses `httptest.Server` for API testing
-- **Integration tests** — Real API calls in `client_integration_test.go` (skipped in CI with `CI=true`)
-- **Benchmarks** — Performance tests in `subtitle_converter_test.go` and `subtitle_downloader_test.go`
-- **Inline fixtures** — HTML and JSON test data embedded in test files
+- `interfaces.go` — `Parser[T]` (returns `[]T`) and `SingleResultParser[T]` (returns single `T`)
+- `charset.go` — `NewUTF8Reader` wraps any `io.Reader` with automatic encoding detection
+- `show_parser.go` — Show listings: extracts ID, name, year, image URL; handles multi-column grid layout
+- `subtitle_parser.go` — Subtitle tables: language conversion, quality/season/episode parsing, pagination
+- `third_party_parser.go` — Detail pages: extracts IMDB, TVDB, TVMaze, Trakt IDs from links
 
-## Naming Conventions
+### `internal/services/`
 
-- **Interfaces** — Named with `er` suffix (e.g., `Parser`, `Client`, `Converter`)
-- **Implementations** — Concrete types or `Default` prefix (e.g., `DefaultSubtitleConverter`)
-- **Constructors** — `New<TypeName>` (e.g., `NewClient`, `NewSubtitleConverter`)
-- **Tests** — `Test<Receiver>_<Method>[_<Scenario>]` (e.g., `TestClient_GetShowList_WithProxy`)
+- `subtitle_downloader.go` — `SubtitleDownloader` interface
+- `subtitle_downloader_impl.go` — Downloads subtitle files; detects content type; extracts episodes from ZIP season packs using regex; pluggable LRU cache via `cache.Cache`; emits Prometheus metrics
+
+### `internal/testutil/`
+
+Test-only utilities (never imported by production code):
+
+- `html_fixtures.go` — Programmatic HTML generators: `GenerateSubtitleTableHTML`, `GenerateShowTableHTML`, `GenerateThirdPartyIDHTML`, etc.
+- `stream_helpers.go` — `CollectShows`, `CollectSubtitles`, `CollectShowSubtitles` for consuming client streams in tests

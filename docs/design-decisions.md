@@ -153,8 +153,7 @@ This document explains key architectural and design decisions made in the SuperS
 
 **Implementation**:
 
-- `ErrNotFound` custom error in `internal/client/errors.go`
-- `ErrSubtitleNotFoundInZip` custom error in `internal/services/subtitle_downloader.go` — returned when a requested episode is not found inside a ZIP season pack; checked in the gRPC server to return `codes.NotFound` instead of `codes.Internal`
+- `ErrNotFound`, `ErrSubtitleNotFoundInZip`, and `ErrSubtitleResourceNotFound` custom error types in `internal/apperrors/errors.go`, each with `Is()` support
 - All errors wrapped with context
 - Parallel operations collect errors but return successful results
 

@@ -308,43 +308,52 @@ cd SuperSubtitles
 go mod download
 
 # Run tests
-go test ./...
+go test -race ./...
 
 # Build
 go build ./cmd/proxy
 ```
 
-### Development Workflow
-
-1. Write or modify Go code
-2. Format: `gofmt -s -w .`
-3. Vet: `go vet ./...`
-4. Lint: `golangci-lint run`
-5. Test: `go test -race ./...`
-6. Build: `go build ./...`
-7. Commit with conventional commit format
-
 ## Monitoring
 
 ### Logging
 
-The application uses structured logging with zerolog:
+The application uses structured logging with zerolog. Control log level and format via config or env vars:
 
-```go
-logger := config.GetLogger()
-logger.Info().
-    Str("showID", showID).
-    Int("subtitleCount", count).
-    Msg("Fetched subtitles")
+```bash
+LOG_LEVEL=debug LOG_FORMAT=json ./super-subtitles
 ```
 
 Log levels: `debug`, `info`, `warn`, `error`
 
 ### Metrics
 
-Currently no metrics collection. Future consideration for:
+When `metrics.enabled: true` (the default), an HTTP server exposes Prometheus metrics at `/metrics` on the configured metrics port (default `9090`):
 
-- Request counts
-- Response times
-- Error rates
-- Cache hit rates
+```bash
+curl http://localhost:9090/metrics
+```
+
+**gRPC server metrics** (via `go-grpc-middleware/providers/prometheus`):
+
+| Metric                           | Type      | Labels                      | Description              |
+| -------------------------------- | --------- | --------------------------- | ------------------------ |
+| `grpc_server_started_total`      | Counter   | type, service, method       | RPCs started             |
+| `grpc_server_handled_total`      | Counter   | type, service, method, code | RPCs completed           |
+| `grpc_server_handling_seconds`   | Histogram | type, service, method       | RPC latency              |
+| `grpc_server_msg_received_total` | Counter   | type, service, method       | Stream messages received |
+| `grpc_server_msg_sent_total`     | Counter   | type, service, method       | Stream messages sent     |
+
+**Application metrics** (custom, registered in `internal/metrics/metrics.go`):
+
+| Metric                           | Type    | Labels                 | Description                |
+| -------------------------------- | ------- | ---------------------- | -------------------------- |
+| `subtitle_downloads_total`       | Counter | status (success/error) | Subtitle download attempts |
+| `subtitle_cache_hits_total`      | Counter | —                      | ZIP cache hits             |
+| `subtitle_cache_misses_total`    | Counter | —                      | ZIP cache misses           |
+| `subtitle_cache_evictions_total` | Counter | —                      | ZIP cache evictions        |
+| `subtitle_cache_entries`         | Gauge   | —                      | Current ZIP cache size     |
+
+Go runtime metrics (goroutines, memory, GC) are included automatically by the default Prometheus registry.
+
+A ready-to-import Grafana dashboard is available at [`grafana/dashboard.json`](../grafana/dashboard.json). Import it via Grafana → Dashboards → Import, then select your Prometheus datasource.
