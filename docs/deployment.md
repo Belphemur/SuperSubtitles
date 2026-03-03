@@ -24,6 +24,9 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `cache.redis.db`          | Redis/Valkey database number          | `0`                                                                                | `APP_CACHE_REDIS_DB`           |
 | `metrics.enabled`         | Enable Prometheus metrics endpoint    | `true`                                                                             | `APP_METRICS_ENABLED`          |
 | `metrics.port`            | Port for the metrics HTTP server      | `9090`                                                                             | `APP_METRICS_PORT`             |
+| `retry.max_attempts`      | Total HTTP attempts per request (1 = no retry, 0 uses default 3) | `3`                                                                   | `APP_RETRY_MAX_ATTEMPTS`       |
+| `retry.initial_delay`     | Delay before the first retry (exponential back-off base, empty = no delay) | `1s`                                                           | `APP_RETRY_INITIAL_DELAY`      |
+| `retry.max_delay`         | Maximum back-off delay cap (empty = use initial_delay as cap) | `10s`                                                                 | `APP_RETRY_MAX_DELAY`          |
 
 ### Example Configuration
 
@@ -51,12 +54,14 @@ cache:
 metrics:
   enabled: true
   port: 9090
+
+retry:
+  max_attempts: 3      # Total attempts including the initial try (1 = no retry)
+  initial_delay: "1s"  # Delay before the first retry (exponential back-off base)
+  max_delay: "10s"     # Maximum back-off delay cap
 ```
 
 ### Environment Variables
-
-```bash
-# Override log level
 export LOG_LEVEL=debug
 
 # Enable JSON logging
@@ -76,6 +81,13 @@ export APP_METRICS_PORT=9091
 
 # Disable metrics
 export APP_METRICS_ENABLED=false
+
+# Disable retries (1 attempt = no retry)
+export APP_RETRY_MAX_ATTEMPTS=1
+
+# Tune retry back-off
+export APP_RETRY_INITIAL_DELAY=500ms
+export APP_RETRY_MAX_DELAY=5s
 ```
 
 ## CI/CD Pipeline
@@ -139,6 +151,7 @@ Prepares Copilot agent environment:
 | `github.com/redis/go-redis/v9`      | Redis/Valkey client (redis cache backend)       | v9                 |
 | `github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus` | gRPC Prometheus interceptors | Latest |
 | `github.com/prometheus/client_golang` | Prometheus client library               | Latest             |
+| `github.com/failsafe-go/failsafe-go` | HTTP retry and resilience policies      | Latest             |
 | `archive/zip` (stdlib)               | ZIP file extraction for season packs    | stdlib             |
 
 ### Dependency Management

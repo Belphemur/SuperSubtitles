@@ -68,7 +68,7 @@ func TestClient_StreamSubtitles_NonOKStatus(t *testing.T) {
 	if errors.Is(err, &apperrors.ErrNotFound{}) {
 		t.Fatal("Expected non-NotFound error for 500 response")
 	}
-	if !strings.Contains(err.Error(), "status 500") {
+	if !strings.Contains(err.Error(), "500") {
 		t.Fatalf("Expected error mentioning status 500, got: %v", err)
 	}
 }
@@ -357,9 +357,7 @@ func TestClient_NewClient_WithProxy(t *testing.T) {
 
 	// Verify the underlying client has the proxy set on its transport
 	impl := c.(*client)
-	ct := impl.httpClient.Transport.(*compressionTransport)
-	baseTransport := ct.transport.(*http.Transport)
-	if baseTransport.Proxy == nil {
+	if impl.baseTransport.Proxy == nil {
 		t.Error("Expected proxy to be configured on transport")
 	}
 }
@@ -610,7 +608,7 @@ func TestClient_StreamRecentSubtitles_NonOKStatus(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for non-OK status")
 	}
-	if !strings.Contains(err.Error(), "status 500") {
+	if !strings.Contains(err.Error(), "500") {
 		t.Errorf("Expected error mentioning status 500, got: %v", err)
 	}
 }
