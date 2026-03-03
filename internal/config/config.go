@@ -39,7 +39,7 @@ type Config struct {
 	Retry struct {
 		MaxAttempts  int    `mapstructure:"max_attempts"`  // Total attempts including the initial try (0 uses default of 3)
 		InitialDelay string `mapstructure:"initial_delay"` // Delay before the first retry, e.g. "500ms", "1s" (empty = no delay)
-		MaxDelay     string `mapstructure:"max_delay"`     // Maximum retry delay with exponential back-off, e.g. "10s" (empty = no cap)
+		MaxDelay     string `mapstructure:"max_delay"`     // Maximum retry delay with exponential back-off, e.g. "10s" (empty = use initial_delay as cap)
 	} `mapstructure:"retry"`
 }
 

@@ -20,18 +20,13 @@ import (
 // newTestClientWithRetry creates a client configured with up to maxAttempts total
 // attempts and no inter-retry delay, so tests run fast.
 func newTestClientWithRetry(serverURL string, maxAttempts int) Client {
-	return NewClient(&config.Config{
+	cfg := config.Config{
 		SuperSubtitleDomain: serverURL,
 		ClientTimeout:       "10s",
-		Retry: struct {
-			MaxAttempts  int    `mapstructure:"max_attempts"`
-			InitialDelay string `mapstructure:"initial_delay"`
-			MaxDelay     string `mapstructure:"max_delay"`
-		}{
-			MaxAttempts: maxAttempts,
-			// No InitialDelay → no backoff, retries fire immediately (fast tests)
-		},
-	})
+	}
+	cfg.Retry.MaxAttempts = maxAttempts
+	// No InitialDelay → no backoff, retries fire immediately (fast tests)
+	return NewClient(&cfg)
 }
 
 // TestClient_Retry_SucceedsAfterTransientError verifies that the client retries

@@ -62,6 +62,8 @@ retry:
 ```
 
 ### Environment Variables
+
+```bash
 export LOG_LEVEL=debug
 
 # Enable JSON logging
