@@ -146,4 +146,5 @@ The application runs a **gRPC server** (`cmd/proxy/main.go`) that exposes all cl
 - [Data Flow](./data-flow.md) - Detailed data flow for all operations
 - [Testing](./testing.md) - Testing infrastructure and strategy
 - [Design Decisions](./design-decisions.md) - Key architectural decisions
-- [Deployment](./deployment.md) - Configuration, CI/CD, and dependencies
+- [Configuration](./configuration.md) - Configuration reference
+- [Deployment](./deployment.md) - Docker, Kubernetes, and monitoring

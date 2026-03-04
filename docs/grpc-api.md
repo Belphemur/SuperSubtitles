@@ -355,4 +355,5 @@ The gRPC server is instrumented with Prometheus metrics via `go-grpc-middleware/
 - [Overview](./overview.md) - High-level architecture
 - [Data Flow](./data-flow.md) - Operation flows
 - [Design Decisions](./design-decisions.md) - Architectural decisions
-- [Deployment](./deployment.md) - Configuration, CI/CD, and deployment
+- [Configuration](./configuration.md) - Configuration reference
+- [Deployment](./deployment.md) - Docker, Kubernetes, and monitoring

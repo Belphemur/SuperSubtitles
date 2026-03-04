@@ -82,13 +82,22 @@ SuperSubtitles/
 ├── build/
 │   └── Dockerfile                 # Docker image for GoReleaser multi-platform builds
 ├── docs/
-│   ├── architecture.md            # Architecture index (links to focused docs)
+│   ├── architecture.md            # Architecture index (links to all docs)
 │   ├── overview.md                # High-level architecture
 │   ├── grpc-api.md                # gRPC API documentation
 │   ├── data-flow.md               # Detailed operation flows
 │   ├── testing.md                 # Testing infrastructure
-│   ├── design-decisions.md        # Architectural decisions
-│   └── deployment.md              # Config, CI/CD, deployment
+│   ├── configuration.md           # Configuration reference and environment variables
+│   ├── ci-cd.md                   # CI/CD pipeline, dependencies, local dev setup
+│   ├── deployment.md              # Docker, Kubernetes deployment, monitoring
+│   ├── design-decisions.md        # Architectural decisions index
+│   └── design-decisions/
+│       ├── cache.md               # Cache layer metrics and pluggable cache decisions
+│       ├── streaming.md           # Streaming RPCs and streaming-first client decisions
+│       ├── http-client.md         # HTTP resilience, partial failure, pagination decisions
+│       ├── parsing.md             # Parser design, normalization, UTF-8 safety decisions
+│       ├── infrastructure.md      # gRPC health checking and error handling decisions
+│       └── testing.md             # Programmatic test fixture decisions
 ├── internal/
 │   ├── client/
 │   │   ├── client.go              # HTTP client (Client interface + implementation)
@@ -167,13 +176,14 @@ SuperSubtitles/
 
 **Documentation is mandatory for:**
 
-- **Any new feature** - Add to data-flow.md, grpc-api.md (if gRPC), and design-decisions.md as applicable
+- **Any new feature** - Add to data-flow.md, grpc-api.md (if gRPC), and the relevant docs/design-decisions/*.md as applicable
 - **Changes to existing features** - Update the relevant documentation files
 - **API modifications** - Always update grpc-api.md with new endpoints, parameters, or response changes
-- **Configuration changes** - Update deployment.md with new config fields or environment variables
-- **Architectural decisions** - Document the "why" in design-decisions.md
+- **Configuration changes** - Update configuration.md with new config fields or environment variables
+- **Architectural decisions** - Document the "why" in the relevant docs/design-decisions/*.md file
 - **Testing patterns** - Update testing.md when introducing new test approaches
-- **Deployment changes** - Update deployment.md with Dockerfile, CI/CD, or infrastructure changes
+- **Deployment changes** - Update deployment.md with Dockerfile, Kubernetes, or monitoring changes
+- **CI/CD changes** - Update ci-cd.md with pipeline or dependency changes
 
 **Documentation workflow:**
 
@@ -191,10 +201,18 @@ SuperSubtitles/
   - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API documentation with examples (UPDATE whenever proto or server changes)
   - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features (UPDATE for any new operations)
   - [docs/testing.md](../docs/testing.md) - Testing infrastructure and patterns
-  - [docs/design-decisions.md](../docs/design-decisions.md) - Architectural decisions with rationale (UPDATE for design choices)
-  - [docs/deployment.md](../docs/deployment.md) - Configuration, CI/CD, dependencies, Docker (UPDATE for deployment changes)
+  - [docs/configuration.md](../docs/configuration.md) - Configuration reference and environment variables (UPDATE for config changes)
+  - [docs/ci-cd.md](../docs/ci-cd.md) - CI/CD pipeline, dependencies, local development setup
+  - [docs/deployment.md](../docs/deployment.md) - Docker, Kubernetes deployment, monitoring (UPDATE for deployment changes)
+  - [docs/design-decisions.md](../docs/design-decisions.md) - Index of all architectural decisions
+  - [docs/design-decisions/cache.md](../docs/design-decisions/cache.md) - Cache design decisions
+  - [docs/design-decisions/streaming.md](../docs/design-decisions/streaming.md) - Streaming design decisions
+  - [docs/design-decisions/http-client.md](../docs/design-decisions/http-client.md) - HTTP client design decisions
+  - [docs/design-decisions/parsing.md](../docs/design-decisions/parsing.md) - Parsing design decisions
+  - [docs/design-decisions/infrastructure.md](../docs/design-decisions/infrastructure.md) - Infrastructure design decisions
+  - [docs/design-decisions/testing.md](../docs/design-decisions/testing.md) - Testing design decisions
 - Update the appropriate focused documentation file(s) when making changes
-- For new features, update data-flow.md with the operation flow and design-decisions.md with any architectural choices
+- For new features, update data-flow.md with the operation flow and the relevant design-decisions/*.md file with any architectural choices
 - Include test coverage information in testing.md if adding new test patterns
 - Always check existing documentation and repository memories before starting work
 - Store new memories about code structure and features using the `store_memory` tool, including which files implement them
@@ -202,9 +220,11 @@ SuperSubtitles/
 **Documentation checklist (verify before committing):**
 
 - [ ] grpc-api.md updated if any gRPC service, endpoint, or message changed
-- [ ] deployment.md updated if configuration, Docker, or CI/CD changed
+- [ ] configuration.md updated if configuration fields or environment variables changed
+- [ ] deployment.md updated if Docker, Kubernetes, or monitoring changed
+- [ ] ci-cd.md updated if CI/CD pipeline or dependencies changed
 - [ ] data-flow.md updated if new operations or flows added
-- [ ] design-decisions.md updated if architectural choices made
+- [ ] Relevant docs/design-decisions/*.md updated if architectural choices made
 - [ ] testing.md updated if new test patterns introduced
 - [ ] All code examples in documentation are accurate and tested
 
