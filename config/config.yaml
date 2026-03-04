@@ -18,3 +18,7 @@ cache:
 metrics:
   enabled: true
   port: 9090
+retry:
+  max_attempts: 3      # Total attempts including the initial try (1 = no retry)
+  initial_delay: "1s"  # Delay before the first retry (exponential back-off base)
+  max_delay: "10s"     # Maximum back-off delay cap

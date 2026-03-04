@@ -14,6 +14,35 @@ This document explains key architectural and design decisions made in the SuperS
 
 **Implementation**: `internal/cache/metrics.go` (CounterVec definitions + `cacheEntriesCollector`), `internal/cache/instrumented.go` (`instrumentedCache` wrapper), `internal/cache/factory.go` (`New()` wraps the result and injects the eviction counter hook when `Group != ""`).
 
+## HTTP Request Resilience with failsafe-go
+
+**Decision**: All HTTP requests made by the client are wrapped with a retry policy using [failsafe-go](https://failsafe-go.dev/). The retry logic is implemented at the transport layer via `failsafehttp.NewRoundTripper`, making it transparent to all call sites.
+
+**Rationale**:
+
+- feliratok.eu is an external dependency that may experience transient outages, rate limiting, or temporary server errors
+- Retrying at the transport layer is the least invasive approach — no changes to individual request sites are required
+- failsafe-go provides a well-tested, configurable resilience library that handles subtle edge cases (body buffering for re-tries, context cancellation, Retry-After headers, etc.)
+- Exponential back-off with a configurable cap prevents thundering-herd scenarios
+
+**Retry behaviour**:
+
+- Retries on connection errors and most 5xx responses (except 501 Not Implemented)
+- Retries on 429 Too Many Requests, honouring the `Retry-After` response header when present
+- Does **not** retry on 404, 4xx client errors, certificate errors, or unsupported scheme errors
+- Context cancellation immediately aborts any pending retry
+- A `WARN` log entry is emitted for every retry attempt, including the attempt number and the last HTTP status code
+
+**Configuration** (see `retry.*` config fields):
+
+- `retry.max_attempts` — total attempts including the initial try (default 3, i.e. up to 2 retries)
+- `retry.initial_delay` — base delay for exponential back-off (default `"1s"`; set empty to disable back-off)
+- `retry.max_delay` — maximum back-off delay cap (default `"10s"`)
+
+**Implementation**: `internal/client/client.go` — `NewClient` builds the retry policy and wraps the compression transport with `failsafehttp.NewRoundTripper` before creating the `http.Client`.
+
+**Partial failure**: The existing partial-failure resilience (returning successful results even when some endpoints fail) is preserved and complementary to retry: retries reduce individual request failures, while partial-failure handling copes with endpoints that remain unavailable after all retries are exhausted.
+
 ## Partial Failure Resilience
 
 **Decision**: The client returns whatever data it successfully fetched, logging warnings for failed endpoints rather than failing the entire operation.
