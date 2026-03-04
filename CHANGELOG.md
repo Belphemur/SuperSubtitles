@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.5.0...v2.5.1) (2026-03-04)
+
+
+### Bug Fixes
+
+* retry request with failover ([97c312a](https://github.com/Belphemur/SuperSubtitles/commit/97c312ac596e3a34c76718945cb54da02a9400e9)), closes [#76](https://github.com/Belphemur/SuperSubtitles/issues/76)
+
 # [2.5.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.4.2...v2.5.0) (2026-03-02)
 
 
