@@ -4,11 +4,13 @@
 
 ### CI (`.github/workflows/ci.yml`) — every push/PR to `main`
 
-Three jobs run in parallel:
+Five jobs:
 
 1. **Lint** — `go mod verify`, `go vet`, `gofmt`, `golangci-lint run`
-2. **Test** — 4-way matrix (`parser-models-errors`, `client`, `services-grpc-metrics`, `cache`) with Valkey service container. Runs with `-race` flag, uploads per-group coverage to Codecov
-3. **Build** — `CGO_ENABLED=0 go build` producing a static binary
+2. **Test** — 3-group matrix (`parser-models-errors`, `client`, `services-grpc-metrics`) without service containers. Runs with `-race` flag
+3. **Test-cache** — separate job for `cache` package with a Valkey service container and `REDIS_ADDRESS` set. Runs with `-race` flag
+4. **Report** — collects all test artifacts and uploads coverage + test results to Codecov
+5. **Build** — `CGO_ENABLED=0 go build` producing a static binary
 
 ### Release (`.github/workflows/release.yml`) — push to `main`
 
