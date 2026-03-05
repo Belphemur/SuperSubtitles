@@ -56,14 +56,14 @@ Use [conventional commits](https://www.conventionalcommits.org/) for all commits
 
 ## Documentation
 
-- **[Architecture](docs/architecture.md)** — Documentation index
-- **[Overview](docs/overview.md)** — High-level component overview
-- **[gRPC API](docs/grpc-api.md)** — Endpoints, data models, and usage examples
-- **[Data Flow](docs/data-flow.md)** — Detailed operation flows
+- **[Architecture](docs/architecture.md)** — Overview, domain structure, and design decision index
+- **[gRPC API](docs/grpc-api.md)** — Endpoints and usage examples
+- **[Data Flow](docs/data-flow.md)** — Operation flows
 - **[Design Decisions](docs/design-decisions.md)** — Architectural rationale
-- **[Testing](docs/testing.md)** — Test infrastructure and patterns
-- **[Deployment](docs/deployment.md)** — Configuration, CI/CD, Docker, and monitoring
-- **[Project Structure](docs/project_structure.md)** — Directory layout and file relationships
+- **[Testing](docs/testing.md)** — Test strategy and fixtures
+- **[Configuration](docs/configuration.md)** — Config fields and environment variables
+- **[CI/CD](docs/ci-cd.md)** — Workflow overview
+- **[Deployment](docs/deployment.md)** — Docker, Kubernetes, and monitoring
 
 ## License
 

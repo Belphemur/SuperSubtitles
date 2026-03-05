@@ -2,32 +2,26 @@
 
 ## HTTP Request Resilience with failsafe-go
 
-**Decision**: All HTTP requests made by the client are wrapped with a retry policy using [failsafe-go](https://failsafe-go.dev/). The retry logic is implemented at the transport layer via `failsafehttp.NewRoundTripper`, making it transparent to all call sites.
+**Decision**: All HTTP requests are wrapped with a retry policy using [failsafe-go](https://failsafe-go.dev/). The retry logic is implemented at the transport layer, making it transparent to all call sites.
 
 **Rationale**:
 
 - feliratok.eu is an external dependency that may experience transient outages, rate limiting, or temporary server errors
 - Retrying at the transport layer is the least invasive approach — no changes to individual request sites are required
-- failsafe-go provides a well-tested, configurable resilience library that handles subtle edge cases (body buffering for re-tries, context cancellation, Retry-After headers, etc.)
+- failsafe-go handles subtle edge cases (body buffering for retries, context cancellation, Retry-After headers, etc.)
 - Exponential back-off with a configurable cap prevents thundering-herd scenarios
 
 **Retry behaviour**:
 
 - Retries on connection errors and most 5xx responses (except 501 Not Implemented)
-- Retries on 429 Too Many Requests, honouring the `Retry-After` response header when present
+- Retries on 429 Too Many Requests, honouring the Retry-After response header when present
 - Does **not** retry on 404, 4xx client errors, certificate errors, or unsupported scheme errors
 - Context cancellation immediately aborts any pending retry
-- A `WARN` log entry is emitted for every retry attempt, including the attempt number and the last HTTP status code
+- A warning log entry is emitted for every retry attempt
 
-**Configuration** (see `retry.*` config fields):
+**Configuration**: See `retry.*` fields in [configuration](../configuration.md).
 
-- `retry.max_attempts` — total attempts including the initial try (default 3, i.e. up to 2 retries)
-- `retry.initial_delay` — base delay for exponential back-off (default `"1s"`; set empty to disable back-off)
-- `retry.max_delay` — maximum back-off delay cap (default `"10s"`)
-
-**Implementation**: `internal/client/client.go` — `NewClient` builds the retry policy and wraps the compression transport with `failsafehttp.NewRoundTripper` before creating the `http.Client`.
-
-**Partial failure**: The existing partial-failure resilience (returning successful results even when some endpoints fail) is preserved and complementary to retry: retries reduce individual request failures, while partial-failure handling copes with endpoints that remain unavailable after all retries are exhausted.
+**Implementation**: `NewClient` in `internal/client/client.go` builds the retry policy via `failsafehttp.NewRetryPolicyBuilder()` and wraps the compression transport with `failsafehttp.NewRoundTripper`.
 
 ## Partial Failure Resilience
 
@@ -39,46 +33,34 @@
 - Users benefit from partial data rather than complete failure
 - Warnings in logs allow monitoring of endpoint health
 
-**Implementation**: All parallel fetching operations collect errors but still return successful results if any endpoints succeed.
+Retries and partial failure are complementary: retries reduce individual request failures, while partial failure handling copes with endpoints that remain unavailable after all retries are exhausted.
+
+**Implementation**: All parallel fetching operations in `internal/client/` collect errors but still return successful results if any endpoints succeed.
 
 ## Client Architecture
 
-**Decision**: Keep unified client interface rather than splitting into multiple specialized clients.
-
-**Current State**:
-
-- ~600 lines in `client.go` handling all operations
-- Single `Client` interface provides unified API
-- Clear method separation with comprehensive tests
+**Decision**: Keep a unified Client interface with the implementation split into per-feature files within the client package.
 
 **Rationale**:
 
-- Current structure is manageable and well-tested
 - Single interface is convenient for consumers
-- Premature splitting adds unnecessary complexity
+- Per-feature files keep each file focused and testable
+- No need for separate client types — the package-level split is sufficient
 
-**Future Consideration**: If the client grows significantly (>1000 lines) or new features require substantial complexity, consider splitting into:
-
-1. Show Client (GetShowList, GetShowSubtitles)
-2. Subtitle Client (GetSubtitles, GetRecentSubtitles)
-3. Metadata Client (third-party IDs, update checking)
-4. Download Client (already delegates to SubtitleDownloader service)
+**Implementation**: `Client` interface in `internal/client/client.go`. Implementation split by feature: `show_list.go`, `subtitles.go`, `show_subtitles.go`, `recent_subtitles.go`, `updates.go`, `download.go`.
 
 ## Parallel Pagination
 
 **Decision**: Fetch paginated content in parallel batches rather than sequentially. Batch sizes differ by context:
 
-- **Subtitle pages**: Batch size of 2 (~3x faster for shows with many subtitle pages)
-- **Show list pages**: Batch size of 10 (show list endpoints like `nem-all-forditas-alatt` can have 40+ pages)
+- **Subtitle pages**: Batch size of 2
+- **Show list pages**: Batch size of 10 (show list endpoints can have 40+ pages)
 
 **Rationale**:
 
-- Dramatically faster for endpoints with many pages (42 pages in ~6 rounds instead of 42 sequential requests)
+- Dramatically faster for endpoints with many pages
 - Balances speed with server load
-- First page always fetched alone to discover total pages via `ExtractLastPage` (show lists) or `extractPaginationInfo` (subtitles)
-- Show list uses a larger batch size because individual show pages are lightweight HTML responses
+- First page always fetched alone to discover total page count
+- Show list uses a larger batch size because individual pages are lightweight
 
-**Implementation**:
-
-- **Subtitles**: Pages 2-3 fetched together, then 4-5, etc. (`internal/client/subtitles.go`)
-- **Show lists**: Pages 2-11 fetched together, then 12-21, etc. (`internal/client/show_list.go` with `pageBatchSize = 10`). `ShowParser.ExtractLastPage` parses `div.pagination` links to determine the highest page number from `oldal=` URL parameters.
+**Implementation**: Subtitles fetched in pairs via `internal/client/subtitles.go`. Show lists fetched in batches of 10 via `internal/client/show_list.go`; `ShowParser.ExtractLastPage` parses pagination links to discover the total page count.

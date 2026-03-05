@@ -59,33 +59,4 @@ retry:
   max_delay: "10s"     # Maximum back-off delay cap
 ```
 
-## Environment Variables
-
-```bash
-export LOG_LEVEL=debug
-
-# Enable JSON logging
-export LOG_FORMAT=json
-
-# Override server address
-export APP_SERVER_ADDRESS=0.0.0.0
-
-# Override domain
-export APP_SUPER_SUBTITLE_DOMAIN=https://feliratok.eu
-
-# Override timeout
-export APP_CLIENT_TIMEOUT=60s
-
-# Override metrics port
-export APP_METRICS_PORT=9091
-
-# Disable metrics
-export APP_METRICS_ENABLED=false
-
-# Disable retries (1 attempt = no retry)
-export APP_RETRY_MAX_ATTEMPTS=1
-
-# Tune retry back-off
-export APP_RETRY_INITIAL_DELAY=500ms
-export APP_RETRY_MAX_DELAY=5s
-```
+All fields, defaults, and env var names are listed in the table above.

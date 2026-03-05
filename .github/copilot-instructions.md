@@ -57,77 +57,22 @@ Always run commands from the repository root.
 ## Project Layout
 
 ```
-SuperSubtitles/
-├── cmd/proxy/main.go              # Application entry point (gRPC server)
-├── config/config.yaml             # Default configuration (YAML)
-├── go.mod / go.sum                # Go module (module name: github.com/Belphemur/SuperSubtitles/v2)
-├── .golangci.yml                  # golangci-lint configuration
-├── .goreleaser.yml                # GoReleaser build/release configuration
-├── .releaserc.yml                 # semantic-release configuration
-├── package.json                   # Node.js deps for semantic-release
-├── .github/
-│   ├── copilot-instructions.md    # This file
-│   ├── dependabot.yml             # Dependabot for Go modules & GitHub Actions
-│   └── workflows/
-│       ├── ci.yml                 # CI: lint + test + build (on push/PR to main)
-│       ├── release.yml            # Release: semantic-release + GoReleaser (on push to main)
-│       └── copilot-setup-steps.yml # Copilot agent environment setup
-├── api/
-│   └── proto/
-│       └── v1/
-│           ├── supersubtitles.proto       # Protocol Buffer definitions
-│           ├── supersubtitles.pb.go       # Generated proto code (messages)
-│           ├── supersubtitles_grpc.pb.go  # Generated gRPC server/client code
-│           └── generate.go                # go:generate directive for proto code
-├── build/
-│   └── Dockerfile                 # Docker image for GoReleaser multi-platform builds
-├── docs/
-│   ├── architecture.md            # Architecture index (links to all docs)
-│   ├── overview.md                # High-level architecture
-│   ├── grpc-api.md                # gRPC API documentation
-│   ├── data-flow.md               # Detailed operation flows
-│   ├── testing.md                 # Testing infrastructure
-│   ├── configuration.md           # Configuration reference and environment variables
-│   ├── ci-cd.md                   # CI/CD pipeline, dependencies, local dev setup
-│   ├── deployment.md              # Docker, Kubernetes deployment, monitoring
-│   ├── design-decisions.md        # Architectural decisions index
-│   └── design-decisions/
-│       ├── cache.md               # Cache layer metrics and pluggable cache decisions
-│       ├── streaming.md           # Streaming RPCs and streaming-first client decisions
-│       ├── http-client.md         # HTTP resilience, partial failure, pagination decisions
-│       ├── parsing.md             # Parser design, normalization, UTF-8 safety decisions
-│       ├── infrastructure.md      # gRPC health checking and error handling decisions
-│       └── testing.md             # Programmatic test fixture decisions
-├── internal/
-│   ├── client/
-│   │   ├── client.go              # HTTP client (Client interface + implementation)
-│   │   ├── client_test.go         # Unit tests using httptest servers
-│   │   ├── client_integration_test.go  # Integration tests (skipped in CI)
-│   │   └── errors.go              # Custom error types (ErrNotFound)
-│   ├── config/
-│   │   └── config.go              # Viper-based config with singleton logger (zerolog)
-│   ├── grpc/
-│   │   ├── server.go              # gRPC server implementation
-│   │   └── server_test.go         # gRPC server tests with mock client
-│   ├── models/
-│   │   ├── show.go                # Show struct
-│   │   ├── subtitle.go            # Subtitle, SubtitleCollection, SuperSubtitleResponse
-│   │   ├── show_subtitles.go      # ShowSubtitles (composite model)
-│   │   ├── quality.go             # Quality enum with JSON marshaling
-│   │   ├── third_party_ids.go     # IMDB/TVDB/TVMaze/Trakt IDs
-│   │   └── update_check.go        # Update check request/response models
-│   ├── parser/
-│   │   ├── interfaces.go          # Generic Parser[T] and SingleResultParser[T] interfaces
-│   │   ├── show_parser.go         # HTML parser for show listings (goquery)
-│   │   ├── show_parser_test.go    # Tests with inline HTML fixtures
-│   │   ├── third_party_parser.go  # HTML parser for third-party IDs
-│   │   └── third_party_parser_test.go
-│   ├── services/
-│   │   ├── subtitle_downloader.go       # SubtitleDownloader interface
-│   │   ├── subtitle_downloader_impl.go  # ZIP extraction, caching, format detection
-│   │   └── subtitle_downloader_test.go  # Tests with benchmark coverage
-│   └── testutil/
-│       └── html_fixtures.go       # Programmatic HTML test fixture generators
+cmd/proxy/          → Application entry point
+internal/
+  grpc/             → gRPC API layer
+  client/           → HTTP scraping client for feliratok.eu
+  parser/           → HTML parsing and data normalization
+  services/         → Subtitle download and file processing
+  models/           → Shared domain types
+  cache/            → Pluggable caching abstraction
+  metrics/          → Prometheus instrumentation
+  config/           → Configuration and logging
+  apperrors/        → Application error types
+  testutil/         → Test utilities (fixtures, helpers)
+api/proto/v1/       → Proto definitions and generated code
+config/             → Default configuration file
+docs/               → Architecture, API, data-flow, testing, deployment docs
+  design-decisions/ → Architectural decision records
 ```
 
 ## Architecture & Conventions
@@ -180,7 +125,7 @@ SuperSubtitles/
 - **Changes to existing features** - Update the relevant documentation files
 - **API modifications** - Always update grpc-api.md with new endpoints, parameters, or response changes
 - **Configuration changes** - Update configuration.md with new config fields or environment variables
-- **Architectural decisions** - Document the "why" in the relevant docs/design-decisions/*.md file
+- **Architectural decisions** - Document the "why" in the relevant docs/design-decisions/*.md file, following the [Decision → Rationale → Implementation template](../docs/design-decisions/TEMPLATE.md)
 - **Testing patterns** - Update testing.md when introducing new test approaches
 - **Deployment changes** - Update deployment.md with Dockerfile, Kubernetes, or monitoring changes
 - **CI/CD changes** - Update ci-cd.md with pipeline or dependency changes
@@ -192,28 +137,28 @@ SuperSubtitles/
 3. **After coding:** Update ALL relevant documentation files before considering the task complete
 4. **Never commit** code changes without corresponding documentation updates
 
+**Documentation style rules:**
+
+- **Design decision files** (`docs/design-decisions/*.md`) **should** include implementation details (file paths, method names, interfaces) — they explain the "how" behind the "why"
+- **All other docs** (architecture, data-flow, grpc-api, testing, ci-cd, deployment) **must not** copy method names, file names, or code content — the code explains itself. Describe behavior and domain concepts instead.
+- Folder paths are fine; describe them by the domain they represent, not the methods they contain
+- Keep docs succinct and avoid repeating information across files
+
 **Documentation structure:**
 
 - **Always check repository memories first** - Review existing memories at the start of each task to understand patterns, conventions, and previously documented features
 - Architecture documentation is split into focused files in `docs/`:
-  - Start with [docs/architecture.md](../docs/architecture.md) (index) to find the right document
-  - [docs/overview.md](../docs/overview.md) - High-level architecture and component relationships
-  - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API documentation with examples (UPDATE whenever proto or server changes)
-  - [docs/data-flow.md](../docs/data-flow.md) - Detailed operation flows for all features (UPDATE for any new operations)
-  - [docs/testing.md](../docs/testing.md) - Testing infrastructure and patterns
+  - Start with [docs/architecture.md](../docs/architecture.md) — overview, domain structure, and design decision index
+  - [docs/grpc-api.md](../docs/grpc-api.md) - gRPC API endpoints and usage examples (UPDATE whenever proto or server changes)
+  - [docs/data-flow.md](../docs/data-flow.md) - Operation flows for all features (UPDATE for any new operations)
+  - [docs/testing.md](../docs/testing.md) - Test strategy, coverage goals, fixture generators
   - [docs/configuration.md](../docs/configuration.md) - Configuration reference and environment variables (UPDATE for config changes)
-  - [docs/ci-cd.md](../docs/ci-cd.md) - CI/CD pipeline, dependencies, local development setup
+  - [docs/ci-cd.md](../docs/ci-cd.md) - Workflow overview
   - [docs/deployment.md](../docs/deployment.md) - Docker, Kubernetes deployment, monitoring (UPDATE for deployment changes)
   - [docs/design-decisions.md](../docs/design-decisions.md) - Index of all architectural decisions
-  - [docs/design-decisions/cache.md](../docs/design-decisions/cache.md) - Cache design decisions
-  - [docs/design-decisions/streaming.md](../docs/design-decisions/streaming.md) - Streaming design decisions
-  - [docs/design-decisions/http-client.md](../docs/design-decisions/http-client.md) - HTTP client design decisions
-  - [docs/design-decisions/parsing.md](../docs/design-decisions/parsing.md) - Parsing design decisions
-  - [docs/design-decisions/infrastructure.md](../docs/design-decisions/infrastructure.md) - Infrastructure design decisions
-  - [docs/design-decisions/testing.md](../docs/design-decisions/testing.md) - Testing design decisions
+  - `docs/design-decisions/*.md` - Individual decision records (cache, streaming, http-client, parsing, infrastructure, testing)
 - Update the appropriate focused documentation file(s) when making changes
 - For new features, update data-flow.md with the operation flow and the relevant design-decisions/*.md file with any architectural choices
-- Include test coverage information in testing.md if adding new test patterns
 - Always check existing documentation and repository memories before starting work
 - Store new memories about code structure and features using the `store_memory` tool, including which files implement them
 
@@ -224,7 +169,7 @@ SuperSubtitles/
 - [ ] deployment.md updated if Docker, Kubernetes, or monitoring changed
 - [ ] ci-cd.md updated if CI/CD pipeline or dependencies changed
 - [ ] data-flow.md updated if new operations or flows added
-- [ ] Relevant docs/design-decisions/*.md updated if architectural choices made
+- [ ] Relevant docs/design-decisions/*.md updated if architectural choices made (follow [TEMPLATE.md](../docs/design-decisions/TEMPLATE.md))
 - [ ] testing.md updated if new test patterns introduced
 - [ ] All code examples in documentation are accurate and tested
 

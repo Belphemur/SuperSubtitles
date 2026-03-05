@@ -28,29 +28,13 @@ Located at `build/Dockerfile`, used by GoReleaser for multi-platform builds.
 
 ### Health Checks
 
-The Docker image includes built-in health checking using the standard gRPC health checking protocol:
-
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD ["/bin/grpc_health_probe", "-addr=:8080"]
-```
-
-**Health check parameters:**
-
-- **Interval**: 30 seconds between checks
-- **Timeout**: 10 seconds per check
-- **Start period**: 5 seconds grace period on container startup
-- **Retries**: 3 consecutive failures before marking unhealthy
-
-**Manual health check:**
+The Docker image includes built-in health checking using the standard gRPC health checking protocol (see [infrastructure decisions](./design-decisions/infrastructure.md)). Health check runs every 30s with 10s timeout, 5s start period, 3 retries.
 
 ```bash
+# Manual health check
 docker exec <container-id> /bin/grpc_health_probe -addr=:8080
-```
 
-**View health status:**
-
-```bash
+# View health status
 docker ps --format "table {{.Names}}\t{{.Status}}"
 ```
 
@@ -178,15 +162,15 @@ curl http://localhost:9090/metrics
 
 **Application metrics** (custom):
 
-| Metric                     | Type    | Labels                 | Source                    | Description                |
-| -------------------------- | ------- | ---------------------- | ------------------------- | -------------------------- |
-| `subtitle_downloads_total` | Counter | status (success/error) | `internal/metrics`        | Subtitle download attempts |
-| `cache_hits_total`         | Counter | cache                  | `internal/cache`          | Cache hits per group       |
-| `cache_misses_total`       | Counter | cache                  | `internal/cache`          | Cache misses per group     |
-| `cache_evictions_total`    | Counter | cache                  | `internal/cache`          | Evictions per group        |
-| `cache_entries`            | Gauge   | cache                  | `internal/cache`          | Current entries per group (lazily evaluated at scrape time) |
+| Metric                     | Type    | Labels                 | Description                |
+| -------------------------- | ------- | ---------------------- | -------------------------- |
+| `subtitle_downloads_total` | Counter | status (success/error) | Subtitle download attempts |
+| `cache_hits_total`         | Counter | cache                  | Cache hits per group       |
+| `cache_misses_total`       | Counter | cache                  | Cache misses per group     |
+| `cache_evictions_total`    | Counter | cache                  | Evictions per group        |
+| `cache_entries`            | Gauge   | cache                  | Current entries per group  |
 
-The `cache` label value is the **group** set via `ProviderConfig.Group` when the cache is created (e.g., `"zip"` for the subtitle ZIP cache). Using a label instead of a metric-name prefix allows the same cache infrastructure to be reused for other purposes without renaming metrics.
+See [cache design decisions](./design-decisions/cache.md) for how cache metrics and labels work.
 
 Go runtime metrics (goroutines, memory, GC) are included automatically by the default Prometheus registry.
 
