@@ -140,7 +140,7 @@ docs/               → Architecture, API, data-flow, testing, deployment docs
 **Documentation style rules:**
 
 - **Design decision files** (`docs/design-decisions/*.md`) **should** include implementation details (file paths, method names, interfaces) — they explain the "how" behind the "why"
-- **All other docs** (architecture, data-flow, grpc-api, testing, ci-cd, deployment) **must not** copy method names, file names, or code content — the code explains itself. Describe behaviour and domain concepts instead.
+- **All other docs** (architecture, data-flow, grpc-api, testing, ci-cd, deployment) **must not** copy method names, file names, or code content — the code explains itself. Describe behavior and domain concepts instead.
 - Folder paths are fine; describe them by the domain they represent, not the methods they contain
 - Keep docs succinct and avoid repeating information across files
 

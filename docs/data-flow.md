@@ -35,5 +35,5 @@
 1. Client builds download URL and delegates to the download service
 2. **Regular files** (SRT, ASS, VTT, SUB): downloaded, converted to UTF-8, returned with correct MIME type
 3. **ZIP without episode**: returned as-is
-4. **ZIP with episode number**: ZIP downloaded (or from cache), episode extracted by pattern matching, returned with correct type
+4. **ZIP with episode number**: ZIP downloaded (or from cache), episode extracted by pattern matching (S03E01, 3x01, E01 and case variants), returned with correct type
 5. **Cache**: pluggable LRU (memory or Redis/Valkey) caches ZIP files only. Multiple episode requests from the same season pack reuse the cached ZIP

@@ -9,7 +9,14 @@
 
 ## HTML Fixture Generators
 
-All HTML test data is generated via centralized generators in the testutil package — **never hardcode HTML in tests**. Generators exist for subtitle tables (with and without pagination), show listings (single and multi-column), third-party ID detail pages, and standalone pagination. They use option structs for readable configuration. If a test needs HTML that no generator supports, add a new generator rather than embedding HTML.
+All HTML test data is generated via centralized generators in the testutil package — **never hardcode HTML in tests**. Generators exist for:
+
+- Subtitle tables (with and without pagination)
+- Show listings (single-column and multi-column grid)
+- Third-party ID detail pages (IMDB/TVDB/TVMaze/Trakt)
+- Standalone pagination elements
+
+They use option structs for readable, intent-expressing configuration. If a test needs HTML that no generator supports, add a new generator rather than embedding HTML.
 
 ## Stream Collection Helpers
 
