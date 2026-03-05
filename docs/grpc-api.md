@@ -2,31 +2,18 @@
 
 Proto source: [`api/proto/v1/supersubtitles.proto`](../api/proto/v1/supersubtitles.proto). Regenerate with `go generate ./api/proto/v1`.
 
-## Service
-
-```protobuf
-service SuperSubtitlesService {
-  rpc GetShowList(GetShowListRequest) returns (stream Show);
-  rpc GetSubtitles(GetSubtitlesRequest) returns (stream Subtitle);
-  rpc GetShowSubtitles(GetShowSubtitlesRequest) returns (stream ShowSubtitlesCollection);
-  rpc CheckForUpdates(CheckForUpdatesRequest) returns (CheckForUpdatesResponse);
-  rpc DownloadSubtitle(DownloadSubtitleRequest) returns (DownloadSubtitleResponse);
-  rpc GetRecentSubtitles(GetRecentSubtitlesRequest) returns (stream ShowSubtitlesCollection);
-}
-```
-
-Four of six RPCs use **server-side streaming** (see [streaming decisions](./design-decisions/streaming.md)). The server also implements `grpc.health.v1.Health` for standard health checking.
-
 ## Endpoints
 
 | RPC | Type | Request | Response | Description |
 | --- | --- | --- | --- | --- |
-| `GetShowList` | streaming | empty | `stream Show` | All available TV shows from 3 parallel endpoints |
-| `GetSubtitles` | streaming | `show_id` | `stream Subtitle` | Subtitles for a show (auto-paginated) |
-| `GetShowSubtitles` | streaming | `repeated Show` | `stream ShowSubtitlesCollection` | Shows + subtitles + third-party IDs |
-| `GetRecentSubtitles` | streaming | `since_id` | `stream ShowSubtitlesCollection` | Recent uploads since a subtitle ID |
-| `CheckForUpdates` | unary | `content_id` | `CheckForUpdatesResponse` | New subtitle counts since content ID |
-| `DownloadSubtitle` | unary | `subtitle_id`, `episode` | filename + content + MIME type | Download file, optionally extract episode from ZIP |
+| GetShowList | streaming | empty | stream of shows | All available TV shows from 3 parallel endpoints |
+| GetSubtitles | streaming | show ID | stream of subtitles | Subtitles for a show (auto-paginated) |
+| GetShowSubtitles | streaming | list of shows | stream of show+subtitles bundles | Shows with subtitles and third-party IDs |
+| GetRecentSubtitles | streaming | since ID | stream of show+subtitles bundles | Recent uploads since a subtitle ID |
+| CheckForUpdates | unary | content ID | update counts | New subtitle counts since content ID |
+| DownloadSubtitle | unary | subtitle ID, episode | file content + MIME type | Download file, optionally extract episode from ZIP |
+
+Four of six RPCs use **server-side streaming** (see [streaming decisions](./design-decisions/streaming.md)). The server also implements the standard gRPC health checking protocol.
 
 ## grpcurl Examples
 
@@ -48,10 +35,6 @@ grpc_health_probe -addr=localhost:8080
 
 | Code | When |
 | --- | --- |
-| `NOT_FOUND` | Episode missing from ZIP, subtitle URL 404, show ID not found |
-| `INVALID_ARGUMENT` | No valid shows provided to `GetShowSubtitles` |
-| `INTERNAL` | HTTP failures, parsing errors |
-
-## Server Setup
-
-`internal/grpc/setup.go` → `NewGRPCServer()` creates the server with Prometheus interceptors, health checking, and gRPC reflection. Entry point `cmd/proxy/main.go` starts the server and optional metrics HTTP endpoint, with graceful shutdown on SIGTERM/SIGINT.
+| NOT_FOUND | Episode missing from ZIP, subtitle URL 404, show ID not found |
+| INVALID_ARGUMENT | No valid shows provided |
+| INTERNAL | HTTP failures, parsing errors |

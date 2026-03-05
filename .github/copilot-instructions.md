@@ -57,22 +57,22 @@ Always run commands from the repository root.
 ## Project Layout
 
 ```
-cmd/proxy/          → Entry point: gRPC server startup, graceful shutdown
+cmd/proxy/          → Application entry point
 internal/
-  grpc/             → gRPC server (4 streaming + 2 unary RPCs), proto ↔ model converters
-  client/           → Streaming-first HTTP client, split by feature (show_list, subtitles, etc.)
-  parser/           → HTML parsers using goquery (shows, subtitles, third-party IDs, charset)
-  services/         → SubtitleDownloader (ZIP extraction, format detection, caching)
-  models/           → Domain types (Show, Subtitle, Quality, StreamResult[T], etc.)
-  cache/            → Pluggable LRU cache (memory + Redis/Valkey), factory + provider registry
-  metrics/          → Prometheus metric definitions and /metrics HTTP server
-  config/           → Viper config loader + zerolog singleton logger
-  apperrors/        → Custom error types (ErrNotFound, ErrSubtitleNotFoundInZip, etc.)
-  testutil/         → HTML fixture generators + stream collection helpers (test-only)
-api/proto/v1/       → Proto definitions and generated gRPC code
-config/             → Default config.yaml
+  grpc/             → gRPC API layer
+  client/           → HTTP scraping client for feliratok.eu
+  parser/           → HTML parsing and data normalization
+  services/         → Subtitle download and file processing
+  models/           → Shared domain types
+  cache/            → Pluggable caching abstraction
+  metrics/          → Prometheus instrumentation
+  config/           → Configuration and logging
+  apperrors/        → Application error types
+  testutil/         → Test utilities (fixtures, helpers)
+api/proto/v1/       → Proto definitions and generated code
+config/             → Default configuration file
 docs/               → Architecture, API, data-flow, testing, deployment docs
-  design-decisions/ → ADRs: cache, streaming, http-client, parsing, infrastructure, testing
+  design-decisions/ → Architectural decision records
 ```
 
 ## Architecture & Conventions
@@ -125,7 +125,7 @@ docs/               → Architecture, API, data-flow, testing, deployment docs
 - **Changes to existing features** - Update the relevant documentation files
 - **API modifications** - Always update grpc-api.md with new endpoints, parameters, or response changes
 - **Configuration changes** - Update configuration.md with new config fields or environment variables
-- **Architectural decisions** - Document the "why" in the relevant docs/design-decisions/*.md file
+- **Architectural decisions** - Document the "why" in the relevant docs/design-decisions/*.md file, following the [Decision → Rationale → Implementation template](../docs/design-decisions/TEMPLATE.md)
 - **Testing patterns** - Update testing.md when introducing new test approaches
 - **Deployment changes** - Update deployment.md with Dockerfile, Kubernetes, or monitoring changes
 - **CI/CD changes** - Update ci-cd.md with pipeline or dependency changes
@@ -136,6 +136,13 @@ docs/               → Architecture, API, data-flow, testing, deployment docs
 2. **While coding:** Note which documentation files need updates based on your changes
 3. **After coding:** Update ALL relevant documentation files before considering the task complete
 4. **Never commit** code changes without corresponding documentation updates
+
+**Documentation style rules:**
+
+- **Design decision files** (`docs/design-decisions/*.md`) **should** include implementation details (file paths, method names, interfaces) — they explain the "how" behind the "why"
+- **All other docs** (architecture, data-flow, grpc-api, testing, ci-cd, deployment) **must not** copy method names, file names, or code content — the code explains itself. Describe behaviour and domain concepts instead.
+- Folder paths are fine; describe them by the domain they represent, not the methods they contain
+- Keep docs succinct and avoid repeating information across files
 
 **Documentation structure:**
 
@@ -162,7 +169,7 @@ docs/               → Architecture, API, data-flow, testing, deployment docs
 - [ ] deployment.md updated if Docker, Kubernetes, or monitoring changed
 - [ ] ci-cd.md updated if CI/CD pipeline or dependencies changed
 - [ ] data-flow.md updated if new operations or flows added
-- [ ] Relevant docs/design-decisions/*.md updated if architectural choices made
+- [ ] Relevant docs/design-decisions/*.md updated if architectural choices made (follow [TEMPLATE.md](../docs/design-decisions/TEMPLATE.md))
 - [ ] testing.md updated if new test patterns introduced
 - [ ] All code examples in documentation are accurate and tested
 
