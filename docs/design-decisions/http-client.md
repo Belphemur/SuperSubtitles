@@ -43,26 +43,19 @@
 
 ## Client Architecture
 
-**Decision**: Keep unified client interface rather than splitting into multiple specialized clients.
+**Decision**: Keep a unified `Client` interface with the implementation split into per-feature files within the `internal/client` package.
 
 **Current State**:
 
-- ~600 lines in `client.go` handling all operations
-- Single `Client` interface provides unified API
-- Clear method separation with comprehensive tests
+- Single `Client` interface in `client.go` (~140 lines) provides unified API
+- Implementation split by feature: `show_list.go`, `subtitles.go`, `show_subtitles.go`, `recent_subtitles.go`, `updates.go`, `download.go`
+- Clear method separation with comprehensive per-file tests
 
 **Rationale**:
 
-- Current structure is manageable and well-tested
 - Single interface is convenient for consumers
-- Premature splitting adds unnecessary complexity
-
-**Future Consideration**: If the client grows significantly (>1000 lines) or new features require substantial complexity, consider splitting into:
-
-1. Show Client (GetShowList, GetShowSubtitles)
-2. Subtitle Client (GetSubtitles, GetRecentSubtitles)
-3. Metadata Client (third-party IDs, update checking)
-4. Download Client (already delegates to SubtitleDownloader service)
+- Per-feature files keep each file focused and testable
+- No need for separate client types — the package-level split is sufficient
 
 ## Parallel Pagination
 
