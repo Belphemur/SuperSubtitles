@@ -21,12 +21,44 @@ func main() {
 	cfg := config.GetConfig()
 	logger := config.GetLogger()
 
-	logger.Info().
+	// Log application configuration at startup
+	logEvent := logger.Info().
 		Str("proxy_connection_string", cfg.ProxyConnectionString).
 		Str("super_subtitle_domain", cfg.SuperSubtitleDomain).
 		Int("server_port", cfg.Server.Port).
-		Str("server_address", cfg.Server.Address).
-		Msg("Application started with configuration")
+		Str("server_address", cfg.Server.Address)
+
+	// Log cache configuration
+	cacheType := cfg.Cache.Type
+	if cacheType == "" {
+		cacheType = "memory" // default
+	}
+	logEvent = logEvent.
+		Str("cache_type", cacheType).
+		Int("cache_size", cfg.Cache.Size).
+		Str("cache_ttl", cfg.Cache.TTL)
+
+	// Log Redis-specific configuration if using Redis cache
+	if cacheType == "redis" {
+		logEvent = logEvent.
+			Str("cache_redis_address", cfg.Cache.Redis.Address).
+			Int("cache_redis_db", cfg.Cache.Redis.DB)
+	}
+
+	// Log metrics configuration
+	logEvent = logEvent.
+		Bool("metrics_enabled", cfg.Metrics.Enabled)
+	if cfg.Metrics.Enabled {
+		logEvent = logEvent.Int("metrics_port", cfg.Metrics.Port)
+	}
+
+	// Log retry configuration
+	logEvent = logEvent.
+		Int("retry_max_attempts", cfg.Retry.MaxAttempts).
+		Str("retry_initial_delay", cfg.Retry.InitialDelay).
+		Str("retry_max_delay", cfg.Retry.MaxDelay)
+
+	logEvent.Msg("Application started with configuration")
 
 	// Create a client instance
 	httpClient := client.NewClient(cfg)
