@@ -317,10 +317,9 @@ func TestRedisCache_StaleLRUCleanup(t *testing.T) {
 	// Max size 3, short TTL.
 	c := newTestRedisCacheWithConfig(t, 3, 1*time.Second, onEvict)
 
-	// Insert 3 items.
+	// Insert 2 items that will become stale.
 	c.Set("stale1", []byte("v1"))
 	c.Set("stale2", []byte("v2"))
-	c.Set("fresh", []byte("v3"))
 
 	// Wait for stale1 and stale2 to expire (their hash fields will be removed by Redis).
 	time.Sleep(1500 * time.Millisecond)
@@ -330,19 +329,19 @@ func TestRedisCache_StaleLRUCleanup(t *testing.T) {
 		t.Fatal("Expected stale1 and stale2 to be expired")
 	}
 
+	// Now insert fresh items after the staleness period.
 	// The LRU sorted set still contains stale1 and stale2 as members, but
-	// their hash fields are gone. Now insert a new item to trigger eviction.
-	// The Lua script should clean up stale LRU members during this operation.
-	c.Set("trigger-cleanup", []byte("v4"))
+	// their hash fields are gone.
+	c.Set("fresh1", []byte("v3"))
+	c.Set("fresh2", []byte("v4"))
 
-	// Verify fresh and trigger-cleanup remain (both are active).
-	if !c.Contains("fresh") || !c.Contains("trigger-cleanup") {
-		t.Fatal("Expected 'fresh' and 'trigger-cleanup' to remain")
+	// Verify both fresh items remain.
+	if !c.Contains("fresh1") || !c.Contains("fresh2") {
+		t.Fatal("Expected 'fresh1' and 'fresh2' to remain")
 	}
 
-	// The cache should now have 2 items (stale entries removed).
-	// Depending on timing, the eviction callback may or may not be invoked for
-	// stale entries. The important thing is that the cache size is correct.
+	// The cache should now have 2 items (stale entries cleaned up).
+	// The Lua script should have cleaned up stale LRU members during these operations.
 	if c.Len() != 2 {
 		t.Fatalf("Expected Len 2 after stale cleanup, got %d", c.Len())
 	}
