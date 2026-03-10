@@ -1,3 +1,15 @@
+# [2.6.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.5.2...v2.6.0) (2026-03-10)
+
+
+### Bug Fixes
+
+* **cache:** correct TestRedisCache_StaleLRUCleanup timing issue ([b024153](https://github.com/Belphemur/SuperSubtitles/commit/b0241538f5d3fccf139c7234e9e8310880160e8c))
+
+
+### Features
+
+* **main:** add comprehensive configuration logging at startup ([301c626](https://github.com/Belphemur/SuperSubtitles/commit/301c626c76eca90e16c9f46525d68dbede5c9c53))
+
 ## [2.5.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.5.1...v2.5.2) (2026-03-06)
 
 
