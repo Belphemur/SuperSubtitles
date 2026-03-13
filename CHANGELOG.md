@@ -1,3 +1,20 @@
+# [2.7.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.6.2...v2.7.0) (2026-03-13)
+
+
+### Bug Fixes
+
+* **services:** address RAR archive security and naming review feedback ([#89](https://github.com/Belphemur/SuperSubtitles/issues/89)) ([e87d5f6](https://github.com/Belphemur/SuperSubtitles/commit/e87d5f61a423ab0503275046ba8061d0bd8320d2))
+
+
+### Features
+
+* **services:** handle rar subtitle archives ([f71acf4](https://github.com/Belphemur/SuperSubtitles/commit/f71acf4611d04f10bdebda8be1a561dee8a225d9))
+
+
+### Performance Improvements
+
+* better handling of zip ([f75039c](https://github.com/Belphemur/SuperSubtitles/commit/f75039c87d56c48d910ad948c53c1022d9798fed))
+
 ## [2.6.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.6.1...v2.6.2) (2026-03-12)
 
 
