@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
@@ -113,11 +114,8 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 				Int("subtitles", len(pageResult.Subtitles)).
 				Msg("Parsed subtitles from page")
 
-			for _, subtitle := range pageResult.Subtitles {
-				if addSubtitle(subtitle) {
-					reachedBoundary = true
-					break
-				}
+			if slices.ContainsFunc(pageResult.Subtitles, addSubtitle) {
+				reachedBoundary = true
 			}
 
 			// When sinceID is 0, only fetch the first page

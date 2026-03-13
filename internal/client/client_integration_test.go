@@ -377,12 +377,9 @@ func TestClient_GetRecentSubtitles_Integration(t *testing.T) {
 		// Display subtitle information
 		t.Logf("Recent subtitles: %d", ss.SubtitleCollection.Total)
 
-		maxSubtitlesToShow := 5
-		if ss.SubtitleCollection.Total < maxSubtitlesToShow {
-			maxSubtitlesToShow = ss.SubtitleCollection.Total
-		}
+		maxSubtitlesToShow := min(ss.SubtitleCollection.Total, 5)
 
-		for j := 0; j < maxSubtitlesToShow; j++ {
+		for j := range maxSubtitlesToShow {
 			sub := ss.SubtitleCollection.Subtitles[j]
 
 			episodeInfo := ""

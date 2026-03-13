@@ -18,7 +18,7 @@ type GRPCBindableError interface {
 // ErrNotFound represents an error when a requested resource is not found.
 type ErrNotFound struct {
 	Resource string
-	ID       interface{}
+	ID       any
 }
 
 // Error implements the error interface.
@@ -46,7 +46,7 @@ func (e *ErrNotFound) HTTPStatusCode() int {
 }
 
 // NewNotFoundError creates a new ErrNotFound.
-func NewNotFoundError(resource string, id interface{}) *ErrNotFound {
+func NewNotFoundError(resource string, id any) *ErrNotFound {
 	return &ErrNotFound{
 		Resource: resource,
 		ID:       id,

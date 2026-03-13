@@ -6,31 +6,35 @@ import (
 )
 
 // IntPtr is a helper for creating *int values in tests
+//
+//go:fix inline
 func IntPtr(v int) *int {
-	return &v
+	return new(v)
 }
 
 // BoolPtr is a helper for creating *bool values in tests
+//
+//go:fix inline
 func BoolPtr(v bool) *bool {
-	return &v
+	return new(v)
 }
 
 // SubtitleRowOptions contains options for generating a subtitle row
 type SubtitleRowOptions struct {
-	ShowID            int
-	Language          string // "Magyar", "Angol", etc.
-	FlagImage         string // "hungary.gif", "uk.gif", etc.
-	MagyarTitle       string
-	EredetiTitle      string
-	Uploader          string
-	UploaderBold      bool
-	UploadDate        string
-	DownloadAction    string
-	DownloadFilename  string
-	SubtitleID        int
-	BackgroundColor   string // Default alternates
-	Status            string // Optional status like "fordítás alatt (Alice)"
-	SkipShowIDDefault bool   // When true, preserves ShowID=0 in generated HTML instead of auto-filling with default value 2967
+	ShowID             int
+	Language           string // "Magyar", "Angol", etc.
+	FlagImage          string // "hungary.gif", "uk.gif", etc.
+	MagyarTitle        string
+	EredetiTitle       string
+	Uploader           string
+	UploaderBold       bool
+	UploadDate         string
+	DownloadAction     string
+	DownloadFilename   string
+	SubtitleID         int
+	BackgroundColor    string // Default alternates
+	Status             string // Optional status like "fordítás alatt (Alice)"
+	SkipShowIDDefault  bool   // When true, preserves ShowID=0 in generated HTML instead of auto-filling with default value 2967
 	CustomDownloadHref string // When non-empty, overrides the entire download link href (useful for testing invalid IDs)
 }
 

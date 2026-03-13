@@ -63,7 +63,6 @@ func (c *client) StreamShowList(ctx context.Context) <-chan models.StreamResult[
 		wg.Add(len(endpoints))
 
 		for _, ep := range endpoints {
-			ep := ep
 			go func() {
 				defer wg.Done()
 				c.fetchEndpointPages(ctx, ep, state)
@@ -127,10 +126,7 @@ func (c *client) fetchEndpointPages(ctx context.Context, endpoint string, state 
 
 	// --- Fetch pages 2..lastPage in parallel batches ---
 	for batchStart := 2; batchStart <= lastPage; batchStart += pageBatchSize {
-		batchEnd := batchStart + pageBatchSize - 1
-		if batchEnd > lastPage {
-			batchEnd = lastPage
-		}
+		batchEnd := min(batchStart+pageBatchSize-1, lastPage)
 
 		var batchWg sync.WaitGroup
 		batchWg.Add(batchEnd - batchStart + 1)

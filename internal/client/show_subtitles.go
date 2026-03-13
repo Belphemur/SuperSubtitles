@@ -27,10 +27,7 @@ func (c *client) StreamShowSubtitles(ctx context.Context, shows []models.Show) <
 		successCount := 0
 
 		for i := 0; i < len(shows); i += batchSize {
-			end := i + batchSize
-			if end > len(shows) {
-				end = len(shows)
-			}
+			end := min(i+batchSize, len(shows))
 
 			batch := shows[i:end]
 			logger.Info().Int("batchStart", i).Int("batchEnd", end-1).Int("batchSize", len(batch)).Msg("Processing batch of shows")
@@ -63,7 +60,6 @@ func (c *client) streamShowBatch(ctx context.Context, shows []models.Show, ch ch
 	wg.Add(len(shows))
 
 	for _, show := range shows {
-		show := show
 		go func() {
 			defer wg.Done()
 
