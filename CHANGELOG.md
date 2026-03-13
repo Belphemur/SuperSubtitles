@@ -1,3 +1,10 @@
+## [2.10.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.10.1...v2.10.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **parser:** harden real-data subtitle parsing regressions ([4e88901](https://github.com/Belphemur/SuperSubtitles/commit/4e889014d45347da9dcef946ebb1f6d72d69c7b8))
+
 ## [2.10.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.10.0...v2.10.1) (2026-03-13)
 
 
