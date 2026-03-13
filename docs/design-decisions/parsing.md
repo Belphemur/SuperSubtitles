@@ -49,7 +49,7 @@
 - Parser has all HTML context needed for normalization
 - Single responsibility: transform HTML → normalized models
 
-**Implementation**: `SubtitleParser` in `internal/parser/subtitle_parser.go` includes `convertLanguageToISO` (Hungarian → ISO 639-1), `parseReleaseInfo` (quality and release groups), `parseDescription` (season/episode/show name), and `detectQuality` (quality enum). Season-pack detection prioritizes archive-type download filenames (`.zip`/`.rar`) and uses title parsing as a fallback, including ranged episode notation such as `1x01-09`. When ranged notation is detected, range bounds are stored as optional subtitle metadata and exposed through gRPC fields. All normalization happens during HTML parsing in one pass.
+**Implementation**: `SubtitleParser` in `internal/parser/subtitle_parser.go` includes `convertLanguageToISO` (Hungarian → ISO 639-1), `parseReleaseInfo` (quality and release groups), `parseDescription` (season/episode/show name), and `detectQuality` (quality enum). Season-pack detection prioritizes archive-type download filenames (`.zip`/`.rar`) and uses title parsing as a fallback. Ranged episode notation such as `1x01-09` contributes season-pack metadata only when paired with an archive download filename. When valid ranged notation is detected, range bounds are normalized and stored as optional subtitle metadata exposed through gRPC fields. All normalization happens during HTML parsing in one pass.
 
 ## Show Name Extraction via DOM Traversal
 

@@ -12,7 +12,7 @@
 ## Subtitles
 
 1. Fetches first subtitle page for a show
-2. Parses 6-column HTML table with normalization (ISO language codes, qualities, season/episode, release groups, season pack detection). Season pack classification first checks the download filename extension (`.zip`/`.rar`) and then falls back to title patterns such as explicit season labels or ranged episodes (`1x01-09`). When a ranged pattern is present, optional range bounds are attached to the subtitle model and returned through gRPC.
+2. Parses 6-column HTML table with normalization (ISO language codes, qualities, season/episode, release groups, season pack detection). Season pack classification first checks the download filename extension (`.zip`/`.rar`) and then falls back to title patterns. Ranged episode notation (`1x01-09`) is treated as season-pack metadata only when the download file is an archive. When a valid archive-backed range is present, optional range bounds are attached to the subtitle model and returned through gRPC.
 3. If multiple pages exist, remaining fetched in **parallel pairs** (2 at a time)
 4. Subtitles streamed as pages complete
 

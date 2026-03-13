@@ -226,6 +226,44 @@ func TestSubtitleParser_ParseHtmlWithPagination_RangedEpisodeSeasonPack(t *testi
 	}
 }
 
+func TestSubtitleParser_ParseHtmlWithPagination_RangedTitleNonArchiveIsNotSeasonPack(t *testing.T) {
+	t.Parallel()
+
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           13051,
+			Language:         "Angol",
+			FlagImage:        "uk.gif",
+			MagyarTitle:      "Pursuit of Jade",
+			EredetiTitle:     "Pursuit of Jade (Zhu yu) - 1x01-09 (NF.WEB-DL.1080p-ANDY)",
+			Uploader:         "translator",
+			UploaderBold:     false,
+			UploadDate:       "2025-02-01",
+			DownloadAction:   "letolt",
+			DownloadFilename: "Pursuit.of.Jade.S01E01.en.srt",
+			SubtitleID:       1772977665,
+		},
+	})
+
+	parser := NewSubtitleParser("https://feliratok.eu")
+	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("ParseHtmlWithPagination failed: %v", err)
+	}
+
+	if len(result.Subtitles) != 1 {
+		t.Fatalf("Expected 1 subtitle, got %d", len(result.Subtitles))
+	}
+
+	subtitle := result.Subtitles[0]
+	if subtitle.IsSeasonPack {
+		t.Error("Expected IsSeasonPack false for non-archive ranged title")
+	}
+	if subtitle.RangeStart != nil || subtitle.RangeEnd != nil {
+		t.Errorf("Expected nil range for non-archive ranged title, got start=%v end=%v", subtitle.RangeStart, subtitle.RangeEnd)
+	}
+}
+
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 	t.Parallel()
 	// Generate proper HTML with oldal-based pagination

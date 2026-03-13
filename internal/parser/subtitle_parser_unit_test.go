@@ -321,6 +321,12 @@ func TestSubtitleParser_extractEpisodeRange(t *testing.T) {
 			wantStart: nil,
 			wantEnd:   nil,
 		},
+		{
+			name:      "reversed ranged notation is normalized",
+			desc:      "Show Name - 1x09-01 (WEB-DL)",
+			wantStart: &one,
+			wantEnd:   &nine,
+		},
 	}
 
 	for _, tt := range tests {

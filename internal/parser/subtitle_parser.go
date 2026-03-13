@@ -265,14 +265,19 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 
 	// Parse description to extract show name, season, episode, and release info
 	showName, season, episode, releaseInfo, isSeasonPack := p.parseDescription(description)
-	if p.isArchiveSeasonPack(downloadLink) {
+	isArchiveSeasonPack := p.isArchiveSeasonPack(downloadLink)
+	if isArchiveSeasonPack {
 		isSeasonPack = true
 		episode = -1
 	}
 	rangeStart, rangeEnd := p.extractEpisodeRange(description)
-	if !isSeasonPack {
+	if !isArchiveSeasonPack {
 		rangeStart = nil
 		rangeEnd = nil
+		// Ranged titles without archive files should not force season-pack classification.
+		if episodeRangeRegex.MatchString(description) {
+			isSeasonPack = false
+		}
 	}
 
 	// Extract qualities and release groups from release info
@@ -344,6 +349,10 @@ func (p *SubtitleParser) extractEpisodeRange(description string) (*int, *int) {
 	end, err := strconv.Atoi(matches[3])
 	if err != nil {
 		return nil, nil
+	}
+
+	if start > end {
+		start, end = end, start
 	}
 
 	return &start, &end
