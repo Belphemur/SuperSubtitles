@@ -30,7 +30,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			subtitles       []models.Subtitle
 			firstValidSubID int
 			showName        string
-		}
+		} 
 		showDataMap := make(map[int]*showData)
 		thirdPartyIDsByShow := make(map[int]models.ThirdPartyIds)
 		totalEmitted := 0
@@ -100,7 +100,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 				Int("subtitles", len(pageResult.Subtitles)).
 				Msg("Parsed subtitles from page")
 
-			pageShowOrder := make([]int, 0)
+			pageShowOrder := make([]int, 0, 20)
 			pageShowSeen := make(map[int]bool)
 			for _, subtitle := range pageResult.Subtitles {
 				if subtitle.ID <= 0 {
