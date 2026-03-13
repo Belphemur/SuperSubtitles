@@ -3,5 +3,11 @@
     "PWD": "${workspaceFolder}"
   },
   "go.testFlags": ["-v"],
-  "go.testTimeout": "30s"
+  "go.testTimeout": "30s",
+  "chat.tools.terminal.autoApprove": {
+    "/^for i in \\(seq 1 8\\); echo \"go fix pass \\$i\"; go fix \\./\\.\\.\\.; if test \\$status -eq 0; break; end; end; gofmt -s -w \\.; golangci-lint run$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }
