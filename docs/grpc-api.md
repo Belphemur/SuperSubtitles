@@ -37,4 +37,5 @@ grpc_health_probe -addr=localhost:8080
 | --- | --- |
 | NOT_FOUND | Episode missing from ZIP, subtitle URL 404, show ID not found |
 | INVALID_ARGUMENT | No valid shows provided |
+| FAILED_PRECONDITION | Archive validation/conversion/extraction failures; includes `ErrorInfo` metadata `http_status=422` (`UNPROCESSABLE_ENTITY`) |
 | INTERNAL | HTTP failures, parsing errors |

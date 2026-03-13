@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -233,7 +234,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		episodeFile, err = d.extractEpisodeFromZip(content, *episode)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, err)
+			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from ZIP", *episode), err)
 		}
 	case archiveFormatRAR:
 		logger.Info().
@@ -244,11 +245,11 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		episodeFile, err = d.extractEpisodeFromRar(content, *episode)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-			return nil, fmt.Errorf("failed to extract episode %d from RAR: %w", *episode, err)
+			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from RAR", *episode), err)
 		}
 	default:
 		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-		return nil, fmt.Errorf("unsupported archive format for episode extraction: %s", archiveFormat)
+		return nil, &apperrors.ArchiveError{Message: fmt.Sprintf("unsupported archive format for episode extraction: %s", archiveFormat)}
 	}
 
 	logger.Info().
@@ -397,6 +398,19 @@ func normalizedArchiveCacheKey(url string) string {
 
 func episodeArchiveCacheKey(url string) string {
 	return cacheKeyEpisodeArchivePrefix + url
+}
+
+func wrapArchiveError(message string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) {
+		return err
+	}
+	if errors.Is(err, &apperrors.ArchiveError{}) {
+		return err
+	}
+	return apperrors.NewArchiveError(message, err)
 }
 
 // detectZipBomb analyzes a ZIP file for characteristics of a ZIP bomb
@@ -605,7 +619,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Conte
 
 		normalized, err := converter(content)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to normalize RAR archive to ZIP: %w", err)
+			return nil, "", apperrors.NewArchiveError("failed to normalize RAR archive to ZIP", err)
 		}
 
 		d.archiveCache.Set(cacheKey, normalized)

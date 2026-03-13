@@ -38,3 +38,4 @@
 4. **RAR without episode**: normalized to ZIP, then returned with ZIP MIME metadata
 5. **Season pack with episode number**: Both ZIP and RAR archives are searched directly for the specified episode using pattern matching (e.g., S03E01, 3x01, E01).
 6. **Cache**: A pluggable LRU cache (memory or Redis/Valkey) stores normalized ZIPs (converted from RARs) and original archives in separate entries. This prevents a whole-archive download from interfering with a later episode extraction from the same original file.
+7. **Archive failures**: Validation, conversion, and extraction failures are surfaced as domain-level archive errors so API layers can return an unprocessable-entity response instead of a generic internal error.

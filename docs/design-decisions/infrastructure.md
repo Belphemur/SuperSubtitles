@@ -25,7 +25,7 @@
 - Partial success maximizes data availability
 - Logged warnings enable monitoring
 
-**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInArchive`, and `ErrSubtitleResourceNotFound` in `internal/apperrors/errors.go`, each with `Is()` support. gRPC server in `internal/grpc/server.go` maps all three to `codes.NotFound`.
+**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInArchive`, `ErrSubtitleResourceNotFound`, and `ArchiveError` in `internal/apperrors/errors.go`, each with `Is()` support and gRPC/HTTP binding metadata via `GRPCBindableError`. `internal/grpc/error_mapping.go` performs centralized translation from application errors to gRPC statuses, including `ErrorInfo` metadata for equivalent HTTP statuses (for example, archive-processing failures map to `codes.FailedPrecondition` with `http_status=422`).
 
 ## Archive Handling For Season Packs
 
