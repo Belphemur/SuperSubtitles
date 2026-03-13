@@ -79,7 +79,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		for page := 1; !reachedBoundary; page++ {
 			endpoint := baseEndpoint
 			if page > 1 {
-				endpoint = fmt.Sprintf("%s&oldal=%d", baseEndpoint, page)
+				endpoint = fmt.Sprintf("%s&page=%d", baseEndpoint, page)
 			}
 
 			req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
