@@ -25,7 +25,7 @@
 - Partial success maximizes data availability
 - Logged warnings enable monitoring
 
-**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInZip`, and `ErrSubtitleResourceNotFound` in `internal/apperrors/errors.go`, each with `Is()` support. gRPC server in `internal/grpc/server.go` maps all three to `codes.NotFound`.
+**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInArchive`, and `ErrSubtitleResourceNotFound` in `internal/apperrors/errors.go`, each with `Is()` support. gRPC server in `internal/grpc/server.go` maps all three to `codes.NotFound`.
 
 ## Archive Handling For Season Packs
 

@@ -822,7 +822,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromRar(rarContent []byte, epi
 	}
 
 	if len(matches) == 0 {
-		return nil, &apperrors.ErrSubtitleNotFoundInZip{Episode: episode, FileCount: fileCount}
+		return nil, &apperrors.ErrSubtitleNotFoundInArchive{Episode: episode, FileCount: fileCount}
 	}
 
 	sort.Slice(matches, func(i, j int) bool {
@@ -979,7 +979,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 
 	// No matches found
 	if len(matches) == 0 {
-		return nil, &apperrors.ErrSubtitleNotFoundInZip{Episode: episode, FileCount: len(zipReader.File)}
+		return nil, &apperrors.ErrSubtitleNotFoundInArchive{Episode: episode, FileCount: len(zipReader.File)}
 	}
 
 	// Sort matches: first by priority (prefer .srt over others), then by filename for determinism

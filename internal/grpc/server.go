@@ -161,7 +161,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, episode)
 	if err != nil {
 		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
-		if errors.Is(err, &apperrors.ErrSubtitleNotFoundInZip{}) {
+		if errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) {
 			return nil, status.Errorf(codes.NotFound, "episode not found in subtitle archive: %v", err)
 		}
 		if errors.Is(err, &apperrors.ErrSubtitleResourceNotFound{}) {
