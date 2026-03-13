@@ -49,6 +49,8 @@ Code changes must include matching documentation updates.
 
 Use conventional commits: `type(scope): subject`.
 
+Before creating any commit, always run `/run-lint` and resolve all reported issues.
+
 Examples:
 
 - `fix(services): map archive failures to gRPC preconditions`

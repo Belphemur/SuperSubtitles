@@ -9,8 +9,17 @@ import (
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 )
+
+func latestShowSubtitlesByShowID(items []models.ShowSubtitles) map[int]models.ShowSubtitles {
+	latest := make(map[int]models.ShowSubtitles)
+	for _, item := range items {
+		latest[item.ID] = item
+	}
+	return latest
+}
 
 func TestClient_GetRecentSubtitles(t *testing.T) {
 	t.Parallel()
@@ -284,7 +293,7 @@ func TestClient_StreamRecentSubtitles_Pagination(t *testing.T) {
 		}
 
 		page := 1
-		if p := r.URL.Query().Get("oldal"); p != "" {
+		if p := r.URL.Query().Get("page"); p != "" {
 			page, _ = strconv.Atoi(p)
 		}
 
@@ -325,30 +334,31 @@ func TestClient_StreamRecentSubtitles_Pagination(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	// Should have shows 10 (2 subs: 5000, 3000) and 20 (1 sub: 4000)
-	// Sub 2000 (show 30) should be excluded (ID <= sinceID)
-	if len(showSubtitles) != 2 {
-		t.Fatalf("Expected 2 shows, got %d", len(showSubtitles))
+	// Stream emits incremental snapshots after each page, so show 10 is emitted twice:
+	// once after page 1 (1 subtitle), then after page 2 (2 subtitles).
+	if len(showSubtitles) != 3 {
+		t.Fatalf("Expected 3 streamed items, got %d", len(showSubtitles))
 	}
 
-	totalSubs := 0
-	for _, ss := range showSubtitles {
-		switch ss.ID {
-		case 10:
-			if len(ss.SubtitleCollection.Subtitles) != 2 {
-				t.Errorf("Expected 2 subtitles for show 10, got %d", len(ss.SubtitleCollection.Subtitles))
-			}
-		case 20:
-			if len(ss.SubtitleCollection.Subtitles) != 1 {
-				t.Errorf("Expected 1 subtitle for show 20, got %d", len(ss.SubtitleCollection.Subtitles))
-			}
-		default:
-			t.Errorf("Unexpected show ID %d", ss.ID)
-		}
-		totalSubs += len(ss.SubtitleCollection.Subtitles)
+	latestByShow := latestShowSubtitlesByShowID(showSubtitles)
+	if len(latestByShow) != 2 {
+		t.Fatalf("Expected 2 unique shows in final snapshots, got %d", len(latestByShow))
 	}
-	if totalSubs != 3 {
-		t.Errorf("Expected 3 total subtitles, got %d", totalSubs)
+
+	show10, ok := latestByShow[10]
+	if !ok {
+		t.Fatalf("Expected show ID 10 in final snapshots")
+	}
+	if len(show10.SubtitleCollection.Subtitles) != 2 {
+		t.Errorf("Expected 2 subtitles for show 10 in final snapshot, got %d", len(show10.SubtitleCollection.Subtitles))
+	}
+
+	show20, ok := latestByShow[20]
+	if !ok {
+		t.Fatalf("Expected show ID 20 in final snapshots")
+	}
+	if len(show20.SubtitleCollection.Subtitles) != 1 {
+		t.Errorf("Expected 1 subtitle for show 20 in final snapshot, got %d", len(show20.SubtitleCollection.Subtitles))
 	}
 }
 
@@ -368,7 +378,7 @@ func TestClient_StreamRecentSubtitles_PaginationStopsOnLastPage(t *testing.T) {
 		}
 
 		page := 1
-		if p := r.URL.Query().Get("oldal"); p != "" {
+		if p := r.URL.Query().Get("page"); p != "" {
 			page, _ = strconv.Atoi(p)
 		}
 
@@ -406,11 +416,17 @@ func TestClient_StreamRecentSubtitles_PaginationStopsOnLastPage(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	if len(showSubtitles) != 1 {
-		t.Fatalf("Expected 1 show, got %d", len(showSubtitles))
+	// Show 10 is emitted after each page as an updated snapshot.
+	if len(showSubtitles) != 2 {
+		t.Fatalf("Expected 2 streamed items, got %d", len(showSubtitles))
 	}
-	if len(showSubtitles[0].SubtitleCollection.Subtitles) != 2 {
-		t.Errorf("Expected 2 subtitles, got %d", len(showSubtitles[0].SubtitleCollection.Subtitles))
+	latestByShow := latestShowSubtitlesByShowID(showSubtitles)
+	show10, ok := latestByShow[10]
+	if !ok {
+		t.Fatalf("Expected show ID 10 in final snapshots")
+	}
+	if len(show10.SubtitleCollection.Subtitles) != 2 {
+		t.Errorf("Expected 2 subtitles in final snapshot, got %d", len(show10.SubtitleCollection.Subtitles))
 	}
 }
 
@@ -475,7 +491,7 @@ func TestClient_StreamRecentSubtitles_InvalidIDSkippedNotBoundary(t *testing.T) 
 		}
 
 		page := 1
-		if p := r.URL.Query().Get("oldal"); p != "" {
+		if p := r.URL.Query().Get("page"); p != "" {
 			page, _ = strconv.Atoi(p)
 		}
 
