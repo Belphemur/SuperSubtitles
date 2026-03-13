@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"fmt"
+	"html"
 	"strings"
 )
 
@@ -119,6 +120,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 		if row.CustomDownloadHref != "" {
 			downloadHref = row.CustomDownloadHref
 		}
+		downloadHref = html.EscapeString(downloadHref)
 
 		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">
@@ -246,6 +248,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 		if row.CustomDownloadHref != "" {
 			downloadHref = row.CustomDownloadHref
 		}
+		downloadHref = html.EscapeString(downloadHref)
 
 		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">

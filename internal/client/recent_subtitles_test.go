@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
@@ -460,6 +461,7 @@ func TestClient_StreamRecentSubtitles_InvalidIDSkippedNotBoundary(t *testing.T) 
 	// Page 1: one valid subtitle (ID=5000) and one with an unparseable download link (ID=-1).
 	// Page 2: one subtitle below sinceID=1000 to trigger the real boundary.
 	// The invalid-ID row must not stop pagination early; only the real boundary should.
+	var page2Fetched atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") != "sorozat" {
 			if r.URL.Query().Get("tipus") == "adatlap" {
@@ -494,6 +496,7 @@ func TestClient_StreamRecentSubtitles_InvalidIDSkippedNotBoundary(t *testing.T) 
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(html))
 		case 2:
+			page2Fetched.Add(1)
 			// Subtitle whose ID is below sinceID=1000, triggering the real boundary.
 			html := testutil.GenerateSubtitleTableHTMLWithPagination([]testutil.SubtitleRowOptions{
 				{SubtitleID: 500, MagyarTitle: "Old Sub", EredetiTitle: "Show A - 1x03", DownloadFilename: "old.srt", ShowID: 10},
@@ -531,5 +534,9 @@ func TestClient_StreamRecentSubtitles_InvalidIDSkippedNotBoundary(t *testing.T) 
 	}
 	if showSubtitles[0].SubtitleCollection.Subtitles[0].ID != 5000 {
 		t.Errorf("Expected subtitle ID 5000, got %d", showSubtitles[0].SubtitleCollection.Subtitles[0].ID)
+	}
+	// Confirm that pagination actually continued past the invalid-ID row to page 2.
+	if page2Fetched.Load() != 1 {
+		t.Errorf("Expected page 2 to be fetched exactly once (confirming pagination continued past invalid-ID row), got %d", page2Fetched.Load())
 	}
 }
