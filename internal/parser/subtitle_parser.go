@@ -19,7 +19,7 @@ import (
 var (
 	seasonPackRegex   = regexp.MustCompile(`\(Season\s+(\d+)\)`)
 	episodeRegex      = regexp.MustCompile(`(\d+)x(\d+)`)
-	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d{1,2})\s*-\s*(\d{1,2})(?:\s|\)|$)`)
+	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d{1,2})\s*-\s*(\d{1,2})\s*(?:\(|$)`)
 	odalPageRegex     = regexp.MustCompile(`(?:oldal|page)=(\d+)`)
 	parenthesesRegex  = regexp.MustCompile(`\s*\([^)]*\)`)
 )
