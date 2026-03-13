@@ -1,3 +1,10 @@
+## [2.8.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.1...v2.8.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **parser:** classify season packs by archive only ([0078a30](https://github.com/Belphemur/SuperSubtitles/commit/0078a30be5ab595412ed0531d1b845daa34c210b))
+
 ## [2.8.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.0...v2.8.1) (2026-03-13)
 
 
