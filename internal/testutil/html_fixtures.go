@@ -31,6 +31,7 @@ type SubtitleRowOptions struct {
 	BackgroundColor   string // Default alternates
 	Status            string // Optional status like "fordítás alatt (Alice)"
 	SkipShowIDDefault bool   // When true, preserves ShowID=0 in generated HTML instead of auto-filling with default value 2967
+	CustomDownloadHref string // When non-empty, overrides the entire download link href (useful for testing invalid IDs)
 }
 
 // ShowRowOptions contains options for generating a show row
@@ -110,6 +111,11 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
                         <div><span style="color: rgb(0, 128, 0); font-size: 12px;"><b>%s</b> </span></div>`, row.Status)
 		}
 
+		downloadHref := fmt.Sprintf("/index.php?action=%s&fnev=%s&felirat=%d", row.DownloadAction, row.DownloadFilename, row.SubtitleID)
+		if row.CustomDownloadHref != "" {
+			downloadHref = row.CustomDownloadHref
+		}
+
 		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">
 			<td align="left">
@@ -130,7 +136,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 				%s
 			</td>
 			<td align="center">
-				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%d">
+				<a href="%s">
 				<img src="img/download.png" border="0" alt="Letöltés" width="20"></a>
 			</td>
 		</tr>
@@ -153,7 +159,7 @@ func GenerateSubtitleTableHTML(rows []SubtitleRowOptions) string {
 			uploaderTag,
 			row.SubtitleID,
 			row.UploadDate,
-			row.DownloadAction, row.DownloadFilename, row.SubtitleID,
+			downloadHref,
 			bgColor,
 			row.SubtitleID,
 		)
@@ -232,6 +238,11 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
                         <div><span style="color: rgb(0, 128, 0); font-size: 12px;"><b>%s</b> </span></div>`, row.Status)
 		}
 
+		downloadHref := fmt.Sprintf("/index.php?action=%s&fnev=%s&felirat=%d", row.DownloadAction, row.DownloadFilename, row.SubtitleID)
+		if row.CustomDownloadHref != "" {
+			downloadHref = row.CustomDownloadHref
+		}
+
 		fmt.Fprintf(&sb, `
 		<tr id="vilagit" style="background-color: %s;">
 			<td align="left">
@@ -252,7 +263,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 				%s
 			</td>
 			<td align="center">
-				<a href="/index.php?action=%s&amp;fnev=%s&amp;felirat=%d">
+				<a href="%s">
 				<img src="img/download.png" border="0" alt="Letöltés" width="20"></a>
 			</td>
 		</tr>
@@ -275,7 +286,7 @@ func GenerateSubtitleTableHTMLWithPagination(rows []SubtitleRowOptions, currentP
 			uploaderTag,
 			row.SubtitleID,
 			row.UploadDate,
-			row.DownloadAction, row.DownloadFilename, row.SubtitleID,
+			downloadHref,
 			bgColor,
 			row.SubtitleID,
 		)

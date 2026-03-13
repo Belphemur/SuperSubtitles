@@ -454,3 +454,82 @@ func TestClient_StreamRecentSubtitles_SinceZeroFetchesOnlyPage1(t *testing.T) {
 		t.Errorf("Expected only 1 page fetched for sinceID=0, got %d", pagesFetched)
 	}
 }
+
+func TestClient_StreamRecentSubtitles_InvalidIDSkippedNotBoundary(t *testing.T) {
+	t.Parallel()
+	// Page 1: one valid subtitle (ID=5000) and one with an unparseable download link (ID=-1).
+	// Page 2: one subtitle below sinceID=1000 to trigger the real boundary.
+	// The invalid-ID row must not stop pagination early; only the real boundary should.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("tab") != "sorozat" {
+			if r.URL.Query().Get("tipus") == "adatlap" {
+				html := testutil.GenerateThirdPartyIDHTML("", 0, 0, 0)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(html))
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		page := 1
+		if p := r.URL.Query().Get("oldal"); p != "" {
+			page, _ = strconv.Atoi(p)
+		}
+
+		totalPages := 2
+		switch page {
+		case 1:
+			// Row with a valid ID, followed by a row whose download link has no extractable ID.
+			html := testutil.GenerateSubtitleTableHTMLWithPagination([]testutil.SubtitleRowOptions{
+				{SubtitleID: 5000, MagyarTitle: "Valid Sub", EredetiTitle: "Show A - 1x01", DownloadFilename: "valid.srt", ShowID: 10},
+				{
+					SubtitleID:         1, // placeholder; overridden by CustomDownloadHref
+					MagyarTitle:        "Bad ID Sub",
+					EredetiTitle:       "Show A - 1x02",
+					ShowID:             10,
+					CustomDownloadHref: "/index.php?action=getfile&fnev=noid.srt",
+				},
+			}, page, totalPages, true)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(html))
+		case 2:
+			// Subtitle whose ID is below sinceID=1000, triggering the real boundary.
+			html := testutil.GenerateSubtitleTableHTMLWithPagination([]testutil.SubtitleRowOptions{
+				{SubtitleID: 500, MagyarTitle: "Old Sub", EredetiTitle: "Show A - 1x03", DownloadFilename: "old.srt", ShowID: 10},
+			}, page, totalPages, true)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(html))
+		default:
+			t.Errorf("Unexpected page %d requested", page)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		SuperSubtitleDomain: server.URL,
+		ClientTimeout:       "10s",
+	}
+	c := NewClient(testConfig)
+	ctx := context.Background()
+
+	// sinceID=1000: subtitles with ID > 1000 should be included; ID=500 triggers the boundary.
+	// The subtitle with ID=-1 (unparseable) must be skipped, not treated as the boundary.
+	showSubtitles, err := testutil.CollectShowSubtitles(ctx, c.StreamRecentSubtitles(ctx, 1000))
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Only the valid subtitle (ID=5000) should be collected; the bad-ID row is skipped
+	// and the old sub (ID=500) is below sinceID.
+	if len(showSubtitles) != 1 {
+		t.Fatalf("Expected 1 show, got %d", len(showSubtitles))
+	}
+	if len(showSubtitles[0].SubtitleCollection.Subtitles) != 1 {
+		t.Errorf("Expected 1 subtitle for show 10, got %d", len(showSubtitles[0].SubtitleCollection.Subtitles))
+	}
+	if showSubtitles[0].SubtitleCollection.Subtitles[0].ID != 5000 {
+		t.Errorf("Expected subtitle ID 5000, got %d", showSubtitles[0].SubtitleCollection.Subtitles[0].ID)
+	}
+}
