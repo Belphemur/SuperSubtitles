@@ -264,6 +264,53 @@ func TestSubtitleParser_ParseHtmlWithPagination_RangedTitleNonArchiveIsNotSeason
 	}
 }
 
+func TestSubtitleParser_ParseHtmlWithPagination_SeasonTitleNonArchiveIsNotSeasonPack(t *testing.T) {
+	t.Parallel()
+
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           7001,
+			Language:         "Magyar",
+			FlagImage:        "hungary.gif",
+			MagyarTitle:      "Billy the Kid (2. evad)",
+			EredetiTitle:     "Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.2160p-RAWR)",
+			Uploader:         "gricsi",
+			UploaderBold:     false,
+			UploadDate:       "2024-09-14",
+			DownloadAction:   "letolt",
+			DownloadFilename: "billy.s02e01.srt",
+			SubtitleID:       1726325506,
+		},
+	})
+
+	parser := NewSubtitleParser("https://feliratok.eu")
+	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("ParseHtmlWithPagination failed: %v", err)
+	}
+
+	if len(result.Subtitles) != 1 {
+		t.Fatalf("Expected 1 subtitle, got %d", len(result.Subtitles))
+	}
+
+	subtitle := result.Subtitles[0]
+	if subtitle.IsSeasonPack {
+		t.Error("Expected IsSeasonPack false for non-archive season title")
+	}
+	if subtitle.Season != 2 || subtitle.Episode != -1 {
+		t.Errorf("Expected season 2 episode -1 from title metadata, got %d %d", subtitle.Season, subtitle.Episode)
+	}
+	if subtitle.Name != "" {
+		t.Errorf("Expected empty episode title for season-level listing, got %q", subtitle.Name)
+	}
+	if subtitle.RangeStart != nil || subtitle.RangeEnd != nil {
+		t.Errorf("Expected nil range for non-archive season title, got start=%v end=%v", subtitle.RangeStart, subtitle.RangeEnd)
+	}
+	if subtitle.Filename != "billy.s02e01.srt" {
+		t.Errorf("Expected filename %q, got %q", "billy.s02e01.srt", subtitle.Filename)
+	}
+}
+
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {
 	t.Parallel()
 	// Generate proper HTML with oldal-based pagination

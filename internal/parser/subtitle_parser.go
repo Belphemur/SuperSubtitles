@@ -263,21 +263,15 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	// Normalize the URL by decoding it (ensures properly formed URLs)
 	downloadURL = p.normalizeDownloadURL(downloadURL)
 
-	// Parse description to extract show name, season, episode, and release info
-	showName, season, episode, releaseInfo, isSeasonPack := p.parseDescription(description)
-	isArchiveSeasonPack := p.isArchiveSeasonPack(downloadLink)
-	if isArchiveSeasonPack {
-		isSeasonPack = true
+	// Parse description to extract show name, season, episode, and release info.
+	// Archive filename extension is the only source of truth for season-pack classification.
+	showName, season, episode, releaseInfo := p.parseDescription(description)
+	isSeasonPack := p.isArchiveSeasonPack(downloadLink)
+	var rangeStart, rangeEnd *int
+
+	if isSeasonPack {
 		episode = -1
-	}
-	rangeStart, rangeEnd := p.extractEpisodeRange(description)
-	if !isArchiveSeasonPack {
-		rangeStart = nil
-		rangeEnd = nil
-		// Ranged titles without archive files should not force season-pack classification.
-		if episodeRangeRegex.MatchString(description) {
-			isSeasonPack = false
-		}
+		rangeStart, rangeEnd = p.extractEpisodeRange(description)
 	}
 
 	// Extract qualities and release groups from release info
@@ -390,15 +384,14 @@ func (p *SubtitleParser) extractShowIDFromCategory(categoryTd *goquery.Selection
 	return showID
 }
 
-// parseDescription extracts show name, season, episode, release info, and season pack flag
+// parseDescription extracts show name, season, episode, and release info from a title.
 // Example: "Outlander - Az idegen - 7x16 Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX, WEB.1080p-SuccessfulCrab)"
 // Example: "- Billy the Kid (Season 2) (WEB.720p-EDITH, AMZN.WEB-DL.720p-FLUX)"
-func (p *SubtitleParser) parseDescription(description string) (showName string, season int, episode int, releaseInfo string, isSeasonPack bool) {
+func (p *SubtitleParser) parseDescription(description string) (showName string, season int, episode int, releaseInfo string) {
 	logger := config.GetLogger()
 
-	// Check if it's a season pack by looking for "(Season XX)" pattern
+	// Season-level titles expose the season number without an episode number.
 	if matches := seasonPackRegex.FindStringSubmatch(description); len(matches) > 1 {
-		isSeasonPack = true
 		seasonNum, _ := strconv.Atoi(matches[1])
 		season = seasonNum
 		episode = -1
@@ -419,14 +412,12 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 			Str("description", description).
 			Str("showName", showName).
 			Int("season", season).
-			Bool("isSeasonPack", isSeasonPack).
-			Msg("Parsed season pack description")
+			Msg("Parsed season metadata from description")
 		return
 	}
 
-	// Range notation (e.g. 1x01-09) represents archive packs with multiple episodes.
+	// Range notation (e.g. 1x01-09) exposes season-level metadata without a single episode number.
 	if matches := episodeRangeRegex.FindStringSubmatch(description); len(matches) > 3 {
-		isSeasonPack = true
 		seasonNum, _ := strconv.Atoi(matches[1])
 		season = seasonNum
 		episode = -1
@@ -448,8 +439,7 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 			Str("description", description).
 			Str("showName", showName).
 			Int("season", season).
-			Bool("isSeasonPack", isSeasonPack).
-			Msg("Parsed ranged-episode season pack description")
+			Msg("Parsed ranged episode metadata from description")
 		return
 	}
 
@@ -729,16 +719,15 @@ func removeParentheticalContent(text string) string {
 
 // extractEpisodeTitle extracts only the episode title from a subtitle description
 // Example: "Outlander - Az idegen - 7x16 Outlander - 7x16 - A Hundred Thousand Angels (AMZN...)" -> "A Hundred Thousand Angels"
-// Example: "Billy the Kid (Season 2) (WEB...)" -> "" (season packs have no episode title)
+// Example: "Billy the Kid (Season 2) (WEB...)" -> "" (season-level titles have no episode title)
 // Example: "Show - 2x05 - Title With - Many - Dashes (Release)" -> "Title With - Many - Dashes"
 func extractEpisodeTitle(description string) string {
 	if description == "" {
 		return ""
 	}
 
-	// Check if this is a season pack (contains "(Season X)")
+	// Season-level titles do not carry an episode title.
 	if seasonPackRegex.MatchString(description) {
-		// Season packs don't have episode titles, only season info
 		return ""
 	}
 
