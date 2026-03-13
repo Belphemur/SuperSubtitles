@@ -212,7 +212,7 @@ func TestSubtitleParser_parseDescription_fallback(t *testing.T) {
 	t.Parallel()
 	parser := NewSubtitleParser("https://feliratok.eu")
 
-	showName, season, episode, releaseInfo, isSeasonPack := parser.parseDescription("Some Movie Title")
+	showName, season, episode, releaseInfo := parser.parseDescription("Some Movie Title")
 
 	if showName != "Some Movie Title" {
 		t.Errorf("showName = %q, want %q", showName, "Some Movie Title")
@@ -226,9 +226,6 @@ func TestSubtitleParser_parseDescription_fallback(t *testing.T) {
 	if releaseInfo != "" {
 		t.Errorf("releaseInfo = %q, want empty", releaseInfo)
 	}
-	if isSeasonPack {
-		t.Error("isSeasonPack = true, want false")
-	}
 }
 
 func TestSubtitleParser_parseDescription_episodeRangeSeasonPack(t *testing.T) {
@@ -236,7 +233,7 @@ func TestSubtitleParser_parseDescription_episodeRangeSeasonPack(t *testing.T) {
 	parser := NewSubtitleParser("https://feliratok.eu")
 
 	description := "Pursuit of Jade (Zhu yu) - 1x01-09 (NF.WEB-DL.1080p-ANDY)"
-	showName, season, episode, releaseInfo, isSeasonPack := parser.parseDescription(description)
+	showName, season, episode, releaseInfo := parser.parseDescription(description)
 
 	if showName != "Pursuit of Jade (Zhu yu)" {
 		t.Errorf("showName = %q, want %q", showName, "Pursuit of Jade (Zhu yu)")
@@ -249,9 +246,6 @@ func TestSubtitleParser_parseDescription_episodeRangeSeasonPack(t *testing.T) {
 	}
 	if releaseInfo != "NF.WEB-DL.1080p-ANDY" {
 		t.Errorf("releaseInfo = %q, want %q", releaseInfo, "NF.WEB-DL.1080p-ANDY")
-	}
-	if !isSeasonPack {
-		t.Error("isSeasonPack = false, want true")
 	}
 }
 
