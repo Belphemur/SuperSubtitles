@@ -525,12 +525,12 @@ func TestDownloadSubtitle_NoEpisode(t *testing.T) {
 	}
 }
 
-// TestDownloadSubtitle_EpisodeNotFoundInZip tests that ErrSubtitleNotFoundInZip results in a NotFound gRPC status
+// TestDownloadSubtitle_EpisodeNotFoundInZip tests that ErrSubtitleNotFoundInArchive results in a NotFound gRPC status
 func TestDownloadSubtitle_EpisodeNotFoundInZip(t *testing.T) {
 	t.Parallel()
 	mock := &mockClient{
 		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
-			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, &apperrors.ErrSubtitleNotFoundInZip{Episode: *episode, FileCount: 3})
+			return nil, fmt.Errorf("failed to extract episode %d from ZIP: %w", *episode, &apperrors.ErrSubtitleNotFoundInArchive{Episode: *episode, FileCount: 3})
 		},
 	}
 

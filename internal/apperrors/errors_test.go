@@ -1,5 +1,5 @@
 // Package apperrors tests verify the custom error types (ErrNotFound,
-// ErrSubtitleNotFoundInZip, ErrSubtitleResourceNotFound), their Error()
+// ErrSubtitleNotFoundInArchive, ErrSubtitleResourceNotFound), their Error()
 // messages, Is() matching semantics, constructor helpers, and compatibility
 // with errors.Is() including through fmt.Errorf wrapping.
 package apperrors
@@ -73,10 +73,10 @@ func TestErrNotFound_Is(t *testing.T) {
 		}
 	})
 
-	t.Run("does not match ErrSubtitleNotFoundInZip", func(t *testing.T) {
-		target := &ErrSubtitleNotFoundInZip{}
+	t.Run("does not match ErrSubtitleNotFoundInArchive", func(t *testing.T) {
+		target := &ErrSubtitleNotFoundInArchive{}
 		if errors.Is(err, target) {
-			t.Error("expected errors.Is not to match *ErrSubtitleNotFoundInZip")
+			t.Error("expected errors.Is not to match *ErrSubtitleNotFoundInArchive")
 		}
 	})
 
@@ -181,10 +181,10 @@ func TestNewSubtitlesNotFoundError(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ErrSubtitleNotFoundInZip
+// ErrSubtitleNotFoundInArchive
 // ---------------------------------------------------------------------------
 
-func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
+func TestErrSubtitleNotFoundInArchive_Error(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name      string
@@ -196,13 +196,13 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 			name:      "typical values",
 			episode:   5,
 			fileCount: 12,
-			expected:  "episode 5 not found in season pack ZIP (searched 12 files)",
+			expected:  "episode 5 not found in season pack archive (searched 12 files)",
 		},
 		{
 			name:      "zero values",
 			episode:   0,
 			fileCount: 0,
-			expected:  "episode 0 not found in season pack ZIP (searched 0 files)",
+			expected:  "episode 0 not found in season pack archive (searched 0 files)",
 		},
 	}
 
@@ -210,7 +210,7 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			err := &ErrSubtitleNotFoundInZip{Episode: tt.episode, FileCount: tt.fileCount}
+			err := &ErrSubtitleNotFoundInArchive{Episode: tt.episode, FileCount: tt.fileCount}
 			got := err.Error()
 			if got != tt.expected {
 				t.Errorf("Error() = %q, want %q", got, tt.expected)
@@ -219,21 +219,21 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 	}
 }
 
-func TestErrSubtitleNotFoundInZip_Is(t *testing.T) {
+func TestErrSubtitleNotFoundInArchive_Is(t *testing.T) {
 	t.Parallel()
-	err := &ErrSubtitleNotFoundInZip{Episode: 3, FileCount: 10}
+	err := &ErrSubtitleNotFoundInArchive{Episode: 3, FileCount: 10}
 
-	t.Run("matches another ErrSubtitleNotFoundInZip", func(t *testing.T) {
-		target := &ErrSubtitleNotFoundInZip{}
+	t.Run("matches another ErrSubtitleNotFoundInArchive", func(t *testing.T) {
+		target := &ErrSubtitleNotFoundInArchive{}
 		if !errors.Is(err, target) {
-			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInZip")
+			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInArchive")
 		}
 	})
 
 	t.Run("matches with different fields", func(t *testing.T) {
-		target := &ErrSubtitleNotFoundInZip{Episode: 99, FileCount: 50}
+		target := &ErrSubtitleNotFoundInArchive{Episode: 99, FileCount: 50}
 		if !errors.Is(err, target) {
-			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInZip regardless of field values")
+			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInArchive regardless of field values")
 		}
 	})
 
@@ -259,15 +259,15 @@ func TestErrSubtitleNotFoundInZip_Is(t *testing.T) {
 
 	t.Run("matches through fmt.Errorf wrapping", func(t *testing.T) {
 		wrapped := fmt.Errorf("download failed: %w", err)
-		if !errors.Is(wrapped, &ErrSubtitleNotFoundInZip{}) {
-			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInZip through wrapping")
+		if !errors.Is(wrapped, &ErrSubtitleNotFoundInArchive{}) {
+			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInArchive through wrapping")
 		}
 	})
 
 	t.Run("matches through double wrapping", func(t *testing.T) {
 		wrapped := fmt.Errorf("outer: %w", fmt.Errorf("inner: %w", err))
-		if !errors.Is(wrapped, &ErrSubtitleNotFoundInZip{}) {
-			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInZip through double wrapping")
+		if !errors.Is(wrapped, &ErrSubtitleNotFoundInArchive{}) {
+			t.Error("expected errors.Is to match *ErrSubtitleNotFoundInArchive through double wrapping")
 		}
 	})
 }
@@ -332,9 +332,9 @@ func TestErrSubtitleResourceNotFound_Is(t *testing.T) {
 		}
 	})
 
-	t.Run("does not match ErrSubtitleNotFoundInZip", func(t *testing.T) {
-		if errors.Is(err, &ErrSubtitleNotFoundInZip{}) {
-			t.Error("expected errors.Is not to match *ErrSubtitleNotFoundInZip")
+	t.Run("does not match ErrSubtitleNotFoundInArchive", func(t *testing.T) {
+		if errors.Is(err, &ErrSubtitleNotFoundInArchive{}) {
+			t.Error("expected errors.Is not to match *ErrSubtitleNotFoundInArchive")
 		}
 	})
 
@@ -367,7 +367,7 @@ func TestErrorTypes_CrossTypeIsolation(t *testing.T) {
 	t.Parallel()
 	errs := []error{
 		&ErrNotFound{Resource: "x", ID: 1},
-		&ErrSubtitleNotFoundInZip{Episode: 1, FileCount: 1},
+		&ErrSubtitleNotFoundInArchive{Episode: 1, FileCount: 1},
 		&ErrSubtitleResourceNotFound{URL: "http://x"},
 	}
 
@@ -390,6 +390,6 @@ func TestErrorTypes_CrossTypeIsolation(t *testing.T) {
 func TestErrorTypes_ImplementErrorInterface(t *testing.T) {
 	t.Parallel()
 	var _ error = &ErrNotFound{}
-	var _ error = &ErrSubtitleNotFoundInZip{}
+	var _ error = &ErrSubtitleNotFoundInArchive{}
 	var _ error = &ErrSubtitleResourceNotFound{}
 }

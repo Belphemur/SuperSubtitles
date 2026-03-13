@@ -18,6 +18,10 @@ All HTML test data is generated via centralized generators in the testutil packa
 
 They use option structs for readable, intent-expressing configuration. If a test needs HTML that no generator supports, add a new generator rather than embedding HTML.
 
+## Binary Archive Fixtures
+
+Real archive compatibility tests may use checked-in binary fixtures when synthetic helpers cannot reproduce the upstream format accurately. This is currently used for RAR season-pack coverage in `.tests-files/`, including both direct episode extraction from RAR and ZIP normalization for whole-archive downloads, while ZIP behavior continues to use generated in-memory archives inside service tests.
+
 ## Stream Collection Helpers
 
 Since the client exposes only streaming methods, the testutil package provides helpers to consume streams into slices for test assertions. These must **never** be used in production code — the gRPC server consumes streams directly.

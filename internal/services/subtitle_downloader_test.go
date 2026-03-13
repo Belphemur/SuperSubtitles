@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +64,23 @@ func buildDownloadURL(baseURL, subtitleID string) string {
 	parsedURL.RawQuery = query.Encode()
 
 	return parsedURL.String()
+}
+
+func readRARFixture(t *testing.T) []byte {
+	t.Helper()
+
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to resolve current test file path")
+	}
+
+	fixturePath := filepath.Join(filepath.Dir(currentFile), "..", "..", ".tests-files", "Renegade.S01.WEB-DL.H.264-JiTB.eng.rar")
+	content, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("failed to read RAR fixture %s: %v", fixturePath, err)
+	}
+
+	return content
 }
 
 func TestDownloadSubtitle_NonZipFile(t *testing.T) {
@@ -153,6 +173,169 @@ func TestDownloadSubtitle_ZipFileNoEpisode(t *testing.T) {
 	expectedFilename := "123456789.zip"
 	if result.Filename != expectedFilename {
 		t.Errorf("Expected filename '%s', got '%s'", expectedFilename, result.Filename)
+	}
+}
+
+func TestDownloadSubtitle_RarFileNoEpisode(t *testing.T) {
+	t.Parallel()
+
+	rarContent := readRARFixture(t)
+	requestCount := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/vnd.rar")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(rarContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	result, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "987654321"),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result.Filename != "987654321.zip" {
+		t.Errorf("Expected filename '987654321.zip', got '%s'", result.Filename)
+	}
+
+	if result.ContentType != "application/zip" {
+		t.Errorf("Expected content type 'application/zip', got '%s'", result.ContentType)
+	}
+
+	if !isZipFile(result.Content) {
+		t.Error("Expected RAR content to be converted to ZIP")
+	}
+
+	secondResult, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "987654321"),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Expected no error on cached download, got: %v", err)
+	}
+
+	if requestCount != 1 {
+		t.Fatalf("Expected normalized ZIP cache to serve repeated whole-archive download, got %d upstream requests", requestCount)
+	}
+
+	if !bytes.Equal(result.Content, secondResult.Content) {
+		t.Error("Expected cached ZIP content to match first normalized download")
+	}
+}
+
+func TestDownloadSubtitle_ExtractEpisodeFromRarFixture(t *testing.T) {
+	t.Parallel()
+
+	rarContent := readRARFixture(t)
+	requestCount := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/vnd.rar")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(rarContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	resultEpisodeFive, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "rar-pack"),
+		testutil.IntPtr(5),
+	)
+	if err != nil {
+		t.Fatalf("Episode 5 extraction failed: %v", err)
+	}
+
+	if requestCount != 1 {
+		t.Fatalf("Expected 1 upstream request after first extraction, got %d", requestCount)
+	}
+
+	if resultEpisodeFive.Filename != "Renegade.S01E05.Mother.Courage.WEB-DL.H.264-JiTB_track3_eng.srt" {
+		t.Errorf("Unexpected episode 5 filename: %s", resultEpisodeFive.Filename)
+	}
+
+	if resultEpisodeFive.ContentType != "application/x-subrip" {
+		t.Errorf("Expected episode 5 content type 'application/x-subrip', got '%s'", resultEpisodeFive.ContentType)
+	}
+
+	if !bytes.Contains(resultEpisodeFive.Content, []byte(" --> ")) {
+		t.Error("Expected extracted RAR subtitle content to contain SRT timestamps")
+	}
+
+	resultEpisodeSix, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "rar-pack"),
+		testutil.IntPtr(6),
+	)
+	if err != nil {
+		t.Fatalf("Episode 6 extraction failed: %v", err)
+	}
+
+	if requestCount != 1 {
+		t.Fatalf("Expected cached RAR archive to serve second extraction, got %d upstream requests", requestCount)
+	}
+
+	if resultEpisodeSix.Filename != "Renegade.S01E06.Second.Chance.WEB-DL.H.264-JiTB_track3_eng.srt" {
+		t.Errorf("Unexpected episode 6 filename: %s", resultEpisodeSix.Filename)
+	}
+
+	if bytes.Equal(resultEpisodeFive.Content, resultEpisodeSix.Content) {
+		t.Error("Expected different subtitle content for different episodes")
+	}
+}
+
+func TestDownloadSubtitle_RarDownloadAndEpisodeExtractionUseSeparateCaches(t *testing.T) {
+	t.Parallel()
+
+	rarContent := readRARFixture(t)
+	requestCount := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/vnd.rar")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(rarContent)
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+
+	wholeArchive, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "rar-pack"),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Whole archive download failed: %v", err)
+	}
+	if wholeArchive.ContentType != "application/zip" {
+		t.Fatalf("Expected converted ZIP content type, got %s", wholeArchive.ContentType)
+	}
+
+	episodeFile, err := downloader.DownloadSubtitle(
+		context.Background(),
+		buildDownloadURL(server.URL, "rar-pack"),
+		testutil.IntPtr(5),
+	)
+	if err != nil {
+		t.Fatalf("Episode extraction failed: %v", err)
+	}
+	if episodeFile.ContentType != "application/x-subrip" {
+		t.Fatalf("Expected extracted subtitle content type, got %s", episodeFile.ContentType)
+	}
+
+	if requestCount != 2 {
+		t.Fatalf("Expected whole-archive ZIP normalization and direct RAR extraction to use separate cache entries, got %d upstream requests", requestCount)
 	}
 }
 
@@ -277,8 +460,8 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				if !strings.Contains(err.Error(), "not found") {
 					t.Errorf("Expected 'not found' error, got: %v", err)
 				}
-				if !errors.Is(err, &apperrors.ErrSubtitleNotFoundInZip{}) {
-					t.Errorf("Expected errors.Is to match ErrSubtitleNotFoundInZip, got: %v", err)
+				if !errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) {
+					t.Errorf("Expected errors.Is to match ErrSubtitleNotFoundInArchive, got: %v", err)
 				}
 				return
 			}
@@ -1492,8 +1675,8 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 
 	downloader := NewSubtitleDownloader(server.Client())
 
-	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "zip")
-	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "zip")
+	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "archive")
+	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "archive")
 
 	// First request — cache miss
 	_, err := downloader.DownloadSubtitle(
@@ -1505,7 +1688,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("First request failed: %v", err)
 	}
 
-	missAfterFirst := getCounterVecValue(cache.MissesTotal, "zip")
+	missAfterFirst := getCounterVecValue(cache.MissesTotal, "archive")
 	if missAfterFirst != missBeforeFirst+1 {
 		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", missAfterFirst-missBeforeFirst)
 	}
@@ -1520,7 +1703,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("Second request failed: %v", err)
 	}
 
-	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "zip")
+	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "archive")
 	if hitAfterSecond != hitBeforeFirst+1 {
 		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", hitAfterSecond-hitBeforeFirst)
 	}
@@ -1544,11 +1727,11 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("NewSubtitleDownloader returned %T, want *DefaultSubtitleDownloader", downloader)
 	}
 
-	if d.zipCache.Len() != 0 {
-		t.Fatalf("Expected 0 cache entries before download, got %d", d.zipCache.Len())
+	if d.archiveCache.Len() != 0 {
+		t.Fatalf("Expected 0 cache entries before download, got %d", d.archiveCache.Len())
 	}
-	if v := gatherCacheEntriesMetric("zip"); v != 0 {
-		t.Fatalf("Expected cache_entries{cache=\"zip\"} == 0 before download, got %.0f", v)
+	if v := gatherCacheEntriesMetric("archive"); v != 0 {
+		t.Fatalf("Expected cache_entries{cache=\"archive\"} == 0 before download, got %.0f", v)
 	}
 
 	_, err := downloader.DownloadSubtitle(
@@ -1560,11 +1743,11 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("Download failed: %v", err)
 	}
 
-	if d.zipCache.Len() != 1 {
-		t.Errorf("Expected 1 cache entry after download, got %d", d.zipCache.Len())
+	if d.archiveCache.Len() != 1 {
+		t.Errorf("Expected 1 cache entry after download, got %d", d.archiveCache.Len())
 	}
-	if v := gatherCacheEntriesMetric("zip"); v != 1 {
-		t.Errorf("Expected cache_entries{cache=\"zip\"} == 1 after download, got %.0f", v)
+	if v := gatherCacheEntriesMetric("archive"); v != 1 {
+		t.Errorf("Expected cache_entries{cache=\"archive\"} == 1 after download, got %.0f", v)
 	}
 }
 

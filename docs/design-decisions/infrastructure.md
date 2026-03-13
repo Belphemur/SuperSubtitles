@@ -25,4 +25,17 @@
 - Partial success maximizes data availability
 - Logged warnings enable monitoring
 
-**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInZip`, and `ErrSubtitleResourceNotFound` in `internal/apperrors/errors.go`, each with `Is()` support. gRPC server in `internal/grpc/server.go` maps all three to `codes.NotFound`.
+**Implementation**: `ErrNotFound`, `ErrSubtitleNotFoundInArchive`, and `ErrSubtitleResourceNotFound` in `internal/apperrors/errors.go`, each with `Is()` support. gRPC server in `internal/grpc/server.go` maps all three to `codes.NotFound`.
+
+## Archive Handling For Season Packs
+
+**Decision**: Normalize RAR archives to ZIP only for whole-archive downloads, while episode extraction reads ZIP and RAR season packs in their original format.
+
+**Rationale**:
+
+- Whole-archive downloads benefit from a single returned archive format when the upstream file is RAR
+- feliratok.eu may serve season packs as either ZIP or RAR for the same download workflow
+- Episode extraction should not depend on a prior whole-archive download choosing a converted representation
+- Separate cache entries keep no-episode normalization from altering later episode lookups on the same upstream URL
+
+**Implementation**: `internal/services/subtitle_downloader_impl.go` detects archive type from both MIME metadata and file signatures. Whole-download requests use a normalized-download cache entry that stores ZIP files as-is and stores RAR files after conversion through `github.com/nwaples/rardecode/v2`. Episode requests use a separate cache entry for the original archive bytes, then extract from ZIP via the existing ZIP flow or from RAR via direct RAR traversal and filename matching.
