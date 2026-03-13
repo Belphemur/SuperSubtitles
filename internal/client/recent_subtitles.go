@@ -61,11 +61,12 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		}
 
 		// Fetch pages sequentially until we reach the sinceID boundary
+		baseEndpoint := fmt.Sprintf("%s/index.php?tab=sorozat", c.baseURL)
 		reachedBoundary := false
 		for page := 1; !reachedBoundary; page++ {
-			endpoint := fmt.Sprintf("%s/index.php?tab=sorozat", c.baseURL)
+			endpoint := baseEndpoint
 			if page > 1 {
-				endpoint = fmt.Sprintf("%s&oldal=%d", endpoint, page)
+				endpoint = fmt.Sprintf("%s&oldal=%d", baseEndpoint, page)
 			}
 
 			req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
@@ -103,6 +104,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			for _, subtitle := range pageResult.Subtitles {
 				if addSubtitle(subtitle) {
 					reachedBoundary = true
+					break
 				}
 			}
 

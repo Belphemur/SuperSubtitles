@@ -90,17 +90,17 @@ func TestClient_GetRecentSubtitles_WithFilter(t *testing.T) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
 				{
-					SubtitleID:       1770500000,
-					MagyarTitle:      "Old Subtitle",
-					EredetiTitle:     "Test Show - 1x01",
-					DownloadFilename: "old.srt",
-					ShowID:           123,
-				},
-				{
 					SubtitleID:       1770617276,
 					MagyarTitle:      "New Subtitle",
 					EredetiTitle:     "Test Show - 1x02",
 					DownloadFilename: "new.srt",
+					ShowID:           123,
+				},
+				{
+					SubtitleID:       1770500000,
+					MagyarTitle:      "Old Subtitle",
+					EredetiTitle:     "Test Show - 1x01",
+					DownloadFilename: "old.srt",
 					ShowID:           123,
 				},
 			})
