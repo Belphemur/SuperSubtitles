@@ -19,7 +19,7 @@ import (
 var (
 	seasonPackRegex   = regexp.MustCompile(`\(Season\s+(\d+)\)`)
 	episodeRegex      = regexp.MustCompile(`(\d+)x(\d+)`)
-	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d+)\s*-\s*(\d+)`)
+	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d{1,2})\s*-\s*(\d{1,2})(?:\s|\)|$)`)
 	odalPageRegex     = regexp.MustCompile(`(?:oldal|page)=(\d+)`)
 	parenthesesRegex  = regexp.MustCompile(`\s*\([^)]*\)`)
 )
@@ -272,6 +272,16 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	if isSeasonPack {
 		episode = -1
 		rangeStart, rangeEnd = p.extractEpisodeRange(description)
+	}
+
+	if episode == -1 && !isSeasonPack {
+		logger.Error().
+			Str("description", description).
+			Str("showName", showName).
+			Int("season", season).
+			Bool("isSeasonPack", isSeasonPack).
+			Str("downloadLink", downloadLink).
+			Msg("Parsed subtitle with unexpected episode number -1")
 	}
 
 	// Extract qualities and release groups from release info
