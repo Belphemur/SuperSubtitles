@@ -1127,6 +1127,10 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 		t.Fatal("Expected error due to ZIP bomb detection, got nil")
 	}
 
+	if !errors.Is(err, &apperrors.ArchiveError{}) {
+		t.Fatalf("Expected errors.Is to match ArchiveError, got: %v", err)
+	}
+
 	if !strings.Contains(err.Error(), "ZIP bomb detected") {
 		t.Errorf("Expected 'ZIP bomb detected' error, got: %v", err)
 	}

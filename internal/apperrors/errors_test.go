@@ -7,7 +7,10 @@ package apperrors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
+
+	"google.golang.org/grpc/codes"
 )
 
 // ---------------------------------------------------------------------------
@@ -369,6 +372,7 @@ func TestErrorTypes_CrossTypeIsolation(t *testing.T) {
 		&ErrNotFound{Resource: "x", ID: 1},
 		&ErrSubtitleNotFoundInArchive{Episode: 1, FileCount: 1},
 		&ErrSubtitleResourceNotFound{URL: "http://x"},
+		&ArchiveError{Message: "archive processing failed"},
 	}
 
 	for i, a := range errs {
@@ -392,4 +396,70 @@ func TestErrorTypes_ImplementErrorInterface(t *testing.T) {
 	var _ error = &ErrNotFound{}
 	var _ error = &ErrSubtitleNotFoundInArchive{}
 	var _ error = &ErrSubtitleResourceNotFound{}
+	var _ error = &ArchiveError{}
+	var _ GRPCBindableError = &ErrNotFound{}
+	var _ GRPCBindableError = &ErrSubtitleNotFoundInArchive{}
+	var _ GRPCBindableError = &ErrSubtitleResourceNotFound{}
+	var _ GRPCBindableError = &ArchiveError{}
+}
+
+func TestArchiveError_Error(t *testing.T) {
+	t.Parallel()
+
+	t.Run("message and cause", func(t *testing.T) {
+		t.Parallel()
+		err := &ArchiveError{Message: "failed to extract archive", Err: errors.New("zip bomb detected")}
+		if got, want := err.Error(), "failed to extract archive: zip bomb detected"; got != want {
+			t.Errorf("Error() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("message only", func(t *testing.T) {
+		t.Parallel()
+		err := &ArchiveError{Message: "unsupported archive format"}
+		if got, want := err.Error(), "unsupported archive format"; got != want {
+			t.Errorf("Error() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("cause only", func(t *testing.T) {
+		t.Parallel()
+		err := &ArchiveError{Err: errors.New("io failure")}
+		if got, want := err.Error(), "io failure"; got != want {
+			t.Errorf("Error() = %q, want %q", got, want)
+		}
+	})
+}
+
+func TestArchiveError_IsAndUnwrap(t *testing.T) {
+	t.Parallel()
+
+	cause := errors.New("corrupt entry")
+	err := NewArchiveError("failed archive operation", cause)
+
+	if !errors.Is(err, &ArchiveError{}) {
+		t.Error("expected errors.Is to match *ArchiveError")
+	}
+
+	if !errors.Is(err, cause) {
+		t.Error("expected errors.Is to match wrapped cause")
+	}
+
+	wrapped := fmt.Errorf("download failed: %w", err)
+	if !errors.Is(wrapped, &ArchiveError{}) {
+		t.Error("expected errors.Is to match *ArchiveError through wrapping")
+	}
+}
+
+func TestArchiveError_GRPCBinding(t *testing.T) {
+	t.Parallel()
+	err := &ArchiveError{Message: "archive validation failed"}
+
+	if got, want := err.GRPCCode(), codes.FailedPrecondition; got != want {
+		t.Errorf("GRPCCode() = %v, want %v", got, want)
+	}
+
+	if got, want := err.HTTPStatusCode(), http.StatusUnprocessableEntity; got != want {
+		t.Errorf("HTTPStatusCode() = %d, want %d", got, want)
+	}
 }

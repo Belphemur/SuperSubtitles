@@ -2,10 +2,8 @@ package grpc
 
 import (
 	"context"
-	"errors"
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
@@ -64,10 +62,7 @@ func (s *server) GetSubtitles(req *pb.GetSubtitlesRequest, stream grpc.ServerStr
 	for result := range s.client.StreamSubtitles(stream.Context(), int(req.ShowId)) {
 		if result.Err != nil {
 			s.logger.Error().Err(result.Err).Int64("show_id", req.ShowId).Msg("Failed to get subtitles")
-			if errors.Is(result.Err, &apperrors.ErrNotFound{}) {
-				return status.Errorf(codes.NotFound, "show not found: %v", result.Err)
-			}
-			return status.Errorf(codes.Internal, "failed to get subtitles: %v", result.Err)
+			return toStatusError("failed to get subtitles", result.Err)
 		}
 		if err := stream.Send(convertSubtitleToProto(result.Value)); err != nil {
 			return status.Errorf(codes.Internal, "failed to stream subtitle: %v", err)
@@ -161,13 +156,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, episode)
 	if err != nil {
 		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
-		if errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) {
-			return nil, status.Errorf(codes.NotFound, "episode not found in subtitle archive: %v", err)
-		}
-		if errors.Is(err, &apperrors.ErrSubtitleResourceNotFound{}) {
-			return nil, status.Errorf(codes.NotFound, "subtitle not found: %v", err)
-		}
-		return nil, status.Errorf(codes.Internal, "failed to download subtitle: %v", err)
+		return nil, toStatusError("failed to download subtitle", err)
 	}
 
 	s.logger.Debug().

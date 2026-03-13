@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -581,6 +584,55 @@ func TestDownloadSubtitle_ResourceNotFound(t *testing.T) {
 	}
 	if st.Code() != codes.NotFound {
 		t.Errorf("Expected codes.NotFound, got %v", st.Code())
+	}
+}
+
+func TestDownloadSubtitle_ArchiveErrorReturnsUnprocessableEntity(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, apperrors.NewArchiveError("failed to extract episode 5 from ZIP", errors.New("ZIP bomb detected: suspicious compression ratio"))
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "101",
+		Episode:    proto.Int32(5),
+	}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.FailedPrecondition {
+		t.Errorf("Expected codes.FailedPrecondition, got %v", st.Code())
+	}
+
+	if !strings.Contains(st.Message(), "ZIP bomb detected") {
+		t.Errorf("Expected status message to include original archive error, got %q", st.Message())
+	}
+
+	details := st.Details()
+	if len(details) == 0 {
+		t.Fatal("Expected status details with HTTP mapping metadata, got none")
+	}
+
+	errorInfo, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("Expected first detail to be ErrorInfo, got %T", details[0])
+	}
+
+	if got, want := errorInfo.Metadata["http_status"], fmt.Sprintf("%d", http.StatusUnprocessableEntity); got != want {
+		t.Errorf("Expected http_status metadata %q, got %q", want, got)
 	}
 }
 
