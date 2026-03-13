@@ -21,6 +21,8 @@ type Subtitle struct {
 	ReleaseGroups []string  `json:"releaseGroups"` // Multiple release groups (comma-separated in HTML)
 	Release       string    `json:"release"`       // Release info (formats, quality) from HTML
 	IsSeasonPack  bool      `json:"isSeasonPack"`
+	RangeStart    *int      `json:"rangeStart"` // Season-pack range start episode (null for non-ranged subtitles)
+	RangeEnd      *int      `json:"rangeEnd"`   // Season-pack range end episode (null for non-ranged subtitles)
 }
 
 // SubtitleCollection represents a collection of subtitles for a show

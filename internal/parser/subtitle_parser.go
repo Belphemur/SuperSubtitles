@@ -17,10 +17,11 @@ import (
 
 // Pre-compiled regex patterns for performance
 var (
-	seasonPackRegex  = regexp.MustCompile(`\(Season\s+(\d+)\)`)
-	episodeRegex     = regexp.MustCompile(`(\d+)x(\d+)`)
-	odalPageRegex    = regexp.MustCompile(`oldal=(\d+)`)
-	parenthesesRegex = regexp.MustCompile(`\s*\([^)]*\)`)
+	seasonPackRegex   = regexp.MustCompile(`\(Season\s+(\d+)\)`)
+	episodeRegex      = regexp.MustCompile(`(\d+)x(\d+)`)
+	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d+)\s*-\s*(\d+)`)
+	odalPageRegex     = regexp.MustCompile(`oldal=(\d+)`)
+	parenthesesRegex  = regexp.MustCompile(`\s*\([^)]*\)`)
 )
 
 // languageToISO maps Hungarian language names to ISO 639-1 codes
@@ -264,6 +265,15 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 
 	// Parse description to extract show name, season, episode, and release info
 	showName, season, episode, releaseInfo, isSeasonPack := p.parseDescription(description)
+	if p.isArchiveSeasonPack(downloadLink) {
+		isSeasonPack = true
+		episode = -1
+	}
+	rangeStart, rangeEnd := p.extractEpisodeRange(description)
+	if !isSeasonPack {
+		rangeStart = nil
+		rangeEnd = nil
+	}
 
 	// Extract qualities and release groups from release info
 	qualities, releaseGroups := p.parseReleaseInfo(releaseInfo)
@@ -282,7 +292,10 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 	filename := p.extractFilenameFromDownloadLink(downloadLink)
 
 	// Extract only the episode title from description
-	episodeTitle := extractEpisodeTitle(description)
+	episodeTitle := ""
+	if !isSeasonPack {
+		episodeTitle = extractEpisodeTitle(description)
+	}
 
 	return &models.Subtitle{
 		ID:            subtitleID,
@@ -300,7 +313,40 @@ func (p *SubtitleParser) extractSubtitleFromRow(tds *goquery.Selection) *models.
 		ReleaseGroups: releaseGroups,
 		Release:       releaseInfo,
 		IsSeasonPack:  isSeasonPack,
+		RangeStart:    rangeStart,
+		RangeEnd:      rangeEnd,
 	}
+}
+
+// isArchiveSeasonPack returns true when the download filename extension indicates
+// a multi-subtitle archive package.
+func (p *SubtitleParser) isArchiveSeasonPack(downloadLink string) bool {
+	filename := strings.ToLower(strings.TrimSpace(p.extractFilenameFromDownloadLink(downloadLink)))
+	if filename == "" {
+		return false
+	}
+
+	return strings.HasSuffix(filename, ".zip") || strings.HasSuffix(filename, ".rar")
+}
+
+// extractEpisodeRange extracts episode start/end when description contains ranged notation like 1x01-09.
+func (p *SubtitleParser) extractEpisodeRange(description string) (*int, *int) {
+	matches := episodeRangeRegex.FindStringSubmatch(description)
+	if len(matches) <= 3 {
+		return nil, nil
+	}
+
+	start, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return nil, nil
+	}
+
+	end, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return nil, nil
+	}
+
+	return &start, &end
 }
 
 // extractShowIDFromCategory extracts the show ID from the category column's link
@@ -366,6 +412,35 @@ func (p *SubtitleParser) parseDescription(description string) (showName string, 
 			Int("season", season).
 			Bool("isSeasonPack", isSeasonPack).
 			Msg("Parsed season pack description")
+		return
+	}
+
+	// Range notation (e.g. 1x01-09) represents archive packs with multiple episodes.
+	if matches := episodeRangeRegex.FindStringSubmatch(description); len(matches) > 3 {
+		isSeasonPack = true
+		seasonNum, _ := strconv.Atoi(matches[1])
+		season = seasonNum
+		episode = -1
+
+		if idx := strings.Index(description, fmt.Sprintf("- %sx", matches[1])); idx != -1 {
+			showName = strings.TrimSpace(description[:idx])
+			showName = strings.TrimPrefix(showName, "- ")
+			showName = strings.TrimSpace(showName)
+		} else {
+			parts := strings.SplitN(description, "-", 2)
+			if len(parts) > 0 {
+				showName = strings.TrimSpace(parts[0])
+			}
+		}
+
+		releaseInfo = p.extractReleaseInfo(description)
+
+		logger.Debug().
+			Str("description", description).
+			Str("showName", showName).
+			Int("season", season).
+			Bool("isSeasonPack", isSeasonPack).
+			Msg("Parsed ranged-episode season pack description")
 		return
 	}
 
@@ -663,6 +738,10 @@ func extractEpisodeTitle(description string) string {
 	withoutParens = strings.TrimSpace(withoutParens)
 
 	if withoutParens == "" {
+		return ""
+	}
+
+	if episodeRangeRegex.MatchString(withoutParens) {
 		return ""
 	}
 

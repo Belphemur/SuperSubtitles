@@ -168,6 +168,62 @@ func TestSubtitleParser_ParseHtmlWithPagination_SeasonPack(t *testing.T) {
 	if subtitle.Filename != "billy.s02.zip" {
 		t.Errorf("Expected filename %q, got %q", "billy.s02.zip", subtitle.Filename)
 	}
+	if subtitle.RangeStart != nil || subtitle.RangeEnd != nil {
+		t.Errorf("Expected nil range for non-ranged season pack, got start=%v end=%v", subtitle.RangeStart, subtitle.RangeEnd)
+	}
+}
+
+func TestSubtitleParser_ParseHtmlWithPagination_RangedEpisodeSeasonPack(t *testing.T) {
+	t.Parallel()
+
+	htmlContent := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
+		{
+			ShowID:           13051,
+			Language:         "Angol",
+			FlagImage:        "uk.gif",
+			MagyarTitle:      "Pursuit of Jade",
+			EredetiTitle:     "Pursuit of Jade (Zhu yu) - 1x01-09 (NF.WEB-DL.1080p-ANDY)",
+			Uploader:         "translator",
+			UploaderBold:     false,
+			UploadDate:       "2025-02-01",
+			DownloadAction:   "letolt",
+			DownloadFilename: "Pursuit.of.Jade.S01.Part.1.NF.WEB-DL.en.zip",
+			SubtitleID:       1772977664,
+		},
+	})
+
+	parser := NewSubtitleParser("https://feliratok.eu")
+	result, err := parser.ParseHtmlWithPagination(strings.NewReader(htmlContent))
+	if err != nil {
+		t.Fatalf("ParseHtmlWithPagination failed: %v", err)
+	}
+
+	if len(result.Subtitles) != 1 {
+		t.Fatalf("Expected 1 subtitle, got %d", len(result.Subtitles))
+	}
+
+	subtitle := result.Subtitles[0]
+	if subtitle.ShowName != "Pursuit of Jade (Zhu yu)" {
+		t.Errorf("Expected show name %q, got %q", "Pursuit of Jade (Zhu yu)", subtitle.ShowName)
+	}
+	if subtitle.Season != 1 || subtitle.Episode != -1 {
+		t.Errorf("Expected season 1 episode -1, got %d %d", subtitle.Season, subtitle.Episode)
+	}
+	if !subtitle.IsSeasonPack {
+		t.Error("Expected IsSeasonPack true")
+	}
+	if subtitle.Name != "" {
+		t.Errorf("Expected empty episode title for season pack, got %q", subtitle.Name)
+	}
+	if subtitle.Filename != "Pursuit.of.Jade.S01.Part.1.NF.WEB-DL.en.zip" {
+		t.Errorf("Expected filename %q, got %q", "Pursuit.of.Jade.S01.Part.1.NF.WEB-DL.en.zip", subtitle.Filename)
+	}
+	if subtitle.RangeStart == nil || *subtitle.RangeStart != 1 {
+		t.Errorf("Expected range start 1, got %v", subtitle.RangeStart)
+	}
+	if subtitle.RangeEnd == nil || *subtitle.RangeEnd != 9 {
+		t.Errorf("Expected range end 9, got %v", subtitle.RangeEnd)
+	}
 }
 
 func TestSubtitleParser_ParseHtmlWithPagination_OldalPagination(t *testing.T) {

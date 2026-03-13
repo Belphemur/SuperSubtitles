@@ -231,6 +231,120 @@ func TestSubtitleParser_parseDescription_fallback(t *testing.T) {
 	}
 }
 
+func TestSubtitleParser_parseDescription_episodeRangeSeasonPack(t *testing.T) {
+	t.Parallel()
+	parser := NewSubtitleParser("https://feliratok.eu")
+
+	description := "Pursuit of Jade (Zhu yu) - 1x01-09 (NF.WEB-DL.1080p-ANDY)"
+	showName, season, episode, releaseInfo, isSeasonPack := parser.parseDescription(description)
+
+	if showName != "Pursuit of Jade (Zhu yu)" {
+		t.Errorf("showName = %q, want %q", showName, "Pursuit of Jade (Zhu yu)")
+	}
+	if season != 1 {
+		t.Errorf("season = %d, want 1", season)
+	}
+	if episode != -1 {
+		t.Errorf("episode = %d, want -1", episode)
+	}
+	if releaseInfo != "NF.WEB-DL.1080p-ANDY" {
+		t.Errorf("releaseInfo = %q, want %q", releaseInfo, "NF.WEB-DL.1080p-ANDY")
+	}
+	if !isSeasonPack {
+		t.Error("isSeasonPack = false, want true")
+	}
+}
+
+func TestSubtitleParser_isArchiveSeasonPack(t *testing.T) {
+	t.Parallel()
+	parser := NewSubtitleParser("https://feliratok.eu")
+
+	tests := []struct {
+		name string
+		link string
+		want bool
+	}{
+		{
+			name: "zip archive",
+			link: "/index.php?action=letolt&fnev=Pursuit.of.Jade.S01.Part.1.NF.WEB-DL.en.zip&felirat=1772977664",
+			want: true,
+		},
+		{
+			name: "rar archive uppercase extension",
+			link: "/index.php?action=letolt&fnev=Show.S01.RAR.RAR&felirat=1772977664",
+			want: true,
+		},
+		{
+			name: "single srt subtitle",
+			link: "/index.php?action=letolt&fnev=show.s01e01.srt&felirat=1772977664",
+			want: false,
+		},
+		{
+			name: "missing filename parameter",
+			link: "/index.php?action=letolt&felirat=1772977664",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := parser.isArchiveSeasonPack(tt.link)
+			if got != tt.want {
+				t.Errorf("isArchiveSeasonPack(%q) = %v, want %v", tt.link, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSubtitleParser_extractEpisodeRange(t *testing.T) {
+	t.Parallel()
+	parser := NewSubtitleParser("https://feliratok.eu")
+	one := 1
+	nine := 9
+
+	tests := []struct {
+		name      string
+		desc      string
+		wantStart *int
+		wantEnd   *int
+	}{
+		{
+			name:      "valid ranged notation",
+			desc:      "Pursuit of Jade (Zhu yu) - 1x01-09 (NF.WEB-DL.1080p-ANDY)",
+			wantStart: &one,
+			wantEnd:   &nine,
+		},
+		{
+			name:      "single episode notation",
+			desc:      "Outlander - 7x16 - A Hundred Thousand Angels (AMZN.WEB-DL.720p-FLUX)",
+			wantStart: nil,
+			wantEnd:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotStart, gotEnd := parser.extractEpisodeRange(tt.desc)
+
+			if (gotStart == nil) != (tt.wantStart == nil) {
+				t.Errorf("start nil mismatch: got %v, want %v", gotStart == nil, tt.wantStart == nil)
+			}
+			if gotStart != nil && tt.wantStart != nil && *gotStart != *tt.wantStart {
+				t.Errorf("start = %d, want %d", *gotStart, *tt.wantStart)
+			}
+
+			if (gotEnd == nil) != (tt.wantEnd == nil) {
+				t.Errorf("end nil mismatch: got %v, want %v", gotEnd == nil, tt.wantEnd == nil)
+			}
+			if gotEnd != nil && tt.wantEnd != nil && *gotEnd != *tt.wantEnd {
+				t.Errorf("end = %d, want %d", *gotEnd, *tt.wantEnd)
+			}
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // extractShowIDFromCategory
 // ---------------------------------------------------------------------------
