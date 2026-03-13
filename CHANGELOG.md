@@ -1,3 +1,11 @@
+## [2.9.3](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.2...v2.9.3) (2026-03-13)
+
+
+### Bug Fixes
+
+* **parser:** update pagination regex to support both 'oldal' and 'page' parameters ([220e257](https://github.com/Belphemur/SuperSubtitles/commit/220e25743de8b1233fb1f74e29e7a15efa8fb1c5))
+* **parser:** update pagination regex to support both 'oldal' and 'page' parameters ([#96](https://github.com/Belphemur/SuperSubtitles/issues/96)) ([bddc8de](https://github.com/Belphemur/SuperSubtitles/commit/bddc8deab19d8a80578c575191d489296960e619))
+
 ## [2.9.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.1...v2.9.2) (2026-03-13)
 
 
