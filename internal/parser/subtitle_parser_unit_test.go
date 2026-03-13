@@ -316,6 +316,12 @@ func TestSubtitleParser_extractEpisodeRange(t *testing.T) {
 			wantEnd:   nil,
 		},
 		{
+			name:      "numeric episode title is not range",
+			desc:      "Portobello - 1x01 - 28 Million Viewers (AMZN.WEB-DL.720p-RAWR)",
+			wantStart: nil,
+			wantEnd:   nil,
+		},
+		{
 			name:      "reversed ranged notation is normalized",
 			desc:      "Show Name - 1x09-01 (WEB-DL)",
 			wantStart: &one,
