@@ -1,3 +1,10 @@
+## [2.8.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.0...v2.8.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* **services:** map archive failures to grpc preconditions ([3e24adc](https://github.com/Belphemur/SuperSubtitles/commit/3e24adc4f151a98da0b9630b764245aac3b7f317))
+
 # [2.8.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.7.0...v2.8.0) (2026-03-13)
 
 
