@@ -1,3 +1,15 @@
+# [2.10.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.3...v2.10.0) (2026-03-13)
+
+
+### Features
+
+* **client:** stream recent subtitles incrementally per page ([4ecc140](https://github.com/Belphemur/SuperSubtitles/commit/4ecc1401b33f16f8ec78fd7632d559778567c9c9))
+
+
+### Performance Improvements
+
+* improve performance by preallocation ([c83b460](https://github.com/Belphemur/SuperSubtitles/commit/c83b4602af32fed12d1cc26b96be01e16109e15e))
+
 ## [2.9.3](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.2...v2.9.3) (2026-03-13)
 
 
