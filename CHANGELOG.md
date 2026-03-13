@@ -1,3 +1,15 @@
+# [2.9.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.2...v2.9.0) (2026-03-13)
+
+
+### Bug Fixes
+
+* **client:** apply PR review optimizations for recent subtitles pagination ([3ac828f](https://github.com/Belphemur/SuperSubtitles/commit/3ac828ff2e56d906fc7721ef2e9397bd6c9fe15f))
+
+
+### Features
+
+* **client:** paginate recent subtitles until sinceID boundary ([70fbe71](https://github.com/Belphemur/SuperSubtitles/commit/70fbe71902c6b68d9a6673c9ee29d1ae08540cf9))
+
 ## [2.8.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.1...v2.8.2) (2026-03-13)
 
 
