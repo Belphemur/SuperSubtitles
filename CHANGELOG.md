@@ -1,3 +1,15 @@
+# [2.8.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.7.0...v2.8.0) (2026-03-13)
+
+
+### Bug Fixes
+
+* **parser:** honor archive-first ranged season packs ([1a0c692](https://github.com/Belphemur/SuperSubtitles/commit/1a0c692e0d37d82661998acb08b61510d54d96a7))
+
+
+### Features
+
+* **parser:** expose season pack episode ranges via gRPC ([902c3b3](https://github.com/Belphemur/SuperSubtitles/commit/902c3b394327f62f35e9f30bbb2f6195b601dddb))
+
 # [2.7.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.6.2...v2.7.0) (2026-03-13)
 
 
