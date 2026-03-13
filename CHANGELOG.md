@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.0...v2.9.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* **client:** skip invalid-ID subtitles with error log instead of halting pagination ([#94](https://github.com/Belphemur/SuperSubtitles/issues/94)) ([1a0f01f](https://github.com/Belphemur/SuperSubtitles/commit/1a0f01fabf3d93b76342f5debe6abd7c6f2de909))
+
 # [2.9.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.8.2...v2.9.0) (2026-03-13)
 
 
