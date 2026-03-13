@@ -148,8 +148,8 @@ func (p *ShowParser) extractShowFromGoquery(link *goquery.Selection, year int) *
 func (p *ShowParser) extractIDFromHref(href string) int {
 	logger := config.GetLogger()
 	const prefix = "index.php?sid="
-	if idx := strings.Index(href, prefix); idx != -1 {
-		idStr := href[idx+len(prefix):]
+	if _, after, ok := strings.Cut(href, prefix); ok {
+		idStr := after
 		if id, err := strconv.Atoi(idStr); err == nil {
 			logger.Debug().Str("href", href).Int("id", id).Msg("Extracted ID from href")
 			return id
@@ -164,8 +164,8 @@ func (p *ShowParser) extractIDFromHref(href string) int {
 func (p *ShowParser) extractImageURL(src string) string {
 	logger := config.GetLogger()
 	const prefix = "sorozat_cat.php?kep="
-	if idx := strings.Index(src, prefix); idx != -1 {
-		imageID := src[idx+len(prefix):]
+	if _, after, ok := strings.Cut(src, prefix); ok {
+		imageID := after
 		fullURL := fmt.Sprintf("%s/sorozat_cat.php?kep=%s", p.baseURL, imageID)
 		logger.Debug().Str("src", src).Str("imageID", imageID).Str("fullURL", fullURL).Msg("Constructed image URL")
 		return fullURL

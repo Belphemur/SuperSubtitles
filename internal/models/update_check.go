@@ -17,8 +17,8 @@ type UpdateCheckResponse struct {
 // to handle both string and integer values for film and sorozat fields
 func (u *UpdateCheckResponse) UnmarshalJSON(data []byte) error {
 	aux := struct {
-		Film    interface{} `json:"film"`
-		Sorozat interface{} `json:"sorozat"`
+		Film    any `json:"film"`
+		Sorozat any `json:"sorozat"`
 	}{}
 
 	if err := json.Unmarshal(data, &aux); err != nil {
@@ -26,7 +26,7 @@ func (u *UpdateCheckResponse) UnmarshalJSON(data []byte) error {
 	}
 
 	// Helper function to convert interface{} to int
-	convertToInt := func(v interface{}) (int, error) {
+	convertToInt := func(v any) (int, error) {
 		switch val := v.(type) {
 		case float64:
 			return int(val), nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
@@ -36,6 +37,18 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		// addSubtitle accumulates a single subtitle into the show grouping.
 		// Returns true if the subtitle was at or below the sinceID boundary.
 		addSubtitle := func(subtitle models.Subtitle) (reachedBoundary bool) {
+			if subtitle.ID <= 0 {
+				logger.Error().
+					Str("showName", subtitle.ShowName).
+					Str("downloadURL", subtitle.DownloadURL).
+					Str("filename", subtitle.Filename).
+					Str("language", subtitle.Language).
+					Int("season", subtitle.Season).
+					Int("episode", subtitle.Episode).
+					Msg("Subtitle has invalid ID (HTML parsing failure); skipping row - check HTML structure and extractIDFromDownloadLink")
+				return false
+			}
+
 			if sinceID > 0 && subtitle.ID <= sinceID {
 				return true
 			}
@@ -101,11 +114,8 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 				Int("subtitles", len(pageResult.Subtitles)).
 				Msg("Parsed subtitles from page")
 
-			for _, subtitle := range pageResult.Subtitles {
-				if addSubtitle(subtitle) {
-					reachedBoundary = true
-					break
-				}
+			if slices.ContainsFunc(pageResult.Subtitles, addSubtitle) {
+				reachedBoundary = true
 			}
 
 			// When sinceID is 0, only fetch the first page

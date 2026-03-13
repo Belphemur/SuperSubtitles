@@ -388,7 +388,6 @@ func TestSubtitleParser_ExtractFilenameFromDownloadLink_URLEncoded(t *testing.T)
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := parser.extractFilenameFromDownloadLink(tt.link)
@@ -466,7 +465,6 @@ func TestConvertLanguageToISO(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := convertLanguageToISO(tt.input)
@@ -537,7 +535,6 @@ func TestRemoveParentheticalContent(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := removeParentheticalContent(tt.input)
@@ -623,7 +620,6 @@ func TestExtractEpisodeTitle(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := extractEpisodeTitle(tt.input)
@@ -732,7 +728,6 @@ func TestSubtitleParser_ParseReleaseInfo_CaseInsensitiveGroupDeduplication(t *te
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			qualities, groups := parser.parseReleaseInfo(tt.releaseInfo)

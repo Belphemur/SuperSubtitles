@@ -81,10 +81,7 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan models.
 		const batchSize = 2
 
 		for page := 2; page <= firstPageResult.TotalPages; page += batchSize {
-			endPage := page + batchSize - 1
-			if endPage > firstPageResult.TotalPages {
-				endPage = firstPageResult.TotalPages
-			}
+			endPage := min(page+batchSize-1, firstPageResult.TotalPages)
 
 			pageNumbers := make([]int, 0)
 			for p := page; p <= endPage; p++ {
@@ -104,7 +101,6 @@ func (c *client) StreamSubtitles(ctx context.Context, showID int) <-chan models.
 			wg.Add(len(pageNumbers))
 
 			for i, pageNum := range pageNumbers {
-				i, pageNum := i, pageNum
 				go func() {
 					defer wg.Done()
 

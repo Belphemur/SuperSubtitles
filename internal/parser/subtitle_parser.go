@@ -514,9 +514,9 @@ func (p *SubtitleParser) parseReleaseInfo(releaseInfo string) (qualities []model
 	seenGroups := make(map[string]struct{}) // Track groups case-insensitively (key is lowercase)
 
 	// Split by comma to get individual releases
-	releases := strings.Split(releaseInfo, ",")
+	releases := strings.SplitSeq(releaseInfo, ",")
 
-	for _, release := range releases {
+	for release := range releases {
 		release = strings.TrimSpace(release)
 		if release == "" {
 			continue
@@ -752,15 +752,15 @@ func extractEpisodeTitle(description string) string {
 		// Found season/episode pattern at position [start, end)
 		// Look for the dash that comes after the SxEE pattern
 		afterSxEE := withoutParens[matches[1]:]
-		dashIdx := strings.Index(afterSxEE, "-")
-		if dashIdx == -1 {
+		_, after, ok := strings.Cut(afterSxEE, "-")
+		if !ok {
 			// No dash after SxEE, return everything after SxEE
 			episodeTitle := strings.TrimSpace(afterSxEE)
 			return episodeTitle
 		}
 
 		// Take everything after the first dash following SxEE
-		episodeTitle := strings.TrimSpace(afterSxEE[dashIdx+1:])
+		episodeTitle := strings.TrimSpace(after)
 		return episodeTitle
 	}
 

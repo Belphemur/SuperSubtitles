@@ -134,7 +134,7 @@ func TestShowParser_ParseHtml_MissingImage(t *testing.T) {
 			ShowID:       12345,
 			ShowName:     "Test Show",
 			Year:         2025,
-			IncludeImage: testutil.BoolPtr(false),
+			IncludeImage: new(false),
 		},
 	})
 
@@ -159,7 +159,7 @@ func TestShowParser_ParseHtml_MissingName(t *testing.T) {
 			ShowID:      12345,
 			ShowName:    "Test Show",
 			Year:        2025,
-			IncludeName: testutil.BoolPtr(false),
+			IncludeName: new(false),
 		},
 	})
 
