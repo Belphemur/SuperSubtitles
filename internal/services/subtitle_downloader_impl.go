@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -51,9 +52,9 @@ const (
 
 // DefaultSubtitleDownloader implements SubtitleDownloader with caching
 type DefaultSubtitleDownloader struct {
-	httpClient *http.Client
-	zipCache   cache.Cache
-	rarToZip   func([]byte) ([]byte, error)
+	httpClient   *http.Client
+	archiveCache cache.Cache
+	rarToZip     func([]byte) ([]byte, error)
 }
 
 // resolveCacheConfig returns the cache size and TTL from cfg, with fallback defaults.
@@ -99,7 +100,7 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 	providerCfg := cache.ProviderConfig{
 		Size:   cacheSize,
 		TTL:    cacheTTL,
-		Group:  "zip",
+		Group:  "archive",
 		Logger: &zerologCacheLogger{logger: config.GetLogger()},
 	}
 	if cfg != nil {
@@ -110,13 +111,13 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 
 	logger := config.GetLogger()
 	activeType := cacheType
-	zipCache, err := cache.New(cacheType, providerCfg)
+	archiveCache, err := cache.New(cacheType, providerCfg)
 	if err != nil {
 		logger.Warn().Err(err).
 			Str("cacheType", cacheType).
 			Msg("Failed to create cache, falling back to memory")
 		activeType = "memory"
-		zipCache, err = cache.New("memory", providerCfg)
+		archiveCache, err = cache.New("memory", providerCfg)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create fallback memory cache")
 		}
@@ -129,16 +130,16 @@ func NewSubtitleDownloader(httpClient *http.Client) SubtitleDownloader {
 		Msg("Subtitle downloader cache initialized")
 
 	return &DefaultSubtitleDownloader{
-		httpClient: httpClient,
-		zipCache:   zipCache,
-		rarToZip:   convertRarToZip,
+		httpClient:   httpClient,
+		archiveCache: archiveCache,
+		rarToZip:     convertRarToZip,
 	}
 }
 
 // Close releases resources held by the downloader, such as cache connections.
 func (d *DefaultSubtitleDownloader) Close() error {
-	if d.zipCache != nil {
-		return d.zipCache.Close()
+	if d.archiveCache != nil {
+		return d.archiveCache.Close()
 	}
 	return nil
 }
@@ -573,7 +574,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Conte
 	logger := config.GetLogger()
 
 	cacheKey := normalizedArchiveCacheKey(url)
-	if cached, found := d.zipCache.Get(cacheKey); found {
+	if cached, found := d.archiveCache.Get(cacheKey); found {
 		logger.Debug().
 			Str("url", url).
 			Msg("Retrieved normalized download archive from cache")
@@ -589,7 +590,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Conte
 	switch archiveFormat {
 	case archiveFormatZIP:
 		if isZipFile(content) {
-			d.zipCache.Set(cacheKey, content)
+			d.archiveCache.Set(cacheKey, content)
 			logger.Debug().
 				Str("url", url).
 				Int("size", len(content)).
@@ -607,7 +608,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Conte
 			return nil, "", fmt.Errorf("failed to normalize RAR archive to ZIP: %w", err)
 		}
 
-		d.zipCache.Set(cacheKey, normalized)
+		d.archiveCache.Set(cacheKey, normalized)
 		logger.Info().
 			Str("url", url).
 			Int("rarSize", len(content)).
@@ -625,7 +626,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	logger := config.GetLogger()
 
 	cacheKey := episodeArchiveCacheKey(url)
-	if cached, found := d.zipCache.Get(cacheKey); found {
+	if cached, found := d.archiveCache.Get(cacheKey); found {
 		archiveFormat := detectArchiveFormat(cached, "")
 		logger.Debug().
 			Str("url", url).
@@ -641,7 +642,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 
 	archiveFormat := detectArchiveFormat(content, contentType)
 	if isZipFile(content) || isRarFile(content) {
-		d.zipCache.Set(cacheKey, content)
+		d.archiveCache.Set(cacheKey, content)
 		logger.Debug().
 			Str("url", url).
 			Str("archiveFormat", archiveFormat).
@@ -704,7 +705,18 @@ func convertRarToZip(rarContent []byte) ([]byte, error) {
 		}
 
 		entryName := strings.ToValidUTF8(header.Name, "�")
-		if entryName == "" {
+
+		// Sanitize the entry name to prevent Zip-Slip path traversal attacks.
+		// RAR archives can store paths with backslashes or absolute paths.
+		entryName = strings.ReplaceAll(entryName, "\\", "/")
+		entryName = path.Clean(entryName)
+		entryName = strings.TrimLeft(entryName, "/")
+		for _, component := range strings.Split(entryName, "/") {
+			if component == ".." {
+				return nil, fmt.Errorf("RAR archive contains path traversal in entry name: %q", header.Name)
+			}
+		}
+		if entryName == "" || entryName == "." {
 			entryName = "subtitle"
 		}
 
@@ -781,7 +793,10 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromRar(rarContent []byte, epi
 
 		fileCount++
 		entryName := strings.ToValidUTF8(header.Name, "�")
-		filename := strings.ToValidUTF8(filepath.Base(header.Name), "�")
+		// Normalize path separators before extracting the base name so that RAR
+		// archives storing Windows-style backslash paths work correctly on all platforms.
+		normalizedName := strings.ReplaceAll(header.Name, "\\", "/")
+		filename := strings.ToValidUTF8(path.Base(normalizedName), "�")
 
 		if header.UnPackedSize > maxUncompressedFileSize {
 			return nil, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
