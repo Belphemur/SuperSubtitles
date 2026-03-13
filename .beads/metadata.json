@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "SuperSubtitles",
+  "project_id": "367a557e-8c2e-4d8e-9df5-a27e2e22768f"
+}

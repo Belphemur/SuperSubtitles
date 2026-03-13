@@ -223,9 +223,9 @@ func TestClient_StreamRecentSubtitles_SinceIDFiltering(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("tab") == "sorozat" {
 			html := testutil.GenerateSubtitleTableHTML([]testutil.SubtitleRowOptions{
-				{SubtitleID: 100, ShowID: 10, MagyarTitle: "Old Sub", EredetiTitle: "Show A - 1x01 - Old (720p-Grp)", DownloadFilename: "old.srt"},
-				{SubtitleID: 200, ShowID: 10, MagyarTitle: "Mid Sub", EredetiTitle: "Show A - 1x02 - Mid (720p-Grp)", DownloadFilename: "mid.srt"},
 				{SubtitleID: 300, ShowID: 10, MagyarTitle: "New Sub", EredetiTitle: "Show A - 1x03 - New (720p-Grp)", DownloadFilename: "new.srt"},
+				{SubtitleID: 200, ShowID: 10, MagyarTitle: "Mid Sub", EredetiTitle: "Show A - 1x02 - Mid (720p-Grp)", DownloadFilename: "mid.srt"},
+				{SubtitleID: 100, ShowID: 10, MagyarTitle: "Old Sub", EredetiTitle: "Show A - 1x01 - Old (720p-Grp)", DownloadFilename: "old.srt"},
 			})
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(html))

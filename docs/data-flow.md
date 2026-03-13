@@ -25,10 +25,12 @@
 
 ## Recent Subtitles
 
-1. Fetches main page (same HTML table structure as individual show pages)
-2. Filters by since-ID — only subtitles newer than the given ID
-3. Groups by show, fetches detail pages for third-party IDs
-4. Streams a bundle per show (with partial failure resilience for detail pages)
+1. Fetches main page with pagination info (same HTML table structure as individual show pages)
+2. When since-ID > 0, pages are fetched sequentially until a subtitle at or below the since-ID is found
+3. When since-ID is 0, only the first page is fetched
+4. Filters by since-ID — only subtitles newer than the given ID are kept
+5. Groups by show, fetches detail pages for third-party IDs
+6. Streams a bundle per show (with partial failure resilience for detail pages)
 
 ## Subtitle Download
 

@@ -28,6 +28,8 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+      - name: Install Beads
+        run: go install github.com/steveyegge/beads/cmd/bd@latest
 
       - name: Download Go dependencies
         run: |

@@ -51,3 +51,16 @@
 - Client accumulates subtitles per show before sending, trading slightly more memory for simpler semantics
 
 **Implementation**: Proto `ShowSubtitlesCollection` contains `ShowInfo show_info` and `repeated Subtitle subtitles`. Internal `ShowSubtitles` model in `internal/models/show_subtitles.go` maps directly to the proto structure. `convertShowSubtitlesToProto` in `internal/grpc/converters.go` handles the conversion.
+
+## Sequential Pagination for Recent Subtitles
+
+**Decision**: When `sinceID > 0`, `StreamRecentSubtitles` fetches pages sequentially using the `oldal=` parameter until a subtitle with ID ≤ sinceID is found. When `sinceID == 0`, only the first page is fetched.
+
+**Rationale**:
+
+- The homepage lists subtitles in reverse chronological order across 1000+ pages — fetching only page 1 misses subtitles uploaded since the last poll if more than one page of new content appeared
+- Sequential fetching (not parallel) is correct here because we don't know the total number of needed pages upfront — we stop as soon as we hit the boundary
+- `sinceID == 0` remains single-page to avoid accidentally crawling the entire site on the first call
+- Reuses `ParseHtmlWithPagination` already used by `StreamSubtitles`, keeping the parser surface consistent
+
+**Implementation**: `StreamRecentSubtitles` in `internal/client/recent_subtitles.go` loops page-by-page, calling `SubtitleParser.ParseHtmlWithPagination` on each response. An `addSubtitle` closure accumulates results and signals when the sinceID boundary is reached. The loop also respects `HasNextPage` from the parser to stop at the last page.
