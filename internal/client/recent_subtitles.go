@@ -30,7 +30,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			subtitles       []models.Subtitle
 			firstValidSubID int
 			showName        string
-		} 
+		}
 		showDataMap := make(map[int]*showData)
 		thirdPartyIDsByShow := make(map[int]models.ThirdPartyIds)
 		totalEmitted := 0
