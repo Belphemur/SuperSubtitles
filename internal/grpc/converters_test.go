@@ -196,6 +196,30 @@ func TestConvertSubtitleToProto_ZeroTimestamp(t *testing.T) {
 	}
 }
 
+func TestConvertSubtitleToProto_RangeFields(t *testing.T) {
+	t.Parallel()
+	start := 1
+	end := 9
+	subtitle := models.Subtitle{
+		ID:           102,
+		ShowID:       1,
+		Language:     "eng",
+		Season:       1,
+		Episode:      -1,
+		IsSeasonPack: true,
+		RangeStart:   &start,
+		RangeEnd:     &end,
+	}
+
+	result := convertSubtitleToProto(subtitle)
+	if result.RangeStart == nil || *result.RangeStart != 1 {
+		t.Errorf("Expected range_start=1, got %v", result.RangeStart)
+	}
+	if result.RangeEnd == nil || *result.RangeEnd != 9 {
+		t.Errorf("Expected range_end=9, got %v", result.RangeEnd)
+	}
+}
+
 func TestConvertShowSubtitlesToProto(t *testing.T) {
 	t.Parallel()
 	uploadTime := time.Date(2024, 2, 5, 8, 15, 0, 0, time.UTC)

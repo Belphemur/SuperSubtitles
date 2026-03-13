@@ -237,6 +237,8 @@ type Subtitle struct {
 	ReleaseGroups []string               `protobuf:"bytes,13,rep,name=release_groups,json=releaseGroups,proto3" json:"release_groups,omitempty"`
 	Release       string                 `protobuf:"bytes,14,opt,name=release,proto3" json:"release,omitempty"`
 	IsSeasonPack  bool                   `protobuf:"varint,15,opt,name=is_season_pack,json=isSeasonPack,proto3" json:"is_season_pack,omitempty"`
+	RangeStart    *int32                 `protobuf:"varint,16,opt,name=range_start,json=rangeStart,proto3,oneof" json:"range_start,omitempty"`
+	RangeEnd      *int32                 `protobuf:"varint,17,opt,name=range_end,json=rangeEnd,proto3,oneof" json:"range_end,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -374,6 +376,20 @@ func (x *Subtitle) GetIsSeasonPack() bool {
 		return x.IsSeasonPack
 	}
 	return false
+}
+
+func (x *Subtitle) GetRangeStart() int32 {
+	if x != nil && x.RangeStart != nil {
+		return *x.RangeStart
+	}
+	return 0
+}
+
+func (x *Subtitle) GetRangeEnd() int32 {
+	if x != nil && x.RangeEnd != nil {
+		return *x.RangeEnd
+	}
+	return 0
 }
 
 // ShowInfo represents a TV show with its third-party IDs (sent once per show in a stream)
@@ -890,7 +906,7 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\atvdb_id\x18\x02 \x01(\x03R\x06tvdbId\x12\x1c\n" +
 	"\n" +
 	"tv_maze_id\x18\x03 \x01(\x03R\btvMazeId\x12\x19\n" +
-	"\btrakt_id\x18\x04 \x01(\x03R\atraktId\"\xeb\x03\n" +
+	"\btrakt_id\x18\x04 \x01(\x03R\atraktId\"\xd1\x04\n" +
 	"\bSubtitle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
 	"\ashow_id\x18\x02 \x01(\x03R\x06showId\x12\x1b\n" +
@@ -908,7 +924,13 @@ const file_supersubtitles_proto_rawDesc = "" +
 	"\tqualities\x18\f \x03(\x0e2\x1a.supersubtitles.v1.QualityR\tqualities\x12%\n" +
 	"\x0erelease_groups\x18\r \x03(\tR\rreleaseGroups\x12\x18\n" +
 	"\arelease\x18\x0e \x01(\tR\arelease\x12$\n" +
-	"\x0eis_season_pack\x18\x0f \x01(\bR\fisSeasonPack\"\x81\x01\n" +
+	"\x0eis_season_pack\x18\x0f \x01(\bR\fisSeasonPack\x12$\n" +
+	"\vrange_start\x18\x10 \x01(\x05H\x00R\n" +
+	"rangeStart\x88\x01\x01\x12 \n" +
+	"\trange_end\x18\x11 \x01(\x05H\x01R\brangeEnd\x88\x01\x01B\x0e\n" +
+	"\f_range_startB\f\n" +
+	"\n" +
+	"_range_end\"\x81\x01\n" +
 	"\bShowInfo\x12+\n" +
 	"\x04show\x18\x01 \x01(\v2\x17.supersubtitles.v1.ShowR\x04show\x12H\n" +
 	"\x0fthird_party_ids\x18\x02 \x01(\v2 .supersubtitles.v1.ThirdPartyIdsR\rthirdPartyIds\"\x8e\x01\n" +
@@ -1019,6 +1041,7 @@ func file_supersubtitles_proto_init() {
 	if File_supersubtitles_proto != nil {
 		return
 	}
+	file_supersubtitles_proto_msgTypes[2].OneofWrappers = []any{}
 	file_supersubtitles_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

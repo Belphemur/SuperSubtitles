@@ -50,6 +50,15 @@ func safeInt64(val int) int64 {
 	return int64(val)
 }
 
+// safeOptionalInt32 converts an optional int to optional int32 with bounds checking.
+func safeOptionalInt32(val *int) *int32 {
+	if val == nil {
+		return nil
+	}
+	converted := safeInt32(*val)
+	return &converted
+}
+
 // convertShowToProto converts a models.Show to a proto Show message
 func convertShowToProto(show models.Show) *pb.Show {
 	return &pb.Show{
@@ -131,6 +140,8 @@ func convertSubtitleToProto(subtitle models.Subtitle) *pb.Subtitle {
 		ReleaseGroups: sanitizeUTF8Slice(subtitle.ReleaseGroups),
 		Release:       sanitizeUTF8(subtitle.Release),
 		IsSeasonPack:  subtitle.IsSeasonPack,
+		RangeStart:    safeOptionalInt32(subtitle.RangeStart),
+		RangeEnd:      safeOptionalInt32(subtitle.RangeEnd),
 	}
 }
 

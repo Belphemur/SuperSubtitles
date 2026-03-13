@@ -15,6 +15,13 @@ Proto source: [`api/proto/v1/supersubtitles.proto`](../api/proto/v1/supersubtitl
 
 Four of six RPCs use **server-side streaming** (see [streaming decisions](./design-decisions/streaming.md)). The server also implements the standard gRPC health checking protocol.
 
+## Subtitle Range Fields
+
+The streamed `Subtitle` payload now includes optional `range_start` and `range_end` fields for season-pack entries that represent episode ranges (for example `1x01-09`).
+
+- For ranged season packs: both fields are set.
+- For regular subtitles and non-ranged season packs: both fields are unset.
+
 ## grpcurl Examples
 
 ```bash
