@@ -586,17 +586,17 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Conte
 	}
 
 	archiveFormat := detectArchiveFormat(content, contentType)
-	switch {
-	case isZipFile(content):
-		d.zipCache.Set(cacheKey, content)
-		logger.Debug().
-			Str("url", url).
-			Int("size", len(content)).
-			Msg("Cached ZIP download archive")
+	switch archiveFormat {
+	case archiveFormatZIP:
+		if isZipFile(content) {
+			d.zipCache.Set(cacheKey, content)
+			logger.Debug().
+				Str("url", url).
+				Int("size", len(content)).
+				Msg("Cached ZIP download archive")
+		}
 		return content, "application/zip", nil
-	case archiveFormat == archiveFormatZIP:
-		return content, "application/zip", nil
-	case archiveFormat == archiveFormatRAR:
+	case archiveFormatRAR:
 		converter := d.rarToZip
 		if converter == nil {
 			converter = convertRarToZip
