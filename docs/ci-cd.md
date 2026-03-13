@@ -25,6 +25,8 @@ Prepares Copilot agent environment: Go 1.26, gopls, golangci-lint, dependency do
 
 ## Local Development
 
+Before creating any commit, always run `/run-lint` and resolve all reported issues.
+
 ```bash
 go mod download          # Install dependencies
 go test -race ./...      # Run tests with race detector
