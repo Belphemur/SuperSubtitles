@@ -29,8 +29,9 @@
 2. When since-ID > 0, pages are fetched sequentially until a subtitle at or below the since-ID is found
 3. When since-ID is 0, only the first page is fetched
 4. Filters by since-ID — only subtitles newer than the given ID are kept
-5. Groups by show, fetches detail pages for third-party IDs
-6. Streams a bundle per show (with partial failure resilience for detail pages)
+5. Groups by show while pages are processed
+6. Emits updated show bundles after each page for shows touched on that page
+7. Fetches detail pages for third-party IDs once per show and reuses cached IDs across updates
 
 ## Subtitle Download
 

@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"slices"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
 // StreamRecentSubtitles streams recently uploaded subtitles grouped by show as ShowSubtitles entries.
-// Each streamed item contains a show's info (with third-party IDs) and all its recent subtitles.
+// Each streamed item contains a show's info (with third-party IDs) and all collected recent subtitles so far.
+// A show can be emitted multiple times as additional pages add more subtitles.
 // ShowInfo is fetched once per unique show_id using an in-memory cache.
 //
 // When sinceID > 0, pages are fetched sequentially until a subtitle with ID <= sinceID is
@@ -32,45 +32,31 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			showName        string
 		}
 		showDataMap := make(map[int]*showData)
-		var showOrder []int
+		thirdPartyIDsByShow := make(map[int]models.ThirdPartyIds)
+		totalEmitted := 0
 
-		// addSubtitle accumulates a single subtitle into the show grouping.
-		// Returns true if the subtitle was at or below the sinceID boundary.
-		addSubtitle := func(subtitle models.Subtitle) (reachedBoundary bool) {
-			if subtitle.ID <= 0 {
-				logger.Error().
-					Str("showName", subtitle.ShowName).
-					Str("downloadURL", subtitle.DownloadURL).
-					Str("filename", subtitle.Filename).
-					Str("language", subtitle.Language).
-					Int("season", subtitle.Season).
-					Int("episode", subtitle.Episode).
-					Msg("Subtitle has invalid ID (HTML parsing failure); skipping row - check HTML structure and extractIDFromDownloadLink")
-				return false
+		buildShowSubtitles := func(showID int) models.ShowSubtitles {
+			sd := showDataMap[showID]
+			show := models.Show{ID: showID, Name: sd.showName}
+
+			if _, exists := thirdPartyIDsByShow[showID]; !exists {
+				if sd.firstValidSubID > 0 {
+					thirdPartyIDsByShow[showID] = c.fetchThirdPartyIds(ctx, show, sd.firstValidSubID)
+				} else {
+					logger.Warn().Int("showID", showID).Msg("No valid subtitle ID to fetch third-party IDs")
+					thirdPartyIDsByShow[showID] = models.ThirdPartyIds{}
+				}
 			}
 
-			if sinceID > 0 && subtitle.ID <= sinceID {
-				return true
+			return models.ShowSubtitles{
+				Show:          show,
+				ThirdPartyIds: thirdPartyIDsByShow[showID],
+				SubtitleCollection: models.SubtitleCollection{
+					ShowName:  sd.showName,
+					Subtitles: sd.subtitles,
+					Total:     len(sd.subtitles),
+				},
 			}
-
-			showID := subtitle.ShowID
-			if showID == 0 {
-				logger.Warn().Int("subtitleID", subtitle.ID).Str("showName", subtitle.ShowName).Msg("Skipping subtitle with missing show_id")
-				return false
-			}
-
-			sd, exists := showDataMap[showID]
-			if !exists {
-				sd = &showData{showName: subtitle.ShowName}
-				showDataMap[showID] = sd
-				showOrder = append(showOrder, showID)
-			}
-
-			if sd.firstValidSubID == 0 && subtitle.ID > 0 {
-				sd.firstValidSubID = subtitle.ID
-			}
-			sd.subtitles = append(sd.subtitles, subtitle)
-			return false
 		}
 
 		// Fetch pages sequentially until we reach the sinceID boundary
@@ -114,8 +100,57 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 				Int("subtitles", len(pageResult.Subtitles)).
 				Msg("Parsed subtitles from page")
 
-			if slices.ContainsFunc(pageResult.Subtitles, addSubtitle) {
-				reachedBoundary = true
+			pageShowOrder := make([]int, 0)
+			pageShowSeen := make(map[int]bool)
+			for _, subtitle := range pageResult.Subtitles {
+				if subtitle.ID <= 0 {
+					logger.Error().
+						Str("showName", subtitle.ShowName).
+						Str("downloadURL", subtitle.DownloadURL).
+						Str("filename", subtitle.Filename).
+						Str("language", subtitle.Language).
+						Int("season", subtitle.Season).
+						Int("episode", subtitle.Episode).
+						Msg("Subtitle has invalid ID (HTML parsing failure); skipping row - check HTML structure and extractIDFromDownloadLink")
+					continue
+				}
+
+				if sinceID > 0 && subtitle.ID <= sinceID {
+					reachedBoundary = true
+					break
+				}
+
+				showID := subtitle.ShowID
+				if showID == 0 {
+					logger.Warn().Int("subtitleID", subtitle.ID).Str("showName", subtitle.ShowName).Msg("Skipping subtitle with missing show_id")
+					continue
+				}
+
+				sd, exists := showDataMap[showID]
+				if !exists {
+					sd = &showData{showName: subtitle.ShowName}
+					showDataMap[showID] = sd
+				}
+
+				if sd.firstValidSubID == 0 {
+					sd.firstValidSubID = subtitle.ID
+				}
+				sd.subtitles = append(sd.subtitles, subtitle)
+
+				if !pageShowSeen[showID] {
+					pageShowSeen[showID] = true
+					pageShowOrder = append(pageShowOrder, showID)
+				}
+			}
+
+			for _, showID := range pageShowOrder {
+				showSubtitles := buildShowSubtitles(showID)
+				select {
+				case ch <- models.StreamResult[models.ShowSubtitles]{Value: showSubtitles}:
+					totalEmitted++
+				case <-ctx.Done():
+					return
+				}
 			}
 
 			// When sinceID is 0, only fetch the first page
@@ -131,41 +166,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 			}
 		}
 
-		// Stream each show's complete data
-		for _, showID := range showOrder {
-			sd := showDataMap[showID]
-
-			show := models.Show{
-				ID:   showID,
-				Name: sd.showName,
-			}
-
-			// Fetch third-party IDs using first valid subtitle ID
-			var thirdPartyIds models.ThirdPartyIds
-			if sd.firstValidSubID > 0 {
-				thirdPartyIds = c.fetchThirdPartyIds(ctx, show, sd.firstValidSubID)
-			} else {
-				logger.Warn().Int("showID", showID).Msg("No valid subtitle ID to fetch third-party IDs")
-			}
-
-			showSubtitles := models.ShowSubtitles{
-				Show:          show,
-				ThirdPartyIds: thirdPartyIds,
-				SubtitleCollection: models.SubtitleCollection{
-					ShowName:  sd.showName,
-					Subtitles: sd.subtitles,
-					Total:     len(sd.subtitles),
-				},
-			}
-
-			select {
-			case ch <- models.StreamResult[models.ShowSubtitles]{Value: showSubtitles}:
-			case <-ctx.Done():
-				return
-			}
-		}
-
-		logger.Info().Int("uniqueShows", len(showOrder)).Msg("Finished streaming recent subtitles")
+		logger.Info().Int("uniqueShows", len(showDataMap)).Int("emittedItems", totalEmitted).Msg("Finished streaming recent subtitles")
 	}()
 
 	return ch

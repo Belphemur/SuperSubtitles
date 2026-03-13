@@ -54,7 +54,7 @@
 
 ## Sequential Pagination for Recent Subtitles
 
-**Decision**: When `sinceID > 0`, `StreamRecentSubtitles` fetches pages sequentially using the `oldal=` parameter until a subtitle with ID ≤ sinceID is found. When `sinceID == 0`, only the first page is fetched.
+**Decision**: When `sinceID > 0`, `StreamRecentSubtitles` fetches pages sequentially using the `page=` parameter until a subtitle with ID ≤ sinceID is found. When `sinceID == 0`, only the first page is fetched.
 
 **Rationale**:
 
@@ -62,5 +62,6 @@
 - Sequential fetching (not parallel) is correct here because we don't know the total number of needed pages upfront — we stop as soon as we hit the boundary
 - `sinceID == 0` remains single-page to avoid accidentally crawling the entire site on the first call
 - Reuses `ParseHtmlWithPagination` already used by `StreamSubtitles`, keeping the parser surface consistent
+- Emits incremental updates after each parsed page so clients get faster time-to-first-result
 
-**Implementation**: `StreamRecentSubtitles` in `internal/client/recent_subtitles.go` loops page-by-page, calling `SubtitleParser.ParseHtmlWithPagination` on each response. An `addSubtitle` closure accumulates results and signals when the sinceID boundary is reached. The loop also respects `HasNextPage` from the parser to stop at the last page.
+**Implementation**: `StreamRecentSubtitles` in `internal/client/recent_subtitles.go` loops page-by-page, calling `SubtitleParser.ParseHtmlWithPagination` on each response. It keeps cumulative subtitles per show, emits updated snapshots for shows touched on the current page, caches third-party IDs per show, and stops at the sinceID boundary or when `HasNextPage` is false.
