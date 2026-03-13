@@ -41,7 +41,7 @@
 
 ## Show+Subtitles Streaming Bundle
 
-**Decision**: Stream complete show data (show info + all subtitles) as a single message per show, rather than interleaving individual items.
+**Decision**: Use show-scoped bundle messages — stream complete show data (show info + all known subtitles at emission time) as a single *bundle-shaped* message per show, rather than interleaving individual items. This decision is about message shape, not stream cardinality; a stream may emit multiple bundles for the same show in incremental scenarios.
 
 **Rationale**:
 
@@ -63,5 +63,6 @@
 - `sinceID == 0` remains single-page to avoid accidentally crawling the entire site on the first call
 - Reuses `ParseHtmlWithPagination` already used by `StreamSubtitles`, keeping the parser surface consistent
 - Emits incremental updates after each parsed page so clients get faster time-to-first-result
+- May emit multiple snapshots for the same show across pages; each snapshot is still a full show-scoped bundle, consistent with the bundle decision above.
 
 **Implementation**: `StreamRecentSubtitles` in `internal/client/recent_subtitles.go` loops page-by-page, calling `SubtitleParser.ParseHtmlWithPagination` on each response. It keeps cumulative subtitles per show, emits updated snapshots for shows touched on the current page, caches third-party IDs per show, and stops at the sinceID boundary or when `HasNextPage` is false.
