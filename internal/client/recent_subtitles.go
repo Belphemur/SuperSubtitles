@@ -9,13 +9,13 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
-// StreamRecentSubtitles streams recently uploaded subtitles grouped by show as ShowSubtitles entries.
-// Each streamed item contains a show's info (with third-party IDs) and all collected recent subtitles so far.
-// A show can be emitted multiple times as additional pages add more subtitles.
+// StreamRecentSubtitles streams recently uploaded subtitles, grouped by show as ShowSubtitles entries.
+// For each fetched page, subtitles are grouped by show and emitted in that page's encounter order.
+// A show can be emitted multiple times across pages as additional subtitles are discovered.
 // ShowInfo is fetched once per unique show_id using an in-memory cache.
 //
 // When sinceID > 0, pages are fetched sequentially until a subtitle with ID <= sinceID is
-// encountered, ensuring all newer subtitles are collected across multiple pages.
+// encountered, ensuring all newer subtitles from each page are collected.
 // When sinceID == 0, only the first page is fetched.
 func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
 	ch := make(chan models.StreamResult[models.ShowSubtitles])
@@ -25,7 +25,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		logger := config.GetLogger()
 		logger.Info().Int("sinceID", sinceID).Msg("Streaming recent subtitles from main page")
 
-		// Group subtitles by show, preserving encounter order across all pages
+		// Group subtitles by show; shows are emitted in encounter order within each page
 		type showData struct {
 			subtitles       []models.Subtitle
 			firstValidSubID int
