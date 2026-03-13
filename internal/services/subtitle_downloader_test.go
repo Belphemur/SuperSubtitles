@@ -1675,8 +1675,8 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 
 	downloader := NewSubtitleDownloader(server.Client())
 
-	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "zip")
-	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "zip")
+	missBeforeFirst := getCounterVecValue(cache.MissesTotal, "archive")
+	hitBeforeFirst := getCounterVecValue(cache.HitsTotal, "archive")
 
 	// First request — cache miss
 	_, err := downloader.DownloadSubtitle(
@@ -1688,7 +1688,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("First request failed: %v", err)
 	}
 
-	missAfterFirst := getCounterVecValue(cache.MissesTotal, "zip")
+	missAfterFirst := getCounterVecValue(cache.MissesTotal, "archive")
 	if missAfterFirst != missBeforeFirst+1 {
 		t.Errorf("Expected cache misses to increment by 1, got diff %.0f", missAfterFirst-missBeforeFirst)
 	}
@@ -1703,7 +1703,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 		t.Fatalf("Second request failed: %v", err)
 	}
 
-	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "zip")
+	hitAfterSecond := getCounterVecValue(cache.HitsTotal, "archive")
 	if hitAfterSecond != hitBeforeFirst+1 {
 		t.Errorf("Expected cache hits to increment by 1, got diff %.0f", hitAfterSecond-hitBeforeFirst)
 	}
@@ -1727,11 +1727,11 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("NewSubtitleDownloader returned %T, want *DefaultSubtitleDownloader", downloader)
 	}
 
-	if d.zipCache.Len() != 0 {
-		t.Fatalf("Expected 0 cache entries before download, got %d", d.zipCache.Len())
+	if d.archiveCache.Len() != 0 {
+		t.Fatalf("Expected 0 cache entries before download, got %d", d.archiveCache.Len())
 	}
-	if v := gatherCacheEntriesMetric("zip"); v != 0 {
-		t.Fatalf("Expected cache_entries{cache=\"zip\"} == 0 before download, got %.0f", v)
+	if v := gatherCacheEntriesMetric("archive"); v != 0 {
+		t.Fatalf("Expected cache_entries{cache=\"archive\"} == 0 before download, got %.0f", v)
 	}
 
 	_, err := downloader.DownloadSubtitle(
@@ -1743,11 +1743,11 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 		t.Fatalf("Download failed: %v", err)
 	}
 
-	if d.zipCache.Len() != 1 {
-		t.Errorf("Expected 1 cache entry after download, got %d", d.zipCache.Len())
+	if d.archiveCache.Len() != 1 {
+		t.Errorf("Expected 1 cache entry after download, got %d", d.archiveCache.Len())
 	}
-	if v := gatherCacheEntriesMetric("zip"); v != 1 {
-		t.Errorf("Expected cache_entries{cache=\"zip\"} == 1 after download, got %.0f", v)
+	if v := gatherCacheEntriesMetric("archive"); v != 1 {
+		t.Errorf("Expected cache_entries{cache=\"archive\"} == 1 after download, got %.0f", v)
 	}
 }
 

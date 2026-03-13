@@ -302,8 +302,8 @@ func TestDefaultSubtitleDownloader_Close(t *testing.T) {
 		}
 
 		d := &DefaultSubtitleDownloader{
-			httpClient: &http.Client{},
-			zipCache:   zipCache,
+			httpClient:   &http.Client{},
+			archiveCache: zipCache,
 		}
 
 		if err := d.Close(); err != nil {
@@ -314,8 +314,8 @@ func TestDefaultSubtitleDownloader_Close(t *testing.T) {
 	t.Run("close with nil cache", func(t *testing.T) {
 		t.Parallel()
 		d := &DefaultSubtitleDownloader{
-			httpClient: &http.Client{},
-			zipCache:   nil,
+			httpClient:   &http.Client{},
+			archiveCache: nil,
 		}
 
 		if err := d.Close(); err != nil {
