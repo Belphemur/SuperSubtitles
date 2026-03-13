@@ -20,7 +20,7 @@ var (
 	seasonPackRegex   = regexp.MustCompile(`\(Season\s+(\d+)\)`)
 	episodeRegex      = regexp.MustCompile(`(\d+)x(\d+)`)
 	episodeRangeRegex = regexp.MustCompile(`(\d+)x(\d+)\s*-\s*(\d+)`)
-	odalPageRegex     = regexp.MustCompile(`oldal=(\d+)`)
+	odalPageRegex     = regexp.MustCompile(`(?:oldal|page)=(\d+)`)
 	parenthesesRegex  = regexp.MustCompile(`\s*\([^)]*\)`)
 )
 
@@ -785,8 +785,8 @@ func (p *SubtitleParser) extractPaginationInfo(doc *goquery.Document) (currentPa
 			return
 		}
 
-		// Look for oldal parameter (page parameter in Hungarian)
-		if strings.Contains(href, "oldal=") {
+		// Look for oldal or page parameter
+		if strings.Contains(href, "oldal=") || strings.Contains(href, "page=") {
 			if matches := odalPageRegex.FindStringSubmatch(href); len(matches) > 1 {
 				pageNum, _ := strconv.Atoi(matches[1])
 				if pageNum > maxPage {
