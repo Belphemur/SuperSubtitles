@@ -12,6 +12,10 @@ import (
 // StreamRecentSubtitles streams recently uploaded subtitles grouped by show as ShowSubtitles entries.
 // Each streamed item contains a show's info (with third-party IDs) and all its recent subtitles.
 // ShowInfo is fetched once per unique show_id using an in-memory cache.
+//
+// When sinceID > 0, pages are fetched sequentially until a subtitle with ID <= sinceID is
+// encountered, ensuring all newer subtitles are collected across multiple pages.
+// When sinceID == 0, only the first page is fetched.
 func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan models.StreamResult[models.ShowSubtitles] {
 	ch := make(chan models.StreamResult[models.ShowSubtitles])
 
@@ -20,38 +24,7 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		logger := config.GetLogger()
 		logger.Info().Int("sinceID", sinceID).Msg("Streaming recent subtitles from main page")
 
-		// Fetch the main show page
-		endpoint := fmt.Sprintf("%s/index.php?tab=sorozat", c.baseURL)
-
-		req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
-		if err != nil {
-			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to create request: %w", err)})
-			return
-		}
-		req.Header.Set("User-Agent", config.GetUserAgent())
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to fetch main page: %w", err)})
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("main page returned status %d", resp.StatusCode)})
-			return
-		}
-
-		// Parse the HTML to extract subtitles
-		subtitles, err := c.subtitleParser.ParseHtml(resp.Body)
-		if err != nil {
-			sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to parse main page: %w", err)})
-			return
-		}
-
-		logger.Info().Int("totalSubtitles", len(subtitles)).Msg("Parsed subtitles from main page")
-
-		// Group subtitles by show, preserving encounter order
+		// Group subtitles by show, preserving encounter order across all pages
 		type showData struct {
 			subtitles       []models.Subtitle
 			firstValidSubID int
@@ -60,17 +33,17 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 		showDataMap := make(map[int]*showData)
 		var showOrder []int
 
-		for _, subtitle := range subtitles {
-			if sinceID != 0 && subtitle.ID <= sinceID {
-				continue
+		// addSubtitle accumulates a single subtitle into the show grouping.
+		// Returns true if the subtitle was at or below the sinceID boundary.
+		addSubtitle := func(subtitle models.Subtitle) (reachedBoundary bool) {
+			if sinceID > 0 && subtitle.ID <= sinceID {
+				return true
 			}
 
 			showID := subtitle.ShowID
-
-			// Skip subtitles without a valid show ID
 			if showID == 0 {
 				logger.Warn().Int("subtitleID", subtitle.ID).Str("showName", subtitle.ShowName).Msg("Skipping subtitle with missing show_id")
-				continue
+				return false
 			}
 
 			sd, exists := showDataMap[showID]
@@ -84,6 +57,66 @@ func (c *client) StreamRecentSubtitles(ctx context.Context, sinceID int) <-chan 
 				sd.firstValidSubID = subtitle.ID
 			}
 			sd.subtitles = append(sd.subtitles, subtitle)
+			return false
+		}
+
+		// Fetch pages sequentially until we reach the sinceID boundary
+		reachedBoundary := false
+		for page := 1; !reachedBoundary; page++ {
+			endpoint := fmt.Sprintf("%s/index.php?tab=sorozat", c.baseURL)
+			if page > 1 {
+				endpoint = fmt.Sprintf("%s&oldal=%d", endpoint, page)
+			}
+
+			req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+			if err != nil {
+				sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to create request for page %d: %w", page, err)})
+				return
+			}
+			req.Header.Set("User-Agent", config.GetUserAgent())
+
+			resp, err := c.httpClient.Do(req)
+			if err != nil {
+				sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to fetch page %d: %w", page, err)})
+				return
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				resp.Body.Close()
+				sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("page %d returned status %d", page, resp.StatusCode)})
+				return
+			}
+
+			pageResult, err := c.subtitleParser.ParseHtmlWithPagination(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				sendResult(ctx, ch, models.StreamResult[models.ShowSubtitles]{Err: fmt.Errorf("failed to parse page %d: %w", page, err)})
+				return
+			}
+
+			logger.Info().
+				Int("page", page).
+				Int("totalPages", pageResult.TotalPages).
+				Int("subtitles", len(pageResult.Subtitles)).
+				Msg("Parsed subtitles from page")
+
+			for _, subtitle := range pageResult.Subtitles {
+				if addSubtitle(subtitle) {
+					reachedBoundary = true
+				}
+			}
+
+			// When sinceID is 0, only fetch the first page
+			if sinceID == 0 || !pageResult.HasNextPage {
+				break
+			}
+
+			// Check for context cancellation between pages
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
 
 		// Stream each show's complete data
