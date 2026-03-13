@@ -38,7 +38,7 @@ func NewSubtitlesNotFoundError(showID int) *ErrNotFound {
 	}
 }
 
-// ErrSubtitleNotFoundInZip is returned when the requested episode subtitle is not found in a ZIP archive.
+// ErrSubtitleNotFoundInZip is returned when the requested episode subtitle is not found in a season-pack archive.
 type ErrSubtitleNotFoundInZip struct {
 	Episode   int
 	FileCount int
@@ -46,7 +46,7 @@ type ErrSubtitleNotFoundInZip struct {
 
 // Error implements the error interface.
 func (e *ErrSubtitleNotFoundInZip) Error() string {
-	return fmt.Sprintf("episode %d not found in season pack ZIP (searched %d files)", e.Episode, e.FileCount)
+	return fmt.Sprintf("episode %d not found in season pack archive (searched %d files)", e.Episode, e.FileCount)
 }
 
 // Is allows for error checking with errors.Is().

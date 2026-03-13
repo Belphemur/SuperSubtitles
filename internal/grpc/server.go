@@ -162,7 +162,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	if err != nil {
 		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
 		if errors.Is(err, &apperrors.ErrSubtitleNotFoundInZip{}) {
-			return nil, status.Errorf(codes.NotFound, "episode not found in subtitle ZIP archive: %v", err)
+			return nil, status.Errorf(codes.NotFound, "episode not found in subtitle archive: %v", err)
 		}
 		if errors.Is(err, &apperrors.ErrSubtitleResourceNotFound{}) {
 			return nil, status.Errorf(codes.NotFound, "subtitle not found: %v", err)

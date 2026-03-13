@@ -196,13 +196,13 @@ func TestErrSubtitleNotFoundInZip_Error(t *testing.T) {
 			name:      "typical values",
 			episode:   5,
 			fileCount: 12,
-			expected:  "episode 5 not found in season pack ZIP (searched 12 files)",
+			expected:  "episode 5 not found in season pack archive (searched 12 files)",
 		},
 		{
 			name:      "zero values",
 			episode:   0,
 			fileCount: 0,
-			expected:  "episode 0 not found in season pack ZIP (searched 0 files)",
+			expected:  "episode 0 not found in season pack archive (searched 0 files)",
 		},
 	}
 
