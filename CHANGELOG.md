@@ -1,3 +1,10 @@
+## [2.10.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.10.0...v2.10.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* **parser:** parse The Pitt episodes and log unexpected episode -1 ([#99](https://github.com/Belphemur/SuperSubtitles/issues/99)) ([60651af](https://github.com/Belphemur/SuperSubtitles/commit/60651afe428f8a40eb2f89aad48431187bf97482))
+
 # [2.10.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.9.3...v2.10.0) (2026-03-13)
 
 
