@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.10.2...v2.11.0) (2026-03-14)
+
+
+### Features
+
+* **sentry:** Add optional Sentry error reporting with zerolog breadcrumb/log writer ([#104](https://github.com/Belphemur/SuperSubtitles/issues/104)) ([396afb9](https://github.com/Belphemur/SuperSubtitles/commit/396afb97b2b3801a2c345308530eda87b84e651d))
+
 ## [2.10.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.10.1...v2.10.2) (2026-03-13)
 
 
