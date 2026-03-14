@@ -69,12 +69,8 @@ func init() {
 		logger.Fatal().Err(err).Msg("Failed to load config")
 	}
 
-	// Initialize Sentry early so the writer can be attached to the logger.
-	if err := initSentry(config); err != nil {
-		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
-	}
-
-	// Determine the base output writer from the log_format setting.
+	// Determine the base output writer from the log_format setting before
+	// initializing Sentry so that Sentry-init logs already use the correct format.
 	var baseWriter io.Writer
 	switch config.LogFormat {
 	case "json":
@@ -84,13 +80,6 @@ func init() {
 	default:
 		logger.Warn().Str("invalid_format", config.LogFormat).Msg("Invalid log format, using default 'console'")
 		baseWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}
-	}
-
-	// When Sentry is enabled, wrap the writer so log events are automatically
-	// recorded as Sentry breadcrumbs and structured logs.
-	writer := io.Writer(baseWriter)
-	if sentryio.Enabled() {
-		writer = zerolog.MultiLevelWriter(baseWriter, sentryio.NewWriter())
 	}
 
 	// Parse and set log level from config
@@ -106,8 +95,22 @@ func init() {
 	// Set the global log level
 	zerolog.SetGlobalLevel(level)
 
-	// Create the final logger with sentry writer attached.
-	logger = zerolog.New(writer).With().Timestamp().Logger().Level(level)
+	// Rebuild the logger with the configured format and level so that
+	// Sentry-init messages (below) are already using the right writer.
+	logger = zerolog.New(baseWriter).With().Timestamp().Logger().Level(level)
+
+	// Initialize Sentry after the logger is configured so any warnings or
+	// info messages emitted during init use the correct log format/level.
+	if err := initSentry(config); err != nil {
+		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
+	}
+
+	// When Sentry is enabled, wrap the writer so log events are automatically
+	// recorded as Sentry breadcrumbs and structured logs.
+	if sentryio.Enabled() {
+		writer := zerolog.MultiLevelWriter(baseWriter, sentryio.NewWriter())
+		logger = zerolog.New(writer).With().Timestamp().Logger().Level(level)
+	}
 
 	logger.Info().Str("level", level.String()).Msg("Logging configured")
 	globalConfig = config

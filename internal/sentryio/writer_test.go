@@ -23,6 +23,7 @@ func TestSentryWriter_AddsBreadcrumbOnError(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	logger := zerolog.New(writer)
 
 	// Emit an error log — it should create a breadcrumb.
@@ -72,6 +73,7 @@ func TestSentryWriter_AddsBreadcrumbOnInfo(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	logger := zerolog.New(writer)
 
 	// Info-level logs should also produce breadcrumbs.
@@ -109,6 +111,7 @@ func TestSentryWriter_MultipleBreadcrumbsAccumulate(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	logger := zerolog.New(writer)
 
 	logger.Info().Msg("step 1")
@@ -134,6 +137,7 @@ func TestSentryWriter_DisabledReporterDoesNotCapture(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	logger := zerolog.New(writer)
 
 	// Should not panic or capture anything.
@@ -154,6 +158,7 @@ func TestSentryWriter_NumericFieldsInBreadcrumb(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	logger := zerolog.New(writer)
 
 	logger.Error().
@@ -190,6 +195,7 @@ func TestSentryWriter_InvalidJSONDoesNotPanic(t *testing.T) {
 	}
 
 	writer := &SentryWriter{reporter: reporter}
+	writer.initLogger()
 	n, writeErr := writer.WriteLevel(zerolog.ErrorLevel, []byte("not valid json"))
 	if writeErr != nil {
 		t.Fatalf("WriteLevel error = %v", writeErr)

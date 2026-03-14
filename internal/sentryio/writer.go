@@ -24,11 +24,16 @@ import (
 type SentryWriter struct {
 	// reporter overrides the package-level global when non-nil.
 	reporter *Reporter
+	// sentryCtx and sentryLogger are cached to avoid per-event allocation.
+	sentryCtx    context.Context
+	sentryLogger sentry.Logger
 }
 
 // NewWriter creates a SentryWriter backed by the package-level global Reporter.
 func NewWriter() *SentryWriter {
-	return &SentryWriter{}
+	w := &SentryWriter{}
+	w.initLogger()
+	return w
 }
 
 // Write implements io.Writer. It is a no-op fallback; zerolog uses WriteLevel
@@ -74,10 +79,8 @@ func (w *SentryWriter) WriteLevel(level zerolog.Level, p []byte) (n int, err err
 		Timestamp: time.Now(),
 	}, nil)
 
-	// Forward as a structured Sentry log entry.
-	ctx := sentry.SetHubOnContext(context.Background(), r.hub)
-	sentryLogger := sentry.NewLogger(ctx)
-	emitSentryLog(sentryLogger, level, msg, data)
+	// Forward as a structured Sentry log entry using the cached logger.
+	emitSentryLog(w.sentryLogger, level, msg, data)
 
 	return len(p), nil
 }
@@ -89,6 +92,16 @@ func (w *SentryWriter) getReporter() *Reporter {
 		return w.reporter
 	}
 	return globalReporter
+}
+
+// initLogger caches a sentry.Logger so WriteLevel doesn't allocate one per call.
+func (w *SentryWriter) initLogger() {
+	r := w.getReporter()
+	if !r.Enabled() {
+		return
+	}
+	w.sentryCtx = sentry.SetHubOnContext(context.Background(), r.hub)
+	w.sentryLogger = sentry.NewLogger(w.sentryCtx)
 }
 
 // parseLogJSON unmarshals the zerolog JSON payload into a generic field map.

@@ -80,8 +80,9 @@ func main() {
 			logger.Info().Str("address", metricsServer.Addr).Msg("Starting Prometheus metrics HTTP server")
 			if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				sentryio.CaptureException(err, nil)
+				logger.Error().Err(err).Msg("Failed to serve metrics")
 				config.FlushSentry()
-				logger.Fatal().Err(err).Msg("Failed to serve metrics")
+				os.Exit(1)
 			}
 		}()
 		defer func() {
@@ -98,8 +99,9 @@ func main() {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		sentryio.CaptureException(err, nil)
+		logger.Error().Err(err).Str("address", address).Msg("Failed to create listener")
 		config.FlushSentry()
-		logger.Fatal().Err(err).Str("address", address).Msg("Failed to create listener")
+		os.Exit(1)
 	}
 
 	logger.Info().Str("address", address).Msg("Starting gRPC server")
@@ -117,8 +119,9 @@ func main() {
 	// Start serving
 	if err := grpcServer.Serve(listener); err != nil {
 		sentryio.CaptureException(err, nil)
+		logger.Error().Err(err).Msg("Failed to serve gRPC")
 		config.FlushSentry()
-		logger.Fatal().Err(err).Msg("Failed to serve gRPC")
+		os.Exit(1)
 	}
 
 	logger.Info().Msg("Server stopped gracefully")
