@@ -18,6 +18,11 @@ cache:
 metrics:
   enabled: true
   port: 9090
+sentry:
+  dsn: ""
+  environment: ""
+  debug: false
+  flush_timeout: "2s"
 retry:
   max_attempts: 3      # Total attempts including the initial try (1 = no retry)
   initial_delay: "1s"  # Delay before the first retry (exponential back-off base)

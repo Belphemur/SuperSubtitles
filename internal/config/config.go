@@ -3,7 +3,9 @@ package config
 import (
 	"os"
 	"strings"
+	"time"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/sentryio"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -36,6 +38,12 @@ type Config struct {
 		Enabled bool `mapstructure:"enabled"` // Whether to expose Prometheus metrics
 		Port    int  `mapstructure:"port"`    // Port for the metrics HTTP server
 	} `mapstructure:"metrics"`
+	Sentry struct {
+		DSN          string `mapstructure:"dsn"`           // Sentry DSN; empty disables Sentry reporting
+		Environment  string `mapstructure:"environment"`   // Optional Sentry environment override
+		Debug        bool   `mapstructure:"debug"`         // Enable sentry-go debug logging
+		FlushTimeout string `mapstructure:"flush_timeout"` // Flush timeout during shutdown, e.g. "2s"
+	} `mapstructure:"sentry"`
 	Retry struct {
 		MaxAttempts  int    `mapstructure:"max_attempts"`  // Total attempts including the initial try (0 uses default of 3)
 		InitialDelay string `mapstructure:"initial_delay"` // Delay before the first retry, e.g. "500ms", "1s" (empty = no delay)
@@ -88,6 +96,9 @@ func init() {
 
 	logger.Info().Str("level", level.String()).Msg("Logging configured")
 	globalConfig = config
+	if err := initSentry(config); err != nil {
+		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
+	}
 	logger.Info().Msg("Configuration loaded successfully")
 }
 
@@ -139,4 +150,41 @@ func GetUserAgent() string {
 
 func GetLogger() zerolog.Logger {
 	return logger
+}
+
+// FlushSentry flushes any queued Sentry events before shutdown.
+func FlushSentry() bool {
+	return sentryio.Flush()
+}
+
+func initSentry(cfg *Config) error {
+	flushTimeout := 2 * time.Second
+	if cfg.Sentry.FlushTimeout != "" {
+		parsedTimeout, err := time.ParseDuration(cfg.Sentry.FlushTimeout)
+		if err != nil {
+			return err
+		}
+		flushTimeout = parsedTimeout
+	}
+
+	reporter, err := sentryio.New(sentryio.Config{
+		DSN:          cfg.Sentry.DSN,
+		Environment:  cfg.Sentry.Environment,
+		Debug:        cfg.Sentry.Debug,
+		FlushTimeout: flushTimeout,
+	})
+	if err != nil {
+		return err
+	}
+
+	sentryio.SetGlobal(reporter)
+
+	if reporter.Enabled() {
+		logger.Info().
+			Str("environment", cfg.Sentry.Environment).
+			Str("flush_timeout", flushTimeout.String()).
+			Msg("Sentry reporting enabled")
+	}
+
+	return nil
 }

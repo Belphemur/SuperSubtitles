@@ -15,11 +15,13 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	grpcserver "github.com/Belphemur/SuperSubtitles/v2/internal/grpc"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/sentryio"
 )
 
 func main() {
 	cfg := config.GetConfig()
 	logger := config.GetLogger()
+	defer config.FlushSentry()
 
 	// Log application configuration at startup
 	logEvent := logger.Info().
@@ -77,6 +79,8 @@ func main() {
 		go func() {
 			logger.Info().Str("address", metricsServer.Addr).Msg("Starting Prometheus metrics HTTP server")
 			if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				sentryio.CaptureException(err, nil)
+				config.FlushSentry()
 				logger.Fatal().Err(err).Msg("Failed to serve metrics")
 			}
 		}()
@@ -93,6 +97,8 @@ func main() {
 	address := fmt.Sprintf("%s:%d", cfg.Server.Address, cfg.Server.Port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
+		sentryio.CaptureException(err, nil)
+		config.FlushSentry()
 		logger.Fatal().Err(err).Str("address", address).Msg("Failed to create listener")
 	}
 
@@ -110,6 +116,8 @@ func main() {
 
 	// Start serving
 	if err := grpcServer.Serve(listener); err != nil {
+		sentryio.CaptureException(err, nil)
+		config.FlushSentry()
 		logger.Fatal().Err(err).Msg("Failed to serve gRPC")
 	}
 
