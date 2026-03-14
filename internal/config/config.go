@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -68,14 +69,28 @@ func init() {
 		logger.Fatal().Err(err).Msg("Failed to load config")
 	}
 
-	// Configure the log writer based on log_format setting
+	// Initialize Sentry early so the writer can be attached to the logger.
+	if err := initSentry(config); err != nil {
+		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
+	}
+
+	// Determine the base output writer from the log_format setting.
+	var baseWriter io.Writer
 	switch config.LogFormat {
 	case "json":
-		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+		baseWriter = os.Stdout
 	case "console", "":
-		// already initialized above; nothing to do
+		baseWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}
 	default:
 		logger.Warn().Str("invalid_format", config.LogFormat).Msg("Invalid log format, using default 'console'")
+		baseWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}
+	}
+
+	// When Sentry is enabled, wrap the writer so log events are automatically
+	// recorded as Sentry breadcrumbs and structured logs.
+	writer := io.Writer(baseWriter)
+	if sentryio.Enabled() {
+		writer = zerolog.MultiLevelWriter(baseWriter, sentryio.NewWriter())
 	}
 
 	// Parse and set log level from config
@@ -91,14 +106,11 @@ func init() {
 	// Set the global log level
 	zerolog.SetGlobalLevel(level)
 
-	// Update logger with the configured level
-	logger = logger.Level(level)
+	// Create the final logger with sentry writer attached.
+	logger = zerolog.New(writer).With().Timestamp().Logger().Level(level)
 
 	logger.Info().Str("level", level.String()).Msg("Logging configured")
 	globalConfig = config
-	if err := initSentry(config); err != nil {
-		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
-	}
 	logger.Info().Msg("Configuration loaded successfully")
 }
 

@@ -46,6 +46,7 @@ func New(cfg Config) (*Reporter, error) {
 		Environment:      cfg.Environment,
 		Debug:            cfg.Debug,
 		AttachStacktrace: true,
+		EnableLogs:       true,
 	}
 	if cfg.Transport != nil {
 		clientOptions.Transport = cfg.Transport
