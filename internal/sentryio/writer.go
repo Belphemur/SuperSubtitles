@@ -70,13 +70,19 @@ func (w *SentryWriter) WriteLevel(level zerolog.Level, p []byte) (n int, err err
 	}
 
 	// Record a breadcrumb so the log entry appears in the next captured event.
+	timestamp := time.Now() // Fallback
+	if tsStr, ok := fields[zerolog.TimestampFieldName].(string); ok {
+		if ts, err := time.Parse(zerolog.TimeFieldFormat, tsStr); err == nil {
+			timestamp = ts
+		}
+	}
 	r.hub.AddBreadcrumb(&sentry.Breadcrumb{
 		Type:      "default",
 		Category:  "log",
 		Message:   msg,
 		Data:      data,
 		Level:     mapBreadcrumbLevel(level),
-		Timestamp: time.Now(),
+		Timestamp: timestamp,
 	}, nil)
 
 	// Forward as a structured Sentry log entry using the cached logger.
