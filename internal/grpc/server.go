@@ -101,7 +101,7 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 		if result.Err != nil {
 			if count == 0 {
 				reportGRPCError("GetShowSubtitles", result.Err, map[string]any{"show_count": len(req.Shows)})
-				s.logger.Error().Err(result.Err).Msg("Failed to get show subtitles")
+				s.logger.Error().Err(result.Err).Int("show_count", len(req.Shows)).Msg("Failed to get show subtitles")
 				return status.Errorf(codes.Internal, "failed to get show subtitles: %v", result.Err)
 			}
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming show subtitles")
@@ -162,11 +162,13 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, episode)
 	if err != nil {
 		contextFields := map[string]any{"subtitle_id": req.SubtitleId}
+		logEvent := s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId)
 		if req.Episode != nil {
 			contextFields["episode"] = *req.Episode
+			logEvent = logEvent.Int32("episode", *req.Episode)
 		}
 		reportGRPCError("DownloadSubtitle", err, contextFields)
-		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
+		logEvent.Msg("Failed to download subtitle")
 		return nil, toStatusError("failed to download subtitle", err)
 	}
 

@@ -1,6 +1,7 @@
 package sentryio
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -118,5 +119,8 @@ func (r *Reporter) Flush() bool {
 }
 
 func shouldReport(err error) bool {
-	return err != nil && !errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{})
+	return err != nil &&
+		!errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) &&
+		!errors.Is(err, context.Canceled) &&
+		!errors.Is(err, context.DeadlineExceeded)
 }

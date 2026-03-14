@@ -91,6 +91,64 @@ func TestReporterCaptureException_SendsEvent(t *testing.T) {
 	}
 }
 
+func TestReporterCaptureException_FiltersContextCanceled(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{}
+	reporter, err := New(Config{
+		DSN:          testDSN,
+		FlushTimeout: time.Second,
+		Transport:    transport,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Direct context.Canceled
+	if reporter.CaptureException(context.Canceled, nil) {
+		t.Fatal("CaptureException(context.Canceled) = true, want false")
+	}
+
+	// Wrapped context.Canceled
+	wrapped := fmt.Errorf("download interrupted: %w", context.Canceled)
+	if reporter.CaptureException(wrapped, nil) {
+		t.Fatal("CaptureException(wrapped context.Canceled) = true, want false")
+	}
+
+	if len(transport.events) != 0 {
+		t.Fatalf("event count = %d, want 0", len(transport.events))
+	}
+}
+
+func TestReporterCaptureException_FiltersContextDeadlineExceeded(t *testing.T) {
+	t.Parallel()
+
+	transport := &recordingTransport{}
+	reporter, err := New(Config{
+		DSN:          testDSN,
+		FlushTimeout: time.Second,
+		Transport:    transport,
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Direct context.DeadlineExceeded
+	if reporter.CaptureException(context.DeadlineExceeded, nil) {
+		t.Fatal("CaptureException(context.DeadlineExceeded) = true, want false")
+	}
+
+	// Wrapped context.DeadlineExceeded
+	wrapped := fmt.Errorf("request timed out: %w", context.DeadlineExceeded)
+	if reporter.CaptureException(wrapped, nil) {
+		t.Fatal("CaptureException(wrapped context.DeadlineExceeded) = true, want false")
+	}
+
+	if len(transport.events) != 0 {
+		t.Fatalf("event count = %d, want 0", len(transport.events))
+	}
+}
+
 func TestReporterCaptureException_FiltersArchiveNotFound(t *testing.T) {
 	t.Parallel()
 

@@ -162,9 +162,14 @@ func initSentry(cfg *Config) error {
 	if cfg.Sentry.FlushTimeout != "" {
 		parsedTimeout, err := time.ParseDuration(cfg.Sentry.FlushTimeout)
 		if err != nil {
-			return err
+			logger.Warn().
+				Err(err).
+				Str("sentry.flush_timeout", cfg.Sentry.FlushTimeout).
+				Dur("fallback", flushTimeout).
+				Msg("Invalid sentry.flush_timeout value, falling back to default")
+		} else {
+			flushTimeout = parsedTimeout
 		}
-		flushTimeout = parsedTimeout
 	}
 
 	reporter, err := sentryio.New(sentryio.Config{
