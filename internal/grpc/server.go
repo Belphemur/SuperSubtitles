@@ -7,6 +7,8 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/sentryio"
+	"github.com/getsentry/sentry-go"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,6 +39,7 @@ func (s *server) GetShowList(req *pb.GetShowListRequest, stream grpc.ServerStrea
 		if result.Err != nil {
 			if count == 0 {
 				// No shows sent yet — return an error
+				reportGRPCError("GetShowList", result.Err, nil)
 				s.logger.Error().Err(result.Err).Msg("Failed to get show list")
 				return status.Errorf(codes.Internal, "failed to get show list: %v", result.Err)
 			}
@@ -61,6 +64,7 @@ func (s *server) GetSubtitles(req *pb.GetSubtitlesRequest, stream grpc.ServerStr
 	count := 0
 	for result := range s.client.StreamSubtitles(stream.Context(), int(req.ShowId)) {
 		if result.Err != nil {
+			reportGRPCError("GetSubtitles", result.Err, map[string]any{"show_id": req.ShowId})
 			s.logger.Error().Err(result.Err).Int64("show_id", req.ShowId).Msg("Failed to get subtitles")
 			return toStatusError("failed to get subtitles", result.Err)
 		}
@@ -96,7 +100,8 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 	for result := range s.client.StreamShowSubtitles(stream.Context(), shows) {
 		if result.Err != nil {
 			if count == 0 {
-				s.logger.Error().Err(result.Err).Msg("Failed to get show subtitles")
+				reportGRPCError("GetShowSubtitles", result.Err, map[string]any{"show_count": len(req.Shows)})
+				s.logger.Error().Err(result.Err).Int("show_count", len(req.Shows)).Msg("Failed to get show subtitles")
 				return status.Errorf(codes.Internal, "failed to get show subtitles: %v", result.Err)
 			}
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming show subtitles")
@@ -119,6 +124,7 @@ func (s *server) CheckForUpdates(ctx context.Context, req *pb.CheckForUpdatesReq
 
 	result, err := s.client.CheckForUpdates(ctx, req.ContentId)
 	if err != nil {
+		reportGRPCError("CheckForUpdates", err, map[string]any{"content_id": req.ContentId})
 		s.logger.Error().Err(err).Int64("content_id", req.ContentId).Msg("Failed to check for updates")
 		return nil, status.Errorf(codes.Internal, "failed to check for updates: %v", err)
 	}
@@ -155,7 +161,14 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 
 	result, err := s.client.DownloadSubtitle(ctx, req.SubtitleId, episode)
 	if err != nil {
-		s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId).Msg("Failed to download subtitle")
+		contextFields := map[string]any{"subtitle_id": req.SubtitleId}
+		logEvent := s.logger.Error().Err(err).Str("subtitle_id", req.SubtitleId)
+		if req.Episode != nil {
+			contextFields["episode"] = *req.Episode
+			logEvent = logEvent.Int32("episode", *req.Episode)
+		}
+		reportGRPCError("DownloadSubtitle", err, contextFields)
+		logEvent.Msg("Failed to download subtitle")
 		return nil, toStatusError("failed to download subtitle", err)
 	}
 
@@ -181,6 +194,7 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 		if result.Err != nil {
 			if count == 0 {
 				// No items sent yet — return error to client
+				reportGRPCError("GetRecentSubtitles", result.Err, map[string]any{"since_id": req.SinceId})
 				s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
 				return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
 			}
@@ -198,4 +212,13 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 
 	s.logger.Debug().Int64("since_id", req.SinceId).Int("count", count).Msg("GetRecentSubtitles completed")
 	return nil
+}
+
+func reportGRPCError(method string, err error, requestContext map[string]any) {
+	sentryio.CaptureException(err, func(scope *sentry.Scope) {
+		scope.SetTag("grpc.method", method)
+		if requestContext != nil {
+			scope.SetContext("request", requestContext)
+		}
+	})
 }

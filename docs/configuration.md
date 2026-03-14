@@ -22,6 +22,10 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `cache.redis.db`          | Redis/Valkey database number          | `0`                                                                                | `APP_CACHE_REDIS_DB`           |
 | `metrics.enabled`         | Enable Prometheus metrics endpoint    | `true`                                                                             | `APP_METRICS_ENABLED`          |
 | `metrics.port`            | Port for the metrics HTTP server      | `9090`                                                                             | `APP_METRICS_PORT`             |
+| `sentry.dsn`              | Sentry DSN; empty disables reporting  | `""`                                                                               | `APP_SENTRY_DSN`               |
+| `sentry.environment`      | Sentry environment override           | `""`                                                                               | `APP_SENTRY_ENVIRONMENT`       |
+| `sentry.debug`            | Enable sentry-go debug logging        | `false`                                                                            | `APP_SENTRY_DEBUG`             |
+| `sentry.flush_timeout`    | Shutdown flush timeout (Go duration)  | `2s`                                                                               | `APP_SENTRY_FLUSH_TIMEOUT`     |
 | `retry.max_attempts`      | Total HTTP attempts per request (1 = no retry, 0 uses default 3) | `3`                                                                   | `APP_RETRY_MAX_ATTEMPTS`       |
 | `retry.initial_delay`     | Delay before the first retry (exponential back-off base, empty = no delay) | `1s`                                                           | `APP_RETRY_INITIAL_DELAY`      |
 | `retry.max_delay`         | Maximum back-off delay cap (empty = use initial_delay as cap) | `10s`                                                                 | `APP_RETRY_MAX_DELAY`          |
@@ -52,6 +56,12 @@ cache:
 metrics:
   enabled: true
   port: 9090
+
+sentry:
+  dsn: ""
+  environment: ""
+  debug: false
+  flush_timeout: "2s"
 
 retry:
   max_attempts: 3      # Total attempts including the initial try (1 = no retry)

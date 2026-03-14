@@ -39,3 +39,15 @@
 - Separate cache entries keep no-episode normalization from altering later episode lookups on the same upstream URL
 
 **Implementation**: `internal/services/subtitle_downloader_impl.go` detects archive type from both MIME metadata and file signatures. Whole-download requests use a normalized-download cache entry that stores ZIP files as-is and stores RAR files after conversion through `github.com/nwaples/rardecode/v2`. Episode requests use a separate cache entry for the original archive bytes, then extract from ZIP via the existing ZIP flow or from RAR via direct RAR traversal and filename matching.
+
+## Optional Sentry Error Reporting
+
+**Decision**: Keep Sentry reporting optional and only capture top-level server exceptions, excluding expected “episode not found in archive” failures.
+
+**Rationale**:
+
+- Sentry should provide stack-bearing exception events without becoming a hard runtime dependency
+- Top-level capture avoids duplicating every internal log line while still surfacing request failures and fatal server errors
+- Expected archive miss cases are part of normal subtitle lookup behavior and would create noise in error reporting
+
+**Implementation**: `internal/config/config.go` maps optional `sentry.*` settings and initializes the official `github.com/getsentry/sentry-go` SDK when a DSN is configured. `internal/sentryio/reporter.go` owns filtering and flushing. `internal/grpc/server.go` reports request-level failures with gRPC method/request context, while `cmd/proxy/main.go` reports fatal startup and serve errors before process exit. Log-level Sentry integration (breadcrumbs and structured logs) is covered in the [logging design decisions](logging.md).

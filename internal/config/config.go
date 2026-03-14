@@ -1,9 +1,12 @@
 package config
 
 import (
+	"io"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/sentryio"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -36,6 +39,12 @@ type Config struct {
 		Enabled bool `mapstructure:"enabled"` // Whether to expose Prometheus metrics
 		Port    int  `mapstructure:"port"`    // Port for the metrics HTTP server
 	} `mapstructure:"metrics"`
+	Sentry struct {
+		DSN          string `mapstructure:"dsn"`           // Sentry DSN; empty disables Sentry reporting
+		Environment  string `mapstructure:"environment"`   // Optional Sentry environment override
+		Debug        bool   `mapstructure:"debug"`         // Enable sentry-go debug logging
+		FlushTimeout string `mapstructure:"flush_timeout"` // Flush timeout during shutdown, e.g. "2s"
+	} `mapstructure:"sentry"`
 	Retry struct {
 		MaxAttempts  int    `mapstructure:"max_attempts"`  // Total attempts including the initial try (0 uses default of 3)
 		InitialDelay string `mapstructure:"initial_delay"` // Delay before the first retry, e.g. "500ms", "1s" (empty = no delay)
@@ -60,14 +69,17 @@ func init() {
 		logger.Fatal().Err(err).Msg("Failed to load config")
 	}
 
-	// Configure the log writer based on log_format setting
+	// Determine the base output writer from the log_format setting before
+	// initializing Sentry so that Sentry-init logs already use the correct format.
+	var baseWriter io.Writer
 	switch config.LogFormat {
 	case "json":
-		logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+		baseWriter = os.Stdout
 	case "console", "":
-		// already initialized above; nothing to do
+		baseWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}
 	default:
 		logger.Warn().Str("invalid_format", config.LogFormat).Msg("Invalid log format, using default 'console'")
+		baseWriter = zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}
 	}
 
 	// Parse and set log level from config
@@ -83,8 +95,22 @@ func init() {
 	// Set the global log level
 	zerolog.SetGlobalLevel(level)
 
-	// Update logger with the configured level
-	logger = logger.Level(level)
+	// Rebuild the logger with the configured format and level so that
+	// Sentry-init messages (below) are already using the right writer.
+	logger = zerolog.New(baseWriter).With().Timestamp().Logger().Level(level)
+
+	// Initialize Sentry after the logger is configured so any warnings or
+	// info messages emitted during init use the correct log format/level.
+	if err := initSentry(config); err != nil {
+		logger.Warn().Err(err).Msg("Failed to initialize Sentry, continuing without it")
+	}
+
+	// When Sentry is enabled, wrap the writer so log events are automatically
+	// recorded as Sentry breadcrumbs and structured logs.
+	if sentryio.Enabled() {
+		writer := zerolog.MultiLevelWriter(baseWriter, sentryio.NewWriter())
+		logger = zerolog.New(writer).With().Timestamp().Logger().Level(level)
+	}
 
 	logger.Info().Str("level", level.String()).Msg("Logging configured")
 	globalConfig = config
@@ -139,4 +165,46 @@ func GetUserAgent() string {
 
 func GetLogger() zerolog.Logger {
 	return logger
+}
+
+// FlushSentry flushes any queued Sentry events before shutdown.
+func FlushSentry() bool {
+	return sentryio.Flush()
+}
+
+func initSentry(cfg *Config) error {
+	flushTimeout := 2 * time.Second
+	if cfg.Sentry.FlushTimeout != "" {
+		parsedTimeout, err := time.ParseDuration(cfg.Sentry.FlushTimeout)
+		if err != nil {
+			logger.Warn().
+				Err(err).
+				Str("sentry.flush_timeout", cfg.Sentry.FlushTimeout).
+				Dur("fallback", flushTimeout).
+				Msg("Invalid sentry.flush_timeout value, falling back to default")
+		} else {
+			flushTimeout = parsedTimeout
+		}
+	}
+
+	reporter, err := sentryio.New(sentryio.Config{
+		DSN:          cfg.Sentry.DSN,
+		Environment:  cfg.Sentry.Environment,
+		Debug:        cfg.Sentry.Debug,
+		FlushTimeout: flushTimeout,
+	})
+	if err != nil {
+		return err
+	}
+
+	sentryio.SetGlobal(reporter)
+
+	if reporter.Enabled() {
+		logger.Info().
+			Str("environment", cfg.Sentry.Environment).
+			Str("flush_timeout", flushTimeout.String()).
+			Msg("Sentry reporting enabled")
+	}
+
+	return nil
 }

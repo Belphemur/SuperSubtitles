@@ -15,6 +15,7 @@ internal/
   cache/            → Pluggable caching abstraction
   metrics/          → Prometheus instrumentation
   config/           → Configuration and logging
+  sentryio/         → Sentry integration (error reporting, log breadcrumbs)
   apperrors/        → Application error types
   testutil/         → Test utilities (fixtures, helpers)
 api/proto/v1/       → Proto definitions and generated code
@@ -50,6 +51,7 @@ grpc/            ← API layer: streams results to clients
 | Parsing | Generic parser interfaces; normalization in parser; UTF-8 safety | Type safety, single-pass transform, encoding resilience | [parsing](./design-decisions/parsing.md) |
 | Cache | Pluggable factory (memory/Redis); metrics with group label | Backend flexibility, transparent instrumentation | [cache](./design-decisions/cache.md) |
 | Infrastructure | Standard gRPC health protocol; custom error types | Industry-standard tooling, proper error propagation | [infrastructure](./design-decisions/infrastructure.md) |
+| Logging | Zerolog writer forwards breadcrumbs and structured logs to Sentry | Passive context without per-site Sentry calls | [logging](./design-decisions/logging.md) |
 | Testing | Programmatic HTML fixtures | One generator to update, not dozens of HTML strings | [testing](./design-decisions/testing.md) |
 
 ## Documentation
