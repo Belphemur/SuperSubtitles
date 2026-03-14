@@ -80,7 +80,9 @@ func (w *SentryWriter) WriteLevel(level zerolog.Level, p []byte) (n int, err err
 	}, nil)
 
 	// Forward as a structured Sentry log entry using the cached logger.
-	emitSentryLog(w.sentryLogger, level, msg, data)
+	if w.sentryLogger != nil {
+		emitSentryLog(w.sentryLogger, level, msg, data)
+	}
 
 	return len(p), nil
 }
