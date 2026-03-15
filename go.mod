@@ -3,7 +3,7 @@ module github.com/Belphemur/SuperSubtitles/v2
 go 1.26
 
 require (
-	github.com/PuerkitoBio/goquery v1.11.0
+	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/andybalholm/brotli v1.2.0
 	github.com/failsafe-go/failsafe-go v0.9.6
 	github.com/getsentry/sentry-go v0.43.0
