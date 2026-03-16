@@ -18,6 +18,7 @@ type Config struct {
 	Environment  string
 	Debug        bool
 	FlushTimeout time.Duration
+	EnableLogs   bool // Forward structured logs to Sentry alongside breadcrumbs
 	Transport    sentry.Transport
 }
 
@@ -46,7 +47,7 @@ func New(cfg Config) (*Reporter, error) {
 		Environment:      cfg.Environment,
 		Debug:            cfg.Debug,
 		AttachStacktrace: true,
-		EnableLogs:       true,
+		EnableLogs:       cfg.EnableLogs,
 	}
 	if cfg.Transport != nil {
 		clientOptions.Transport = cfg.Transport
