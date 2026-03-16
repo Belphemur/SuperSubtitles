@@ -9,9 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -68,19 +65,7 @@ func buildDownloadURL(baseURL, subtitleID string) string {
 
 func readRARFixture(t *testing.T) []byte {
 	t.Helper()
-
-	_, currentFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("failed to resolve current test file path")
-	}
-
-	fixturePath := filepath.Join(filepath.Dir(currentFile), "..", "..", ".tests-files", "Renegade.S01.WEB-DL.H.264-JiTB.eng.rar")
-	content, err := os.ReadFile(fixturePath)
-	if err != nil {
-		t.Fatalf("failed to read RAR fixture %s: %v", fixturePath, err)
-	}
-
-	return content
+	return readRARFixtureByName(t, "Renegade.S01.WEB-DL.H.264-JiTB.eng.rar")
 }
 
 func TestDownloadSubtitle_NonZipFile(t *testing.T) {

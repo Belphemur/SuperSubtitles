@@ -118,6 +118,7 @@ func (e *ErrSubtitleResourceNotFound) HTTPStatusCode() int {
 // subtitle archive content.
 type ArchiveError struct {
 	Message string
+	URL     string
 	Err     error
 }
 
@@ -126,13 +127,21 @@ func (e *ArchiveError) Error() string {
 	if e == nil {
 		return ""
 	}
-	if e.Err == nil {
-		return e.Message
+	msg := e.Message
+	if e.URL != "" {
+		if msg != "" {
+			msg = fmt.Sprintf("%s (url: %s)", msg, e.URL)
+		} else {
+			msg = fmt.Sprintf("url: %s", e.URL)
+		}
 	}
-	if e.Message == "" {
+	if e.Err == nil {
+		return msg
+	}
+	if msg == "" {
 		return e.Err.Error()
 	}
-	return fmt.Sprintf("%s: %v", e.Message, e.Err)
+	return fmt.Sprintf("%s: %v", msg, e.Err)
 }
 
 // Unwrap returns the wrapped cause.
@@ -162,4 +171,9 @@ func (e *ArchiveError) HTTPStatusCode() int {
 // NewArchiveError creates a new ArchiveError.
 func NewArchiveError(message string, err error) *ArchiveError {
 	return &ArchiveError{Message: message, Err: err}
+}
+
+// NewArchiveErrorWithURL creates a new ArchiveError that includes the source URL.
+func NewArchiveErrorWithURL(message, url string, err error) *ArchiveError {
+	return &ArchiveError{Message: message, URL: url, Err: err}
 }

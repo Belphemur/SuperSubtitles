@@ -171,7 +171,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		content, contentType, err := d.downloadArchiveForDownload(ctx, downloadURL)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-			return nil, fmt.Errorf("failed to download subtitle: %w", err)
+			return nil, fmt.Errorf("failed to download subtitle %s: %w", downloadURL, err)
 		}
 
 		archiveFormat := detectArchiveFormat(content, contentType)
@@ -199,7 +199,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 	content, contentType, err := d.downloadArchiveForEpisode(ctx, downloadURL)
 	if err != nil {
 		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-		return nil, fmt.Errorf("failed to download subtitle: %w", err)
+		return nil, fmt.Errorf("failed to download subtitle %s: %w", downloadURL, err)
 	}
 
 	archiveFormat := detectArchiveFormat(content, contentType)
@@ -234,7 +234,7 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		episodeFile, err = d.extractEpisodeFromZip(content, *episode)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from ZIP", *episode), err)
+			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from ZIP", *episode), downloadURL, err)
 		}
 	case archiveFormatRAR:
 		logger.Info().
@@ -245,11 +245,11 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		episodeFile, err = d.extractEpisodeFromRar(content, *episode)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from RAR", *episode), err)
+			return nil, wrapArchiveError(fmt.Sprintf("failed to extract episode %d from RAR", *episode), downloadURL, err)
 		}
 	default:
 		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
-		return nil, &apperrors.ArchiveError{Message: fmt.Sprintf("unsupported archive format for episode extraction: %s", archiveFormat)}
+		return nil, &apperrors.ArchiveError{Message: fmt.Sprintf("unsupported archive format for episode extraction: %s", archiveFormat), URL: downloadURL}
 	}
 
 	logger.Info().
@@ -400,7 +400,7 @@ func episodeArchiveCacheKey(url string) string {
 	return cacheKeyEpisodeArchivePrefix + url
 }
 
-func wrapArchiveError(message string, err error) error {
+func wrapArchiveError(message, url string, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -410,7 +410,7 @@ func wrapArchiveError(message string, err error) error {
 	if errors.Is(err, &apperrors.ArchiveError{}) {
 		return err
 	}
-	return apperrors.NewArchiveError(message, err)
+	return apperrors.NewArchiveErrorWithURL(message, url, err)
 }
 
 // detectZipBomb analyzes a ZIP file for characteristics of a ZIP bomb
@@ -665,101 +665,6 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	}
 
 	return content, normalizeArchiveContentType(contentType, archiveFormat), nil
-}
-
-type archiveLimitWriter struct {
-	writer       io.Writer
-	fileName     string
-	fileWritten  int64
-	totalWritten *int64
-}
-
-func (w *archiveLimitWriter) Write(p []byte) (int, error) {
-	fileSize := w.fileWritten + int64(len(p))
-	if fileSize > maxUncompressedFileSize {
-		return 0, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-			w.fileName, fileSize, maxUncompressedFileSize)
-	}
-
-	totalSize := *w.totalWritten + int64(len(p))
-	if totalSize > maxTotalUncompressedSize {
-		return 0, fmt.Errorf("RAR archive total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
-			totalSize, maxTotalUncompressedSize)
-	}
-
-	n, err := w.writer.Write(p)
-	w.fileWritten += int64(n)
-	*w.totalWritten += int64(n)
-	return n, err
-}
-
-func convertRarToZip(rarContent []byte) ([]byte, error) {
-	rarReader, err := rardecode.NewReader(
-		bytes.NewReader(rarContent),
-		rardecode.MaxDictionarySize(maxTotalUncompressedSize),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open RAR archive: %w", err)
-	}
-
-	zipBuffer := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(zipBuffer)
-	var totalWritten int64
-
-	for {
-		header, err := rarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to read RAR entry: %w", err)
-		}
-		if header.IsDir {
-			continue
-		}
-
-		entryName := strings.ToValidUTF8(header.Name, "�")
-
-		// Sanitize the entry name to prevent Zip-Slip path traversal attacks.
-		// RAR archives can store paths with backslashes or absolute paths.
-		entryName = strings.ReplaceAll(entryName, "\\", "/")
-		entryName = path.Clean(entryName)
-		entryName = strings.TrimLeft(entryName, "/")
-		for _, component := range strings.Split(entryName, "/") {
-			if component == ".." {
-				return nil, fmt.Errorf("RAR archive contains path traversal in entry name: %q", header.Name)
-			}
-		}
-		if entryName == "" || entryName == "." {
-			entryName = "subtitle"
-		}
-
-		if header.UnPackedSize > maxUncompressedFileSize {
-			return nil, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-				entryName, header.UnPackedSize, maxUncompressedFileSize)
-		}
-
-		entryWriter, err := zipWriter.Create(entryName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create ZIP entry %s: %w", entryName, err)
-		}
-
-		limitWriter := &archiveLimitWriter{
-			writer:       entryWriter,
-			fileName:     entryName,
-			totalWritten: &totalWritten,
-		}
-
-		if _, err := io.Copy(limitWriter, rarReader); err != nil {
-			return nil, fmt.Errorf("failed to copy RAR entry %s: %w", entryName, err)
-		}
-	}
-
-	if err := zipWriter.Close(); err != nil {
-		return nil, fmt.Errorf("failed to finalize ZIP archive: %w", err)
-	}
-
-	return zipBuffer.Bytes(), nil
 }
 
 // extractEpisodeFromRar extracts a specific episode's subtitle directly from a RAR season pack.
