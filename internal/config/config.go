@@ -44,6 +44,7 @@ type Config struct {
 		Environment  string `mapstructure:"environment"`   // Optional Sentry environment override
 		Debug        bool   `mapstructure:"debug"`         // Enable sentry-go debug logging
 		FlushTimeout string `mapstructure:"flush_timeout"` // Flush timeout during shutdown, e.g. "2s"
+		EnableLogs   bool   `mapstructure:"enable_logs"`   // Forward structured logs to Sentry (requires DSN)
 	} `mapstructure:"sentry"`
 	Retry struct {
 		MaxAttempts  int    `mapstructure:"max_attempts"`  // Total attempts including the initial try (0 uses default of 3)
@@ -192,6 +193,7 @@ func initSentry(cfg *Config) error {
 		Environment:  cfg.Sentry.Environment,
 		Debug:        cfg.Sentry.Debug,
 		FlushTimeout: flushTimeout,
+		EnableLogs:   cfg.Sentry.EnableLogs,
 	})
 	if err != nil {
 		return err
