@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.0...v2.12.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* **services:** enrich archive errors and extract rar conversion ([664c999](https://github.com/Belphemur/SuperSubtitles/commit/664c999aced7a9b347711d2fbd39e1988701fc8c))
+
 # [2.12.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.11.1...v2.12.0) (2026-03-16)
 
 
