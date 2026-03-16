@@ -85,6 +85,7 @@ func TestConvertRarToZip_RenegadeFixture(t *testing.T) {
 
 func TestConvertRarToZip_AncladosFixture(t *testing.T) {
 	t.Parallel()
+	t.Skip("Currently unsupported by rardecode, issue opened")
 
 	rarContent := readRARFixtureByName(t, "Anclados.S01.1080p.AMZN.WEB-DL.DD+2.0.H.264-CasStudio_eng.rar")
 
