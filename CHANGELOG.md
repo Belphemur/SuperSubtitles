@@ -1,3 +1,10 @@
+# [2.12.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.11.1...v2.12.0) (2026-03-16)
+
+
+### Features
+
+* **sentry:** make structured log forwarding configurable via enable_logs ([#108](https://github.com/Belphemur/SuperSubtitles/issues/108)) ([6e3762a](https://github.com/Belphemur/SuperSubtitles/commit/6e3762a27b46a110f8e426f9e9691cf4260d8203))
+
 ## [2.11.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.11.0...v2.11.1) (2026-03-15)
 
 
