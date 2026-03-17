@@ -69,7 +69,7 @@ jobs:
       secret_verification_result: ${{ steps.validate-secret.outputs.verification_result }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Generate agentic run info
@@ -311,7 +311,7 @@ jobs:
       output_types: ${{ steps.collect_output.outputs.output_types }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Checkout repository
@@ -1222,7 +1222,7 @@ jobs:
       total_count: ${{ steps.missing_tool.outputs.total_count }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1322,7 +1322,7 @@ jobs:
       matched_command: ''
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Check team membership for workflow
@@ -1381,7 +1381,7 @@ jobs:
       process_safe_outputs_temporary_id_map: ${{ steps.process_safe_outputs.outputs.temporary_id_map }}
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Download agent output artifact
@@ -1430,7 +1430,7 @@ jobs:
       GH_AW_WORKFLOW_ID_SANITIZED: cidoctor
     steps:
       - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@c942baa88222271ac35ad1f8c34cde55d596bdee # v0.60.0
+        uses: github/gh-aw/actions/setup@5cb9ec0f94506d23f07e9ba63c10c237a0e217d2 # v0.60.1
         with:
           destination: /opt/gh-aw/actions
       - name: Download cache-memory artifact (default)
