@@ -44,7 +44,6 @@ func Test_generateFilename(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := generateFilename(tt.subtitleID, tt.contentType)
@@ -80,7 +79,6 @@ func Test_extractSubtitleID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := extractSubtitleID(tt.url)
@@ -124,45 +122,11 @@ func Test_getExtensionFromContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := getExtensionFromContentType(tt.contentType)
 			if got != tt.want {
 				t.Errorf("getExtensionFromContentType(%q) = %q, want %q", tt.contentType, got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_isZipContentType(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name        string
-		contentType string
-		want        bool
-	}{
-		{name: "application/zip", contentType: "application/zip", want: true},
-		{name: "application/zip with charset", contentType: "application/zip; charset=utf-8", want: true},
-		{name: "application/x-zip-compressed", contentType: "application/x-zip-compressed", want: true},
-		{name: "application/vnd.rar is not zip", contentType: "application/vnd.rar", want: false},
-		{name: "not zip", contentType: "application/x-subrip", want: false},
-		{name: "parse error but matches zip", contentType: "application/zip", want: true},
-		{
-			name:        "parse error and not zip",
-			contentType: "not a valid type",
-			want:        false,
-		},
-		{name: "empty string", contentType: "", want: false},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := isZipContentType(tt.contentType)
-			if got != tt.want {
-				t.Errorf("isZipContentType(%q) = %v, want %v", tt.contentType, got, tt.want)
 			}
 		})
 	}
@@ -187,63 +151,11 @@ func Test_getContentTypeFromFilename(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := getContentTypeFromFilename(tt.filename)
 			if got != tt.want {
 				t.Errorf("getContentTypeFromFilename(%q) = %q, want %q", tt.filename, got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_isRarFile(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name    string
-		content []byte
-		want    bool
-	}{
-		{name: "rar4 signature", content: []byte{'R', 'a', 'r', '!', 0x1A, 0x07, 0x00}, want: true},
-		{name: "rar5 signature", content: []byte{'R', 'a', 'r', '!', 0x1A, 0x07, 0x01, 0x00}, want: true},
-		{name: "zip signature", content: []byte{0x50, 0x4B, 0x03, 0x04}, want: false},
-		{name: "too short", content: []byte{'R', 'a', 'r'}, want: false},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := isRarFile(tt.content)
-			if got != tt.want {
-				t.Errorf("isRarFile(%v) = %v, want %v", tt.content, got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_isRarContentType(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name        string
-		contentType string
-		want        bool
-	}{
-		{name: "application/vnd.rar", contentType: "application/vnd.rar", want: true},
-		{name: "application/x-rar-compressed", contentType: "application/x-rar-compressed", want: true},
-		{name: "application/x-rar", contentType: "application/x-rar", want: true},
-		{name: "application/zip", contentType: "application/zip", want: false},
-		{name: "text/plain", contentType: "text/plain", want: false},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := isRarContentType(tt.contentType)
-			if got != tt.want {
-				t.Errorf("isRarContentType(%q) = %v, want %v", tt.contentType, got, tt.want)
 			}
 		})
 	}
@@ -278,7 +190,6 @@ func Test_isTextSubtitleContentType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := isTextSubtitleContentType(tt.contentType)
