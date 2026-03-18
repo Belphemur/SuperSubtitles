@@ -102,6 +102,7 @@ func TestNewGRPCServer_ReflectionEnabled(t *testing.T) {
 	listResp := resp.GetListServicesResponse()
 	if listResp == nil {
 		t.Fatal("Expected list services response")
+		return
 	}
 
 	// Should contain the SuperSubtitles service
