@@ -1,4 +1,4 @@
-package services
+package archive
 
 import (
 	"archive/zip"
@@ -9,6 +9,18 @@ import (
 	"strings"
 
 	"github.com/nwaples/rardecode/v2"
+)
+
+// Size limit constants for archive operations.
+const (
+	// Maximum compression ratio (uncompressed/compressed).
+	// Highly repetitive content can legitimately compress to 1000:1 or more.
+	// Real subtitle files rarely exceed 20:1, but we set a generous limit to avoid false positives.
+	MaxCompressionRatio = 10000
+	// Maximum uncompressed size for a single file (20 MB).
+	MaxUncompressedFileSize = 20 * 1024 * 1024
+	// Maximum total uncompressed size for all files in an archive (100 MB).
+	MaxTotalUncompressedSize = 100 * 1024 * 1024
 )
 
 // archiveLimitWriter is an io.Writer that enforces per-file and total uncompressed size limits
@@ -22,15 +34,15 @@ type archiveLimitWriter struct {
 
 func (w *archiveLimitWriter) Write(p []byte) (int, error) {
 	fileSize := w.fileWritten + int64(len(p))
-	if fileSize > maxUncompressedFileSize {
+	if fileSize > MaxUncompressedFileSize {
 		return 0, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-			w.fileName, fileSize, maxUncompressedFileSize)
+			w.fileName, fileSize, MaxUncompressedFileSize)
 	}
 
 	totalSize := *w.totalWritten + int64(len(p))
-	if totalSize > maxTotalUncompressedSize {
+	if totalSize > MaxTotalUncompressedSize {
 		return 0, fmt.Errorf("RAR archive total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
-			totalSize, maxTotalUncompressedSize)
+			totalSize, MaxTotalUncompressedSize)
 	}
 
 	n, err := w.writer.Write(p)
@@ -39,13 +51,13 @@ func (w *archiveLimitWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// convertRarToZip converts a RAR archive to a ZIP archive.
+// ConvertRarToZip converts a RAR archive to a ZIP archive.
 // It sanitizes entry names to prevent path traversal attacks and enforces
 // per-file and total uncompressed size limits.
-func convertRarToZip(rarContent []byte) ([]byte, error) {
+func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 	rarReader, err := rardecode.NewReader(
 		bytes.NewReader(rarContent),
-		rardecode.MaxDictionarySize(maxTotalUncompressedSize),
+		rardecode.MaxDictionarySize(MaxTotalUncompressedSize),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open RAR archive: %w", err)
@@ -83,9 +95,9 @@ func convertRarToZip(rarContent []byte) ([]byte, error) {
 			entryName = "subtitle"
 		}
 
-		if header.UnPackedSize > maxUncompressedFileSize {
+		if header.UnPackedSize > MaxUncompressedFileSize {
 			return nil, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-				entryName, header.UnPackedSize, maxUncompressedFileSize)
+				entryName, header.UnPackedSize, MaxUncompressedFileSize)
 		}
 
 		entryWriter, err := zipWriter.Create(entryName)

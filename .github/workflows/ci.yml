@@ -49,7 +49,7 @@ jobs:
           - name: parser-models-errors
             packages: "./internal/parser/... ./internal/models/... ./internal/apperrors/..."
           - name: client
-            packages: "./internal/client/..."
+            packages: "./internal/client/... ./internal/archive/..."
           - name: services-grpc-metrics
             packages: "./internal/services/... ./internal/grpc/... ./internal/metrics/..."
     steps:

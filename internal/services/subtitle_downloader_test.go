@@ -9,15 +9,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/archive"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/cache"
 	internalConfig "github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
-	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 )
@@ -61,6 +64,23 @@ func buildDownloadURL(baseURL, subtitleID string) string {
 	parsedURL.RawQuery = query.Encode()
 
 	return parsedURL.String()
+}
+
+func readRARFixtureByName(t *testing.T, filename string) []byte {
+	t.Helper()
+
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("failed to resolve current test file path")
+	}
+
+	fixturePath := filepath.Join(filepath.Dir(currentFile), "..", "..", ".tests-files", filename)
+	content, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("failed to read RAR fixture %s: %v", fixturePath, err)
+	}
+
+	return content
 }
 
 func readRARFixture(t *testing.T) []byte {
@@ -194,7 +214,7 @@ func TestDownloadSubtitle_RarFileNoEpisode(t *testing.T) {
 		t.Errorf("Expected content type 'application/zip', got '%s'", result.ContentType)
 	}
 
-	if !isZipFile(result.Content) {
+	if !archive.IsZipFile(result.Content) {
 		t.Error("Expected RAR content to be converted to ZIP")
 	}
 
@@ -235,7 +255,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromRarFixture(t *testing.T) {
 	resultEpisodeFive, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "rar-pack"),
-		testutil.IntPtr(5),
+		new(5),
 	)
 	if err != nil {
 		t.Fatalf("Episode 5 extraction failed: %v", err)
@@ -260,7 +280,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromRarFixture(t *testing.T) {
 	resultEpisodeSix, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "rar-pack"),
-		testutil.IntPtr(6),
+		new(6),
 	)
 	if err != nil {
 		t.Fatalf("Episode 6 extraction failed: %v", err)
@@ -310,7 +330,7 @@ func TestDownloadSubtitle_RarDownloadAndEpisodeExtractionUseSeparateCaches(t *te
 	episodeFile, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "rar-pack"),
-		testutil.IntPtr(5),
+		new(5),
 	)
 	if err != nil {
 		t.Fatalf("Episode extraction failed: %v", err)
@@ -341,7 +361,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 subtitle content",
 				"Hightown.S03E03.Fall.Brook.NF.WEB-DL.en.srt":      "Episode 3 subtitle content",
 			},
-			requestEpisode:  testutil.IntPtr(1),
+			requestEpisode:  new(1),
 			expectedFile:    "Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 1 subtitle content",
 			shouldFail:      false,
@@ -353,7 +373,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 subtitle content",
 				"Hightown.S03E03.Fall.Brook.NF.WEB-DL.en.srt":      "Episode 3 subtitle content",
 			},
-			requestEpisode:  testutil.IntPtr(2),
+			requestEpisode:  new(2),
 			expectedFile:    "Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 2 subtitle content",
 			shouldFail:      false,
@@ -365,7 +385,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e05.srt": "Episode 5 content",
 				"show.s03e06.srt": "Episode 6 content",
 			},
-			requestEpisode:  testutil.IntPtr(5),
+			requestEpisode:  new(5),
 			expectedFile:    "show.s03e05.srt",
 			expectedContent: "Episode 5 content",
 			shouldFail:      false,
@@ -377,7 +397,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.3x07.srt": "Episode 7 content",
 				"show.3x08.srt": "Episode 8 content",
 			},
-			requestEpisode:  testutil.IntPtr(7),
+			requestEpisode:  new(7),
 			expectedFile:    "show.3x07.srt",
 			expectedContent: "Episode 7 content",
 			shouldFail:      false,
@@ -388,7 +408,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"Hightown.S03.NF.WEB-DL.en/Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt":      "Episode 1 content",
 				"Hightown.S03.NF.WEB-DL.en/Hightown.S03E02.I.Said.No.No.No.NF.WEB-DL.en.srt": "Episode 2 content",
 			},
-			requestEpisode:  testutil.IntPtr(1),
+			requestEpisode:  new(1),
 			expectedFile:    "Hightown.S03E01.Good.Times.NF.WEB-DL.en.srt",
 			expectedContent: "Episode 1 content",
 			shouldFail:      false,
@@ -399,7 +419,7 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e10.srt": "Episode 10 content",
 				"show.s03e11.srt": "Episode 11 content",
 			},
-			requestEpisode: testutil.IntPtr(1),
+			requestEpisode: new(1),
 			shouldFail:     true,
 		},
 		{
@@ -408,13 +428,12 @@ func TestDownloadSubtitle_ExtractEpisodeFromZip(t *testing.T) {
 				"show.s03e01.srt": "Episode 1 content",
 				"show.s03e02.srt": "Episode 2 content",
 			},
-			requestEpisode: testutil.IntPtr(10),
+			requestEpisode: new(10),
 			shouldFail:     true,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			// Create test ZIP
@@ -499,7 +518,7 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	result1, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 	if err != nil {
 		t.Fatalf("First request failed: %v", err)
@@ -512,7 +531,7 @@ func TestDownloadSubtitle_Caching(t *testing.T) {
 	result2, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(2),
+		new(2),
 	)
 	if err != nil {
 		t.Fatalf("Second request failed: %v", err)
@@ -574,7 +593,7 @@ func TestDownloadSubtitle_InvalidZip(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 
 	if err == nil {
@@ -658,7 +677,7 @@ func BenchmarkDownloadSubtitle_ExtractFromZip(b *testing.B) {
 		_, err := downloader.DownloadSubtitle(
 			context.Background(),
 			buildDownloadURL(server.URL, "123456789"),
-			testutil.IntPtr(episode),
+			new(episode),
 		)
 		if err != nil {
 			b.Fatalf("Download failed: %v", err)
@@ -701,7 +720,6 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			content := "Test content"
@@ -774,7 +792,6 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			zipContent := createTestZip(t, map[string]string{
@@ -793,7 +810,7 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 			result, err := downloader.DownloadSubtitle(
 				context.Background(),
 				buildDownloadURL(server.URL, "123456789"),
-				testutil.IntPtr(1),
+				new(1),
 			)
 
 			if err != nil {
@@ -851,129 +868,11 @@ func TestGetExtensionFromContentType_EdgeCases(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := getExtensionFromContentType(tt.contentType)
 			if result != tt.expected {
 				t.Errorf("Expected extension '%s', got '%s' for content type '%s'", tt.expected, result, tt.contentType)
-			}
-		})
-	}
-}
-
-func TestIsZipFile_MagicNumber(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name     string
-		content  []byte
-		expected bool
-	}{
-		{
-			name:     "Standard ZIP magic number",
-			content:  []byte{0x50, 0x4B, 0x03, 0x04, 0x00, 0x00},
-			expected: true,
-		},
-		{
-			name:     "Empty ZIP magic number",
-			content:  []byte{0x50, 0x4B, 0x05, 0x06, 0x00, 0x00},
-			expected: true,
-		},
-		{
-			name:     "Spanned ZIP magic number",
-			content:  []byte{0x50, 0x4B, 0x07, 0x08, 0x00, 0x00},
-			expected: true,
-		},
-		{
-			name:     "Not a ZIP file - gzip",
-			content:  []byte{0x1F, 0x8B, 0x08, 0x00},
-			expected: false,
-		},
-		{
-			name:     "Not a ZIP file - random data",
-			content:  []byte{0x00, 0x01, 0x02, 0x03},
-			expected: false,
-		},
-		{
-			name:     "Too short",
-			content:  []byte{0x50, 0x4B},
-			expected: false,
-		},
-		{
-			name:     "Empty",
-			content:  []byte{},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := isZipFile(tt.content)
-			if result != tt.expected {
-				t.Errorf("Expected %v, got %v for content %v", tt.expected, result, tt.content)
-			}
-		})
-	}
-}
-
-func TestIsZipContentType(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name        string
-		contentType string
-		expected    bool
-	}{
-		{
-			name:        "application/zip",
-			contentType: "application/zip",
-			expected:    true,
-		},
-		{
-			name:        "application/x-zip-compressed",
-			contentType: "application/x-zip-compressed",
-			expected:    true,
-		},
-		{
-			name:        "application/zip with charset",
-			contentType: "application/zip; charset=utf-8",
-			expected:    true,
-		},
-		{
-			name:        "Application/ZIP (uppercase)",
-			contentType: "Application/ZIP",
-			expected:    true,
-		},
-		{
-			name:        "application/gzip - should NOT match",
-			contentType: "application/gzip",
-			expected:    false,
-		},
-		{
-			name:        "application/x-gzip - should NOT match",
-			contentType: "application/x-gzip",
-			expected:    false,
-		},
-		{
-			name:        "text/plain",
-			contentType: "text/plain",
-			expected:    false,
-		},
-		{
-			name:        "application/octet-stream",
-			contentType: "application/octet-stream",
-			expected:    false,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := isZipContentType(tt.contentType)
-			if result != tt.expected {
-				t.Errorf("Expected %v, got %v for content type '%s'", tt.expected, result, tt.contentType)
 			}
 		})
 	}
@@ -1009,77 +908,11 @@ func TestGetExtensionFromContentType_GzipEdgeCase(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := getExtensionFromContentType(tt.contentType)
 			if result != tt.expected {
 				t.Errorf("Expected extension '%s', got '%s' for content type '%s'", tt.expected, result, tt.contentType)
-			}
-		})
-	}
-}
-
-func TestDetectZipBomb(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name        string
-		files       map[string]string
-		shouldError bool
-		errorMsg    string
-	}{
-		{
-			name: "Normal season pack - should pass",
-			files: map[string]string{
-				"show.s03e01.srt": strings.Repeat("Normal subtitle content\n", 100),
-				"show.s03e02.srt": strings.Repeat("Normal subtitle content\n", 100),
-				"show.s03e03.srt": strings.Repeat("Normal subtitle content\n", 100),
-			},
-			shouldError: false,
-		},
-		{
-			name: "Single large file within limits - should pass",
-			files: map[string]string{
-				"show.s03e01.srt": strings.Repeat("A", 15*1024*1024), // 15 MB (under 20 MB limit)
-			},
-			shouldError: false,
-		},
-		{
-			name: "File exceeds individual size limit - should fail",
-			files: map[string]string{
-				"malicious.srt": strings.Repeat("X", 25*1024*1024), // 25 MB > 20 MB limit
-			},
-			shouldError: true,
-			errorMsg:    "exceeds maximum uncompressed size",
-		},
-		{
-			name: "Total size exceeds limit - should fail",
-			files: map[string]string{
-				"file1.srt": strings.Repeat("Y", 25*1024*1024), // 25 MB
-				"file2.srt": strings.Repeat("Z", 25*1024*1024), // 25 MB
-			},
-			shouldError: true,
-			errorMsg:    "exceeds maximum uncompressed size", // Fails on individual file first
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			zipContent := createTestZip(t, tt.files)
-			err := detectZipBomb(zipContent)
-
-			if tt.shouldError {
-				if err == nil {
-					t.Errorf("Expected error containing '%s', got nil", tt.errorMsg)
-				} else if !strings.Contains(err.Error(), tt.errorMsg) {
-					t.Errorf("Expected error containing '%s', got: %v", tt.errorMsg, err)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
 			}
 		})
 	}
@@ -1105,7 +938,7 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 
 	if err == nil {
@@ -1118,24 +951,6 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "ZIP bomb detected") {
 		t.Errorf("Expected 'ZIP bomb detected' error, got: %v", err)
-	}
-}
-
-func TestDetectZipBomb_CompressionRatio(t *testing.T) {
-	t.Parallel()
-	// Create a small test to verify compression ratio check works
-	// Note: In practice, creating a true high-compression-ratio ZIP is complex
-	// This test verifies the function handles normal files correctly
-	normalFiles := map[string]string{
-		"test1.srt": "Normal content that compresses well but not suspiciously\n",
-		"test2.srt": "Another normal file with typical subtitle content\n",
-	}
-
-	zipContent := createTestZip(t, normalFiles)
-	err := detectZipBomb(zipContent)
-
-	if err != nil {
-		t.Errorf("Normal files should not trigger ZIP bomb detection, got: %v", err)
 	}
 }
 
@@ -1163,7 +978,7 @@ func TestDownloadSubtitle_NestedFolderStructure(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(2),
+		new(2),
 	)
 
 	if err != nil {
@@ -1200,7 +1015,7 @@ func TestDownloadSubtitle_ExceedsDownloadSizeLimit(t *testing.T) {
 		// Write more than maxDownloadSize (150 MB)
 		// Write in chunks to avoid memory issues in test
 		chunk := make([]byte, 1024*1024) // 1 MB chunks
-		for i := 0; i < 151; i++ {
+		for range 151 {
 			_, _ = w.Write(chunk)
 		}
 	}))
@@ -1252,7 +1067,7 @@ func TestExtractEpisodeFromZip_MultipleMatches(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 
 	if err != nil {
@@ -1302,7 +1117,7 @@ func TestExtractEpisodeFromZip_PreferSubtitleOverNonSubtitle(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(2),
+		new(2),
 	)
 
 	if err != nil {
@@ -1416,7 +1231,7 @@ func TestExtractEpisodeFromZip_InvalidUTF8Filename(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 
 	if err != nil {
@@ -1464,7 +1279,7 @@ func TestExtractEpisodeFromZip_MultipleInvalidUTF8Filenames(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(2),
+		new(2),
 	)
 
 	if err != nil {
@@ -1505,7 +1320,7 @@ func TestExtractEpisodeFromZip_Windows1252Filename(t *testing.T) {
 	result, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "123456789"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 
 	if err != nil {
@@ -1574,7 +1389,6 @@ func TestIsTextSubtitleContentType(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.contentType, func(t *testing.T) {
 			t.Parallel()
 			result := isTextSubtitleContentType(tc.contentType)
@@ -1671,7 +1485,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "metrics-test"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 	if err != nil {
 		t.Fatalf("First request failed: %v", err)
@@ -1686,7 +1500,7 @@ func TestDownloadSubtitle_Metrics_CacheHitMiss(t *testing.T) {
 	_, err = downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "metrics-test"),
-		testutil.IntPtr(2),
+		new(2),
 	)
 	if err != nil {
 		t.Fatalf("Second request failed: %v", err)
@@ -1726,7 +1540,7 @@ func TestDownloadSubtitle_Metrics_CacheEntriesGauge(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "gauge-test-unique"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 	if err != nil {
 		t.Fatalf("Download failed: %v", err)
@@ -1779,7 +1593,7 @@ func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionSuccess(t *testing.T) {
 	_, err := downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "zip-success-test"),
-		testutil.IntPtr(1),
+		new(1),
 	)
 	if err != nil {
 		t.Fatalf("Download failed: %v", err)
@@ -1811,7 +1625,7 @@ func TestDownloadSubtitle_Metrics_ZipEpisodeExtractionError(t *testing.T) {
 	_, _ = downloader.DownloadSubtitle(
 		context.Background(),
 		buildDownloadURL(server.URL, "zip-error-test"),
-		testutil.IntPtr(99),
+		new(99),
 	)
 
 	after := getCounterVecValue(metrics.SubtitleDownloadsTotal, "error")
