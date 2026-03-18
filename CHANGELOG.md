@@ -1,3 +1,10 @@
+## [2.12.5](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.4...v2.12.5) (2026-03-18)
+
+
+### Bug Fixes
+
+* use own fork with fix for checksum ([94024e6](https://github.com/Belphemur/SuperSubtitles/commit/94024e6833eb21d8c24ebfa2b344067a64972e3e))
+
 ## [2.12.4](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.3...v2.12.4) (2026-03-18)
 
 
