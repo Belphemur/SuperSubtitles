@@ -176,33 +176,13 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 		}, nil
 	}
 
-	content, contentType, err := d.downloadArchiveForEpisode(ctx, downloadURL)
+	content, _, err := d.downloadArchiveForEpisode(ctx, downloadURL)
 	if err != nil {
 		metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
 		return nil, fmt.Errorf("failed to download subtitle %s: %w", downloadURL, err)
 	}
 
-	archiveFormat := archive.DetectFormat(content, contentType)
-	if archiveFormat == archive.FormatUnknown {
-		logger.Info().
-			Str("contentType", contentType).
-			Int("size", len(content)).
-			Msg("Returning downloaded file as-is")
-
-		if isTextSubtitleContentType(contentType) {
-			content = convertToUTF8(content)
-		}
-
-		metrics.SubtitleDownloadsTotal.WithLabelValues("success").Inc()
-		return &models.DownloadResult{
-			Filename:    generateFilename(subtitleID, contentType),
-			Content:     content,
-			ContentType: contentType,
-		}, nil
-	}
-
-	// Always work with ZIP: episode extraction expects ZIP content.
-	// downloadArchiveForEpisode already returns normalized ZIP for both ZIP and RAR inputs.
+	// downloadArchiveForEpisode guarantees ZIP content (RAR is converted, unknown format errors).
 	logger.Info().
 		Int("episode", *episode).
 		Int("zipSize", len(content)).
@@ -488,11 +468,13 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	archiveFormat := archive.DetectFormat(content, contentType)
 	switch archiveFormat {
 	case archive.FormatZIP:
-		d.archiveCache.Set(cacheKey, content)
-		logger.Debug().
-			Str("url", url).
-			Int("size", len(content)).
-			Msg("Cached ZIP episode archive")
+		if archive.IsZipFile(content) {
+			d.archiveCache.Set(cacheKey, content)
+			logger.Debug().
+				Str("url", url).
+				Int("size", len(content)).
+				Msg("Cached ZIP episode archive")
+		}
 		return content, "application/zip", nil
 	case archive.FormatRAR:
 		normalized, err := archive.ConvertRarToZip(content)
@@ -507,7 +489,9 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 			Msg("Converted RAR to ZIP for episode extraction and cached it")
 		return normalized, "application/zip", nil
 	default:
-		return content, archive.NormalizeContentType(contentType, archiveFormat), nil
+		return nil, "", &apperrors.ArchiveError{
+			Message: fmt.Sprintf("unsupported archive format for episode extraction (content-type: %s)", contentType),
+		}
 	}
 }
 
