@@ -83,8 +83,8 @@ source:
 
 # Configures Go Modules settings
 # https://goreleaser.com/customization/gomod/
-gomod:
-  proxy: true
+#gomod:
+#  proxy: true
 
 # Change the digests filename for attestation
 # https://goreleaser.com/customization/docker_digest/
