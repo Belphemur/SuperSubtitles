@@ -29,16 +29,16 @@
 
 ## Archive Handling For Season Packs
 
-**Decision**: Normalize RAR archives to ZIP only for whole-archive downloads, while episode extraction reads ZIP and RAR season packs in their original format.
+**Decision**: Always normalize RAR archives to ZIP before any processing — both whole-archive downloads and episode extraction operate exclusively on ZIP data.
 
 **Rationale**:
 
-- Whole-archive downloads benefit from a single returned archive format when the upstream file is RAR
-- feliratok.eu may serve season packs as either ZIP or RAR for the same download workflow
-- Episode extraction should not depend on a prior whole-archive download choosing a converted representation
-- Separate cache entries keep no-episode normalization from altering later episode lookups on the same upstream URL
+- A single archive format simplifies all downstream logic: one extraction path, one bomb-detection path, one caching representation
+- feliratok.eu may serve season packs as either ZIP or RAR for the same download workflow; normalizing early eliminates format-specific branching
+- ZIP is the safer target format: Go's `archive/zip` is well-tested and supports random access, while RAR handling requires a third-party library with less ecosystem maturity
+- Converting at download time means cached data is always ZIP, so subsequent cache hits never need RAR handling
 
-**Implementation**: `internal/services/subtitle_downloader_impl.go` detects archive type from both MIME metadata and file signatures. Whole-download requests use a normalized-download cache entry that stores ZIP files as-is and stores RAR files after conversion through `github.com/nwaples/rardecode/v2`. Episode requests use a separate cache entry for the original archive bytes, then extract from ZIP via the existing ZIP flow or from RAR via direct RAR traversal and filename matching.
+**Implementation**: `internal/services/subtitle_downloader_impl.go` detects archive type via `archive.DetectFormat()` (magic bytes + MIME). Both whole-download and episode-download paths convert RAR→ZIP through `archive.ConvertRarToZip()` before caching. Episode extraction then calls `archive.ExtractEpisodeFromZip()`. All archive logic lives in the `internal/archive` package — see [archive decisions](archive.md) for details.
 
 ## Optional Sentry Error Reporting
 
