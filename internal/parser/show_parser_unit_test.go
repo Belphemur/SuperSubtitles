@@ -229,6 +229,7 @@ func TestShowParser_extractShowFromGoquery(t *testing.T) {
 
 			if got == nil {
 				t.Fatal("extractShowFromGoquery() = nil, want non-nil")
+				return
 			}
 			if got.ID != tt.wantID {
 				t.Errorf("ID = %d, want %d", got.ID, tt.wantID)
