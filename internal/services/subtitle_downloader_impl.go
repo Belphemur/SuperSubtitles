@@ -148,20 +148,15 @@ func (d *DefaultSubtitleDownloader) DownloadSubtitle(ctx context.Context, downlo
 	logEvent.Msg("Downloading subtitle")
 
 	if episode == nil {
-		content, contentType, err := d.downloadArchiveForDownload(ctx, downloadURL)
+		content, contentType, err := d.downloadSubtitleContent(ctx, downloadURL)
 		if err != nil {
 			metrics.SubtitleDownloadsTotal.WithLabelValues("error").Inc()
 			return nil, fmt.Errorf("failed to download subtitle %s: %w", downloadURL, err)
 		}
 
-		archiveFormat := archive.DetectFormat(content, contentType)
-		contentType = archive.NormalizeContentType(contentType, archiveFormat)
-
 		logger.Info().
 			Str("contentType", contentType).
 			Int("size", len(content)).
-			Bool("isZip", archiveFormat == archive.FormatZIP).
-			Bool("isRar", archiveFormat == archive.FormatRAR).
 			Msg("Returning downloaded subtitle file")
 
 		if isTextSubtitleContentType(contentType) {
@@ -400,9 +395,11 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	return content, contentType, nil
 }
 
-// downloadArchiveForDownload returns an archive suitable for whole-file downloads.
-// ZIP files are returned as-is while RAR files are normalized to ZIP.
-func (d *DefaultSubtitleDownloader) downloadArchiveForDownload(ctx context.Context, url string) ([]byte, string, error) {
+// downloadSubtitleContent downloads a subtitle resource and returns its content.
+// The response may be a plain text subtitle (e.g. SRT), a ZIP archive, or a RAR archive.
+// ZIP files are returned as-is, RAR files are normalized to ZIP, and text files are
+// returned with their original content type. Only archives are cached.
+func (d *DefaultSubtitleDownloader) downloadSubtitleContent(ctx context.Context, url string) ([]byte, string, error) {
 	logger := config.GetLogger()
 
 	cacheKey := normalizedArchiveCacheKey(url)
