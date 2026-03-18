@@ -361,6 +361,7 @@ func TestGetShowSubtitles_Success(t *testing.T) {
 	showInfo := collection.GetShowInfo()
 	if showInfo == nil {
 		t.Fatal("Expected collection to have ShowInfo")
+		return
 	}
 	if showInfo.Show.Name != "Breaking Bad" {
 		t.Errorf("Expected show name 'Breaking Bad', got '%s'", showInfo.Show.Name)
@@ -712,6 +713,7 @@ func TestGetRecentSubtitles_Success(t *testing.T) {
 	showInfo := collection.GetShowInfo()
 	if showInfo == nil {
 		t.Fatal("Expected collection to have ShowInfo")
+		return
 	}
 	if showInfo.Show.Name != "Breaking Bad" {
 		t.Errorf("Expected show name 'Breaking Bad', got '%s'", showInfo.Show.Name)
