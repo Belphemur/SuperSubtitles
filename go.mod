@@ -49,3 +49,5 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 )
+
+replace github.com/nwaples/rardecode/v2 => github.com/Belphemur/rardecode/v2 v2.0.0-20260318154427-1044718e45a8

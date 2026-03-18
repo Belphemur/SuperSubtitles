@@ -46,7 +46,6 @@ func convertRarToZip(rarContent []byte) ([]byte, error) {
 	rarReader, err := rardecode.NewReader(
 		bytes.NewReader(rarContent),
 		rardecode.MaxDictionarySize(maxTotalUncompressedSize),
-		rardecode.SkipCheck,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open RAR archive: %w", err)
