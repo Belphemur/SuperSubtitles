@@ -1,3 +1,10 @@
+## [2.12.6](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.5...v2.12.6) (2026-03-18)
+
+
+### Bug Fixes
+
+* **ci:** disable proxing deps because of replace in go mod ([534a40e](https://github.com/Belphemur/SuperSubtitles/commit/534a40ed18f29ea25efa4e90ea5727f00faf2aa0))
+
 ## [2.12.5](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.4...v2.12.5) (2026-03-18)
 
 
