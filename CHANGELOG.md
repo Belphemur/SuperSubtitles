@@ -1,3 +1,15 @@
+# [2.13.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.6...v2.13.0) (2026-03-18)
+
+
+### Bug Fixes
+
+* harden downloadArchiveForEpisode edge cases ([8381a0f](https://github.com/Belphemur/SuperSubtitles/commit/8381a0f4c4ebd1b886fa397b55e2dc22518b8cf0))
+
+
+### Features
+
+* add internal/archive package ([d12f05a](https://github.com/Belphemur/SuperSubtitles/commit/d12f05ac4784fa64afb989da960bf79148be4947))
+
 ## [2.12.6](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.5...v2.12.6) (2026-03-18)
 
 
