@@ -1,3 +1,10 @@
+## [2.12.4](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.3...v2.12.4) (2026-03-18)
+
+
+### Bug Fixes
+
+* **rar:** avoid checking checksum ([db04896](https://github.com/Belphemur/SuperSubtitles/commit/db0489690eb78c0660d0381d86491383bc2d67d3))
+
 ## [2.12.3](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.2...v2.12.3) (2026-03-18)
 
 
