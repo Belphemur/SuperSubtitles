@@ -20,7 +20,7 @@ They use option structs for readable, intent-expressing configuration. If a test
 
 ## Binary Archive Fixtures
 
-Real archive compatibility tests may use checked-in binary fixtures when synthetic helpers cannot reproduce the upstream format accurately. This is currently used for RAR season-pack coverage in `.tests-files/`, including both direct episode extraction from RAR and ZIP normalization for whole-archive downloads, while ZIP behavior continues to use generated in-memory archives inside service tests.
+Real archive compatibility tests may use checked-in binary fixtures when synthetic helpers cannot reproduce the upstream format accurately. This is currently used for RAR season-pack coverage in `.tests-files/`, including RAR→ZIP conversion and episode extraction from converted archives, while ZIP behavior continues to use generated in-memory archives inside tests.
 
 ## Stream Collection Helpers
 
@@ -35,3 +35,7 @@ go test -coverprofile=coverage.txt -covermode=atomic ./... # With coverage
 ```
 
 Redis/Valkey cache tests are skipped unless `REDIS_ADDRESS` is set. Requires Valkey 8+ / Redis 7.4+.
+
+## CI Test Matrix
+
+Tests run in parallel groups defined in `.github/workflows/ci.yml`. When adding a new `internal/` package, **add it to an existing CI test group** (or create a new one) so it is included in the matrix. Packages not listed in any group will not run in CI.
