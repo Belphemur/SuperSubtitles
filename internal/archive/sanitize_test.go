@@ -305,6 +305,20 @@ func TestSanitizeZip_ZipBombDetected(t *testing.T) {
 	}
 }
 
+func TestSanitizeZip_LargeAssFileAllowed(t *testing.T) {
+	t.Parallel()
+
+	// ASS files can legitimately be large (embedded fonts). 37 MB should be allowed.
+	input := createTestZip(t, map[string]string{
+		"show.s01e01.ass": strings.Repeat("A", 37*1024*1024), // 37 MB — exceeds standard limit but within ASS limit
+	})
+
+	_, err := SanitizeZip(input)
+	if err != nil {
+		t.Errorf("expected large ASS file to be allowed, got error: %v", err)
+	}
+}
+
 func TestSanitizeZip_PreservesContent(t *testing.T) {
 	t.Parallel()
 
