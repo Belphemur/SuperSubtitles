@@ -38,7 +38,7 @@ func (e *ErrEpisodeNotFound) Is(target error) bool {
 func DetectZipBomb(zipContent []byte) error {
 	zipReader, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
 	if err != nil {
-		return fmt.Errorf("failed to open ZIP for bomb detection: %w", err)
+		return NewUnrecoverableError("failed to open ZIP for bomb detection", err)
 	}
 
 	compressedSize := int64(len(zipContent))
@@ -53,29 +53,37 @@ func DetectZipBomb(zipContent []byte) error {
 		totalUncompressedSize += uncompressedSize
 
 		if uncompressedSize > MaxUncompressedFileSize {
-			return fmt.Errorf("ZIP bomb detected: file %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-				file.Name, uncompressedSize, MaxUncompressedFileSize)
+			return NewUnrecoverableError(
+				"ZIP bomb detected",
+				fmt.Errorf("file %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)", file.Name, uncompressedSize, MaxUncompressedFileSize),
+			)
 		}
 
 		if file.CompressedSize64 > 0 {
 			ratio := float64(uncompressedSize) / float64(file.CompressedSize64)
 			if ratio > MaxCompressionRatio {
-				return fmt.Errorf("ZIP bomb detected: file %s has suspicious compression ratio (%.2f > %d)",
-					file.Name, ratio, MaxCompressionRatio)
+				return NewUnrecoverableError(
+					"ZIP bomb detected",
+					fmt.Errorf("file %s has suspicious compression ratio (%.2f > %d)", file.Name, ratio, MaxCompressionRatio),
+				)
 			}
 		}
 	}
 
 	if totalUncompressedSize > MaxTotalUncompressedSize {
-		return fmt.Errorf("ZIP bomb detected: total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
-			totalUncompressedSize, MaxTotalUncompressedSize)
+		return NewUnrecoverableError(
+			"ZIP bomb detected",
+			fmt.Errorf("total uncompressed size exceeds limit (%d bytes > %d bytes limit)", totalUncompressedSize, MaxTotalUncompressedSize),
+		)
 	}
 
 	if compressedSize > 0 {
 		overallRatio := float64(totalUncompressedSize) / float64(compressedSize)
 		if overallRatio > MaxCompressionRatio {
-			return fmt.Errorf("ZIP bomb detected: overall compression ratio is suspicious (%.2f > %d)",
-				overallRatio, MaxCompressionRatio)
+			return NewUnrecoverableError(
+				"ZIP bomb detected",
+				fmt.Errorf("overall compression ratio is suspicious (%.2f > %d)", overallRatio, MaxCompressionRatio),
+			)
 		}
 	}
 
@@ -92,7 +100,7 @@ func ExtractEpisodeFromZip(zipContent []byte, episode int, logger zerolog.Logger
 
 	zipReader, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open ZIP archive: %w", err)
+		return nil, NewUnrecoverableError("failed to open ZIP archive", err)
 	}
 
 	episodePattern := regexp.MustCompile(fmt.Sprintf(`(?i)(?:s\d+e%02d(?:\D|$)|e%02d(?:\D|$)|\d+x%02d(?:\D|$))`, episode, episode, episode))
@@ -176,13 +184,13 @@ func ExtractEpisodeFromZip(zipContent []byte, episode int, logger zerolog.Logger
 
 	rc, err := bestMatch.file.Open()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s in ZIP: %w", bestMatch.file.Name, err)
+		return nil, NewUnrecoverableError(fmt.Sprintf("failed to open file %s in ZIP", bestMatch.file.Name), err)
 	}
 	defer rc.Close()
 
 	content, err := io.ReadAll(rc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file %s from ZIP: %w", bestMatch.file.Name, err)
+		return nil, NewUnrecoverableError(fmt.Sprintf("failed to read file %s from ZIP", bestMatch.file.Name), err)
 	}
 
 	return &EpisodeFile{

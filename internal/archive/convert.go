@@ -35,14 +35,18 @@ type archiveLimitWriter struct {
 func (w *archiveLimitWriter) Write(p []byte) (int, error) {
 	fileSize := w.fileWritten + int64(len(p))
 	if fileSize > MaxUncompressedFileSize {
-		return 0, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-			w.fileName, fileSize, MaxUncompressedFileSize)
+		return 0, NewUnrecoverableError(
+			"RAR archive entry exceeds maximum uncompressed size",
+			fmt.Errorf("entry %s is %d bytes > %d bytes limit", w.fileName, fileSize, MaxUncompressedFileSize),
+		)
 	}
 
 	totalSize := *w.totalWritten + int64(len(p))
 	if totalSize > MaxTotalUncompressedSize {
-		return 0, fmt.Errorf("RAR archive total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
-			totalSize, MaxTotalUncompressedSize)
+		return 0, NewUnrecoverableError(
+			"RAR archive total uncompressed size exceeds limit",
+			fmt.Errorf("%d bytes > %d bytes limit", totalSize, MaxTotalUncompressedSize),
+		)
 	}
 
 	n, err := w.writer.Write(p)
@@ -60,7 +64,7 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 		rardecode.MaxDictionarySize(MaxTotalUncompressedSize),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open RAR archive: %w", err)
+		return nil, NewUnrecoverableError("failed to open RAR archive", err)
 	}
 
 	zipBuffer := new(bytes.Buffer)
@@ -73,7 +77,7 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to read RAR entry: %w", err)
+			return nil, NewUnrecoverableError("failed to read RAR entry", err)
 		}
 		if header.IsDir {
 			continue
@@ -88,7 +92,10 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 		entryName = strings.TrimLeft(entryName, "/")
 		for _, component := range strings.Split(entryName, "/") {
 			if component == ".." {
-				return nil, fmt.Errorf("RAR archive contains path traversal in entry name: %q", header.Name)
+				return nil, NewUnrecoverableError(
+					"RAR archive contains path traversal in entry name",
+					fmt.Errorf("%q", header.Name),
+				)
 			}
 		}
 		if entryName == "" || entryName == "." {
@@ -96,13 +103,15 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 		}
 
 		if header.UnPackedSize > MaxUncompressedFileSize {
-			return nil, fmt.Errorf("RAR archive entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-				entryName, header.UnPackedSize, MaxUncompressedFileSize)
+			return nil, NewUnrecoverableError(
+				"RAR archive entry exceeds maximum uncompressed size",
+				fmt.Errorf("entry %s is %d bytes > %d bytes limit", entryName, header.UnPackedSize, MaxUncompressedFileSize),
+			)
 		}
 
 		entryWriter, err := zipWriter.Create(entryName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create ZIP entry %s: %w", entryName, err)
+			return nil, NewError(fmt.Sprintf("failed to create ZIP entry %s", entryName), err)
 		}
 
 		limitWriter := &archiveLimitWriter{
@@ -112,12 +121,12 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 		}
 
 		if _, err := io.Copy(limitWriter, rarReader); err != nil {
-			return nil, fmt.Errorf("failed to copy RAR entry %s: %w", entryName, err)
+			return nil, NewUnrecoverableError(fmt.Sprintf("failed to copy RAR entry %s", entryName), err)
 		}
 	}
 
 	if err := zipWriter.Close(); err != nil {
-		return nil, fmt.Errorf("failed to finalize ZIP archive: %w", err)
+		return nil, NewError("failed to finalize ZIP archive", err)
 	}
 
 	return zipBuffer.Bytes(), nil

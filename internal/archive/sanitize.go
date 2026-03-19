@@ -39,7 +39,7 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 
 	zipReader, err := zip.NewReader(bytes.NewReader(zipContent), int64(len(zipContent)))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open ZIP archive for sanitization: %w", err)
+		return nil, NewUnrecoverableError("failed to open ZIP archive for sanitization", err)
 	}
 
 	outBuf := new(bytes.Buffer)
@@ -66,13 +66,13 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 
 		rc, err := file.Open()
 		if err != nil {
-			return nil, fmt.Errorf("failed to open ZIP entry %s: %w", file.Name, err)
+			return nil, NewUnrecoverableError(fmt.Sprintf("failed to open ZIP entry %s", file.Name), err)
 		}
 
 		writer, err := zipWriter.Create(flatName)
 		if err != nil {
 			rc.Close()
-			return nil, fmt.Errorf("failed to create ZIP entry %s: %w", flatName, err)
+			return nil, NewError(fmt.Sprintf("failed to create ZIP entry %s", flatName), err)
 		}
 
 		// Enforce per-file size limit during decompression to guard against
@@ -81,27 +81,31 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 		content, err := io.ReadAll(limitedReader)
 		rc.Close()
 		if err != nil {
-			return nil, fmt.Errorf("failed to read ZIP entry %s: %w", flatName, err)
+			return nil, NewUnrecoverableError(fmt.Sprintf("failed to read ZIP entry %s", flatName), err)
 		}
 		if int64(len(content)) > MaxUncompressedFileSize {
-			return nil, fmt.Errorf("ZIP entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
-				flatName, len(content), MaxUncompressedFileSize)
+			return nil, NewUnrecoverableError(
+				"ZIP entry exceeds maximum uncompressed size",
+				fmt.Errorf("entry %s is %d bytes > %d bytes limit", flatName, len(content), MaxUncompressedFileSize),
+			)
 		}
 		totalRead += int64(len(content))
 		if totalRead > MaxTotalUncompressedSize {
-			return nil, fmt.Errorf("ZIP archive total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
-				totalRead, MaxTotalUncompressedSize)
+			return nil, NewUnrecoverableError(
+				"ZIP archive total uncompressed size exceeds limit",
+				fmt.Errorf("%d bytes > %d bytes limit", totalRead, MaxTotalUncompressedSize),
+			)
 		}
 
 		content = convertToUTF8(content)
 
 		if _, err := writer.Write(content); err != nil {
-			return nil, fmt.Errorf("failed to write ZIP entry %s: %w", flatName, err)
+			return nil, NewError(fmt.Sprintf("failed to write ZIP entry %s", flatName), err)
 		}
 	}
 
 	if err := zipWriter.Close(); err != nil {
-		return nil, fmt.Errorf("failed to finalize sanitized ZIP archive: %w", err)
+		return nil, NewError("failed to finalize sanitized ZIP archive", err)
 	}
 
 	return outBuf.Bytes(), nil

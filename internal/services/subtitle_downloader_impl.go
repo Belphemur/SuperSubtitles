@@ -274,10 +274,25 @@ func wrapArchiveError(message, url string, err error) error {
 	if errors.Is(err, &apperrors.ErrSubtitleNotFoundInArchive{}) {
 		return err
 	}
-	if errors.Is(err, &apperrors.ArchiveError{}) {
+	var archiveErr *archive.ArchiveError
+	if errors.As(err, &archiveErr) {
+		if archiveErr.URL != "" {
+			return err
+		}
+		if archiveErr.Unrecoverable {
+			return archive.NewUnrecoverableErrorWithURL(message, url, archiveErr)
+		}
+		return archive.NewErrorWithURL(message, url, archiveErr)
+	}
+	return archive.NewErrorWithURL(message, url, err)
+}
+
+func wrapProcessingArchiveError(message string, err error) error {
+	var archiveErr *archive.ArchiveError
+	if errors.As(err, &archiveErr) {
 		return err
 	}
-	return apperrors.NewArchiveErrorWithURL(message, url, err)
+	return archive.NewError(message, err)
 }
 
 // getContentTypeFromFilename derives MIME type from file extension
@@ -420,7 +435,7 @@ func (d *DefaultSubtitleDownloader) downloadSubtitleContent(ctx context.Context,
 	case archive.FormatZIP:
 		sanitized, err := archive.SanitizeZip(content)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to sanitize ZIP archive", err)
+			return nil, "", wrapProcessingArchiveError("failed to sanitize ZIP archive", err)
 		}
 		d.archiveCache.Set(cacheKey, sanitized)
 		logger.Debug().
@@ -432,11 +447,11 @@ func (d *DefaultSubtitleDownloader) downloadSubtitleContent(ctx context.Context,
 	case archive.FormatRAR:
 		normalized, err := archive.ConvertRarToZip(content)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to normalize RAR archive to ZIP", err)
+			return nil, "", wrapProcessingArchiveError("failed to normalize RAR archive to ZIP", err)
 		}
 		sanitized, err := archive.SanitizeZip(normalized)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to sanitize converted RAR archive", err)
+			return nil, "", wrapProcessingArchiveError("failed to sanitize converted RAR archive", err)
 		}
 
 		d.archiveCache.Set(cacheKey, sanitized)
@@ -474,7 +489,7 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	case archive.FormatZIP:
 		sanitized, err := archive.SanitizeZip(content)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to sanitize ZIP archive for episode extraction", err)
+			return nil, "", wrapProcessingArchiveError("failed to sanitize ZIP archive for episode extraction", err)
 		}
 		d.archiveCache.Set(cacheKey, sanitized)
 		logger.Debug().
@@ -486,11 +501,11 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	case archive.FormatRAR:
 		normalized, err := archive.ConvertRarToZip(content)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to convert RAR archive to ZIP for episode extraction", err)
+			return nil, "", wrapProcessingArchiveError("failed to convert RAR archive to ZIP for episode extraction", err)
 		}
 		sanitized, err := archive.SanitizeZip(normalized)
 		if err != nil {
-			return nil, "", apperrors.NewArchiveError("failed to sanitize converted RAR archive for episode extraction", err)
+			return nil, "", wrapProcessingArchiveError("failed to sanitize converted RAR archive for episode extraction", err)
 		}
 		d.archiveCache.Set(cacheKey, sanitized)
 		logger.Info().
@@ -500,9 +515,10 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 			Msg("Converted RAR to ZIP, sanitized, and cached for episode extraction")
 		return sanitized, "application/zip", nil
 	default:
-		return nil, "", &apperrors.ArchiveError{
-			Message: fmt.Sprintf("unsupported archive format for episode extraction (content-type: %s)", contentType),
-		}
+		return nil, "", archive.NewUnrecoverableError(
+			fmt.Sprintf("unsupported archive format for episode extraction (content-type: %s)", contentType),
+			nil,
+		)
 	}
 }
 

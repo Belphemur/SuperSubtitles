@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
-	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/archive"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
@@ -169,7 +169,7 @@ func (s *server) DownloadSubtitle(ctx context.Context, req *pb.DownloadSubtitleR
 			contextFields["episode"] = *req.Episode
 			logEvent = logEvent.Int32("episode", *req.Episode)
 		}
-		var archiveErr *apperrors.ArchiveError
+		var archiveErr *archive.ArchiveError
 		if errors.As(err, &archiveErr) && archiveErr.URL != "" {
 			contextFields["archive_url"] = archiveErr.URL
 			logEvent = logEvent.Str("archive_url", archiveErr.URL)
