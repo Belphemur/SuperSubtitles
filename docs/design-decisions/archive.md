@@ -67,3 +67,16 @@
 - Deduplication of filenames after flattening (via numeric suffix) prevents silent overwrites when different subdirectories contain identically named files
 
 **Implementation**: `SanitizeZip()` in `internal/archive/sanitize.go` performs all three operations. It first runs `DetectZipBomb()`, then iterates entries keeping only files with subtitle extensions (`.srt`, `.ass`, `.vtt`, `.sub` — checked via `isSubtitleFile()`), flattens paths to `filepath.Base()`, deduplicates with `deduplicate()`, and converts each file's content with `convertToUTF8()`. Both `downloadSubtitleContent()` and `downloadArchiveForEpisode()` in `internal/services/subtitle_downloader_impl.go` call `SanitizeZip()` after format detection (and after `ConvertRarToZip()` for RAR) but before `archiveCache.Set()`.
+
+## Typed Archive Errors With Explicit Recoverability
+
+**Decision**: Archive processing now uses typed ArchiveError values created directly inside the archive package, with explicit recoverable and unrecoverable constructors. The service layer no longer infers severity from error message text.
+
+**Rationale**:
+
+- String matching is brittle and can silently break when message wording changes, while typed errors keep behavior stable under refactors.
+- Recoverability is a domain concern of archive validation and conversion, so the archive package should decide whether a failure is retryable.
+- Explicit unrecoverable errors make the gRPC contract clearer by mapping corruption and safety failures to DataLoss.
+- Centralizing error construction in the archive package reduces duplicated wrapping logic in downstream callers.
+
+**Implementation**: `internal/archive/error.go` defines `ArchiveError` and constructor functions `NewError`, `NewErrorWithURL`, `NewUnrecoverableError`, and `NewUnrecoverableErrorWithURL`. Archive operations in `internal/archive/extract.go`, `internal/archive/convert.go`, and `internal/archive/sanitize.go` now return these typed errors directly for validation, security, and conversion failures. Downstream wrapping in `internal/services/subtitle_downloader_impl.go` preserves typed recoverability and only adds URL context when missing. gRPC mapping uses `ArchiveError.GRPCCode()` to translate unrecoverable failures to `codes.DataLoss` and recoverable failures to `codes.FailedPrecondition`.
