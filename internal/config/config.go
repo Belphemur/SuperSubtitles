@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/buildinfo"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/sentryio"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -191,6 +192,7 @@ func initSentry(cfg *Config) error {
 	reporter, err := sentryio.New(sentryio.Config{
 		DSN:          cfg.Sentry.DSN,
 		Environment:  cfg.Sentry.Environment,
+		Release:      buildinfo.Version,
 		Debug:        cfg.Sentry.Debug,
 		FlushTimeout: flushTimeout,
 		EnableLogs:   cfg.Sentry.EnableLogs,
@@ -204,6 +206,7 @@ func initSentry(cfg *Config) error {
 	if reporter.Enabled() {
 		logger.Info().
 			Str("environment", cfg.Sentry.Environment).
+			Str("release", buildinfo.Version).
 			Str("flush_timeout", flushTimeout.String()).
 			Msg("Sentry reporting enabled")
 	}

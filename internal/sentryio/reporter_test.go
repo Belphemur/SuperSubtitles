@@ -56,6 +56,7 @@ func TestReporterCaptureException_SendsEvent(t *testing.T) {
 	reporter, err := New(Config{
 		DSN:          testDSN,
 		Environment:  "test",
+		Release:      "1.2.3",
 		FlushTimeout: time.Second,
 		Transport:    transport,
 	})
@@ -77,6 +78,9 @@ func TestReporterCaptureException_SendsEvent(t *testing.T) {
 	event := transport.events[0]
 	if len(event.Exception) == 0 {
 		t.Fatal("expected captured exception details")
+	}
+	if event.Release != "1.2.3" {
+		t.Fatalf("release = %q, want %q", event.Release, "1.2.3")
 	}
 	if event.Tags["grpc.method"] != "DownloadSubtitle" {
 		t.Fatalf("grpc.method = %q, want %q", event.Tags["grpc.method"], "DownloadSubtitle")

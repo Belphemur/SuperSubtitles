@@ -16,6 +16,7 @@ const defaultFlushTimeout = 2 * time.Second
 type Config struct {
 	DSN          string
 	Environment  string
+	Release      string
 	Debug        bool
 	FlushTimeout time.Duration
 	EnableLogs   bool // Forward structured logs to Sentry alongside breadcrumbs
@@ -45,6 +46,7 @@ func New(cfg Config) (*Reporter, error) {
 	clientOptions := sentry.ClientOptions{
 		Dsn:              cfg.DSN,
 		Environment:      cfg.Environment,
+		Release:          cfg.Release,
 		Debug:            cfg.Debug,
 		AttachStacktrace: true,
 		EnableLogs:       cfg.EnableLogs,
