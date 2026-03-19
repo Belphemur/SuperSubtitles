@@ -3,6 +3,7 @@ package archive
 import (
 	"bytes"
 	"mime"
+	"path/filepath"
 	"strings"
 )
 
@@ -82,5 +83,59 @@ func NormalizeContentType(contentType, format string) string {
 		return "application/vnd.rar"
 	default:
 		return contentType
+	}
+}
+
+// ExtensionForContentType returns the preferred filename extension for a MIME type.
+func ExtensionForContentType(contentType string) string {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		if before, _, ok := strings.Cut(contentType, ";"); ok {
+			mediaType = strings.TrimSpace(before)
+		} else {
+			mediaType = contentType
+		}
+	}
+	mediaType = strings.ToLower(mediaType)
+
+	switch mediaType {
+	case "application/zip", "application/x-zip-compressed":
+		return ".zip"
+	case "application/vnd.rar", "application/x-rar-compressed", "application/x-rar":
+		return ".rar"
+	case "application/x-subrip":
+		return ".srt"
+	case "application/x-ass", "text/ass":
+		return ".ass"
+	case "text/vtt", "text/webvtt":
+		return ".vtt"
+	case "application/x-sub":
+		return ".sub"
+	}
+
+	if strings.Contains(mediaType, "srt") {
+		return ".srt"
+	}
+
+	return ".srt"
+}
+
+// ContentTypeForFilename returns the canonical content type for a filename.
+func ContentTypeForFilename(filename string) string {
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".srt":
+		return "application/x-subrip"
+	case ".ass":
+		return "application/x-ass"
+	case ".vtt":
+		return "text/vtt"
+	case ".sub":
+		return "application/x-sub"
+	case ".zip":
+		return "application/zip"
+	case ".rar":
+		return "application/vnd.rar"
+	default:
+		return "application/octet-stream"
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -203,7 +202,7 @@ func generateFilename(subtitleID, contentType string) string {
 	if subtitleID == "" {
 		subtitleID = "subtitle"
 	}
-	ext := getExtensionFromContentType(contentType)
+	ext := archive.ExtensionForContentType(contentType)
 	return fmt.Sprintf("%s%s", subtitleID, ext)
 }
 
@@ -214,45 +213,6 @@ func extractSubtitleID(downloadURL string) string {
 	}
 
 	return parsedURL.Query().Get("felirat")
-}
-
-// getExtensionFromContentType derives file extension from MIME type
-func getExtensionFromContentType(contentType string) string {
-	// Parse the media type to handle parameters properly
-	mediaType, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		// If parsing fails, try to extract the type before any semicolon
-		if before, _, ok := strings.Cut(contentType, ";"); ok {
-			mediaType = strings.TrimSpace(before)
-		} else {
-			mediaType = contentType
-		}
-	}
-	mediaType = strings.ToLower(mediaType)
-
-	// Check for specific MIME types (most specific first)
-	switch mediaType {
-	case "application/zip", "application/x-zip-compressed":
-		return ".zip"
-	case "application/vnd.rar", "application/x-rar-compressed", "application/x-rar":
-		return ".rar"
-	case "application/x-subrip":
-		return ".srt"
-	case "application/x-ass", "text/ass":
-		return ".ass"
-	case "text/vtt", "text/webvtt":
-		return ".vtt"
-	case "application/x-sub":
-		return ".sub"
-	}
-
-	// Fallback for generic patterns
-	if strings.Contains(mediaType, "srt") {
-		return ".srt"
-	}
-
-	// Default to .srt for subtitle files
-	return ".srt"
 }
 
 func normalizedArchiveCacheKey(url string) string {
@@ -293,28 +253,6 @@ func wrapProcessingArchiveError(message string, err error) error {
 		return err
 	}
 	return archive.NewError(message, err)
-}
-
-// getContentTypeFromFilename derives MIME type from file extension
-func getContentTypeFromFilename(filename string) string {
-	ext := strings.ToLower(filepath.Ext(filename))
-
-	switch ext {
-	case ".srt":
-		return "application/x-subrip"
-	case ".ass":
-		return "application/x-ass"
-	case ".vtt":
-		return "text/vtt"
-	case ".sub":
-		return "application/x-sub"
-	case ".zip":
-		return "application/zip"
-	case ".rar":
-		return "application/vnd.rar"
-	default:
-		return "application/octet-stream"
-	}
 }
 
 // isTextSubtitleContentType checks if the content type is a text-based subtitle format
@@ -552,7 +490,7 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 		return nil, err
 	}
 
-	contentType := getContentTypeFromFilename(episodeFile.Filename)
+	contentType := archive.ContentTypeForFilename(episodeFile.Filename)
 
 	return &models.DownloadResult{
 		Filename:    episodeFile.Filename,
