@@ -55,9 +55,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{ .CommitDate }}
+      - -X github.com/Belphemur/SuperSubtitles/v2/internal/buildinfo.Version={{.Version}}
+      - -X github.com/Belphemur/SuperSubtitles/v2/internal/buildinfo.Commit={{.Commit}}
+      - -X github.com/Belphemur/SuperSubtitles/v2/internal/buildinfo.Date={{ .CommitDate }}
     env:
       - CGO_ENABLED=0
 

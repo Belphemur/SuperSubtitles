@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Belphemur/SuperSubtitles/v2/internal/buildinfo"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/client"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	grpcserver "github.com/Belphemur/SuperSubtitles/v2/internal/grpc"
@@ -25,6 +26,9 @@ func main() {
 
 	// Log application configuration at startup
 	logEvent := logger.Info().
+		Str("version", buildinfo.Version).
+		Str("commit", buildinfo.Commit).
+		Str("build_date", buildinfo.Date).
 		Str("proxy_connection_string", cfg.ProxyConnectionString).
 		Str("super_subtitle_domain", cfg.SuperSubtitleDomain).
 		Int("server_port", cfg.Server.Port).
