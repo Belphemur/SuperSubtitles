@@ -1,3 +1,11 @@
+# [2.15.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.4...v2.15.0) (2026-03-19)
+
+
+### Features
+
+* add shared build metadata ([77c8cdb](https://github.com/Belphemur/SuperSubtitles/commit/77c8cdb0cab700f794416602da18c464dd25b6c6))
+* send app version to sentry ([c7f1c35](https://github.com/Belphemur/SuperSubtitles/commit/c7f1c3564c3d707972238f391f388a420f2aa301))
+
 ## [2.14.4](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.3...v2.14.4) (2026-03-19)
 
 
