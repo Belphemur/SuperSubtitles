@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 // zipEntries is a helper that returns sorted entry names and a name→content map from a ZIP.
@@ -316,6 +317,40 @@ func TestSanitizeZip_LargeAssFileAllowed(t *testing.T) {
 	_, err := SanitizeZip(input)
 	if err != nil {
 		t.Errorf("expected large ASS file to be allowed, got error: %v", err)
+	}
+}
+
+func TestSanitizeZip_BackslashPathsAndUTF8Conversion(t *testing.T) {
+	t.Parallel()
+
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+
+	f, err := w.Create("Season 1\\Show.S01E01.srt")
+	if err != nil {
+		t.Fatalf("failed to create zip entry: %v", err)
+	}
+	if _, err := f.Write([]byte{0x63, 0x61, 0x66, 0xe9}); err != nil {
+		t.Fatalf("failed to write latin1 content: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("failed to close zip: %v", err)
+	}
+
+	result, err := SanitizeZip(buf.Bytes())
+	if err != nil {
+		t.Fatalf("SanitizeZip returned unexpected error: %v", err)
+	}
+
+	names, contents := zipEntries(t, result)
+	if len(names) != 1 || names[0] != "Show.S01E01.srt" {
+		t.Fatalf("expected flattened filename Show.S01E01.srt, got %v", names)
+	}
+	if !utf8.Valid(contents["Show.S01E01.srt"]) {
+		t.Fatal("expected sanitized subtitle content to be valid UTF-8")
+	}
+	if got := string(contents["Show.S01E01.srt"]); got != "café" {
+		t.Errorf("expected converted content café, got %q", got)
 	}
 }
 
