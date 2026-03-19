@@ -19,9 +19,22 @@ const (
 	MaxCompressionRatio = 10000
 	// Maximum uncompressed size for a single file (20 MB).
 	MaxUncompressedFileSize = 20 * 1024 * 1024
+	// Maximum uncompressed size for a single ASS file (100 MB).
+	// ASS files can legitimately be large because they often embed font data as base64.
+	MaxUncompressedAssFileSize = 100 * 1024 * 1024
 	// Maximum total uncompressed size for all files in an archive (100 MB).
 	MaxTotalUncompressedSize = 100 * 1024 * 1024
 )
+
+// maxFileSizeForExtension returns the maximum allowed uncompressed size for a file
+// based on its extension. ASS subtitle files can legitimately contain embedded fonts
+// and may exceed the standard limit, so they receive a higher allowance.
+func maxFileSizeForExtension(filename string) int64 {
+	if strings.ToLower(path.Ext(filename)) == ".ass" {
+		return MaxUncompressedAssFileSize
+	}
+	return MaxUncompressedFileSize
+}
 
 // archiveLimitWriter is an io.Writer that enforces per-file and total uncompressed size limits
 // to guard against ZIP/RAR bomb extraction attacks.
@@ -34,10 +47,10 @@ type archiveLimitWriter struct {
 
 func (w *archiveLimitWriter) Write(p []byte) (int, error) {
 	fileSize := w.fileWritten + int64(len(p))
-	if fileSize > MaxUncompressedFileSize {
+	if fileSize > maxFileSizeForExtension(w.fileName) {
 		return 0, NewUnrecoverableError(
 			"RAR archive entry exceeds maximum uncompressed size",
-			fmt.Errorf("entry %s is %d bytes > %d bytes limit", w.fileName, fileSize, MaxUncompressedFileSize),
+			fmt.Errorf("entry %s is %d bytes > %d bytes limit", w.fileName, fileSize, maxFileSizeForExtension(w.fileName)),
 		)
 	}
 
@@ -102,10 +115,10 @@ func ConvertRarToZip(rarContent []byte) ([]byte, error) {
 			entryName = "subtitle"
 		}
 
-		if header.UnPackedSize > MaxUncompressedFileSize {
+		if header.UnPackedSize > maxFileSizeForExtension(entryName) {
 			return nil, NewUnrecoverableError(
 				"RAR archive entry exceeds maximum uncompressed size",
-				fmt.Errorf("entry %s is %d bytes > %d bytes limit", entryName, header.UnPackedSize, MaxUncompressedFileSize),
+				fmt.Errorf("entry %s is %d bytes > %d bytes limit", entryName, header.UnPackedSize, maxFileSizeForExtension(entryName)),
 			)
 		}
 

@@ -66,9 +66,24 @@ func TestDetectZipBomb(t *testing.T) {
 			shouldError: false,
 		},
 		{
+			name: "Large ASS file within ASS limit - should pass",
+			files: map[string]string{
+				"show.s03e01.ass": strings.Repeat("A", 37*1024*1024), // 37 MB (over 20 MB limit but under 100 MB ASS limit)
+			},
+			shouldError: false,
+		},
+		{
 			name: "File exceeds individual size limit - should fail",
 			files: map[string]string{
 				"malicious.srt": strings.Repeat("X", 25*1024*1024), // 25 MB > 20 MB limit
+			},
+			shouldError: true,
+			errorMsg:    "exceeds maximum uncompressed size",
+		},
+		{
+			name: "ASS file exceeds ASS size limit - should fail",
+			files: map[string]string{
+				"malicious.ass": strings.Repeat("X", 101*1024*1024), // 101 MB > 100 MB ASS limit
 			},
 			shouldError: true,
 			errorMsg:    "exceeds maximum uncompressed size",

@@ -43,7 +43,7 @@
 
 ## ZIP Bomb Detection Strategy
 
-**Decision**: Detect ZIP bombs by checking per-file size, total uncompressed size, and compression ratio, applied at two stages — during RAR-to-ZIP conversion (write-time limits) and before ZIP episode extraction (read-time ratio check).
+**Decision**: Detect ZIP bombs by checking per-file size, total uncompressed size, and compression ratio, applied at two stages — during RAR-to-ZIP conversion (write-time limits) and before ZIP episode extraction (read-time ratio check). ASS subtitle files use a higher per-file limit because they can legitimately embed fonts as base64.
 
 **Rationale**:
 
@@ -51,8 +51,9 @@
 - Read-time ratio checks in `DetectZipBomb()` catch pre-existing malicious ZIP files that were never converted
 - Three complementary thresholds (`MaxCompressionRatio`, `MaxUncompressedFileSize`, `MaxTotalUncompressedSize`) cover both single-entry and multi-entry bomb patterns
 - Generous limits (10 000:1 ratio, 20 MB per file, 100 MB total) avoid false positives on legitimate subtitle archives
+- ASS files receive a dedicated higher per-file limit (`MaxUncompressedAssFileSize` = 100 MB) because they often embed font data as base64, which can push a single-episode subtitle past 20 MB without any malicious intent
 
-**Implementation**: `archiveLimitWriter` in `internal/archive/convert.go` enforces per-file and total limits during `ConvertRarToZip()`. `DetectZipBomb()` in `internal/archive/extract.go` scans all ZIP entries and compares the total uncompressed size against the compressed archive size using `MaxCompressionRatio`.
+**Implementation**: `archiveLimitWriter` in `internal/archive/convert.go` enforces per-file and total limits during `ConvertRarToZip()`. `DetectZipBomb()` in `internal/archive/extract.go` scans all ZIP entries and compares the total uncompressed size against the compressed archive size using `MaxCompressionRatio`. The helper `maxFileSizeForExtension()` selects `MaxUncompressedAssFileSize` for `.ass` entries and `MaxUncompressedFileSize` for all other types.
 
 ## Archive Sanitization Before Caching
 

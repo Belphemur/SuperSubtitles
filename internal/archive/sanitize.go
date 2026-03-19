@@ -77,16 +77,17 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 
 		// Enforce per-file size limit during decompression to guard against
 		// spoofed ZIP headers that pass DetectZipBomb but expand beyond limits.
-		limitedReader := io.LimitReader(rc, MaxUncompressedFileSize+1)
+		fileLimit := maxFileSizeForExtension(flatName)
+		limitedReader := io.LimitReader(rc, fileLimit+1)
 		content, err := io.ReadAll(limitedReader)
 		rc.Close()
 		if err != nil {
 			return nil, NewUnrecoverableError(fmt.Sprintf("failed to read ZIP entry %s", flatName), err)
 		}
-		if int64(len(content)) > MaxUncompressedFileSize {
+		if int64(len(content)) > fileLimit {
 			return nil, NewUnrecoverableError(
 				"ZIP entry exceeds maximum uncompressed size",
-				fmt.Errorf("entry %s is %d bytes > %d bytes limit", flatName, len(content), MaxUncompressedFileSize),
+				fmt.Errorf("entry %s is %d bytes > %d bytes limit", flatName, len(content), fileLimit),
 			)
 		}
 		totalRead += int64(len(content))

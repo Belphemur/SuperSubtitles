@@ -52,10 +52,11 @@ func DetectZipBomb(zipContent []byte) error {
 		uncompressedSize := file.UncompressedSize64
 		totalUncompressedSize += uncompressedSize
 
-		if uncompressedSize > MaxUncompressedFileSize {
+		fileLimit := uint64(maxFileSizeForExtension(file.Name))
+		if uncompressedSize > fileLimit {
 			return NewUnrecoverableError(
 				"ZIP bomb detected",
-				fmt.Errorf("file %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)", file.Name, uncompressedSize, MaxUncompressedFileSize),
+				fmt.Errorf("file %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)", file.Name, uncompressedSize, fileLimit),
 			)
 		}
 
