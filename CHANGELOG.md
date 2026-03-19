@@ -1,3 +1,10 @@
+## [2.14.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.1...v2.14.2) (2026-03-19)
+
+
+### Bug Fixes
+
+* **archive:** move archive errors into archive package ([2c5ce1c](https://github.com/Belphemur/SuperSubtitles/commit/2c5ce1c06bdf8429c153fd9e7eb6cbc459db1eba))
+
 ## [2.14.1](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.0...v2.14.1) (2026-03-19)
 
 
