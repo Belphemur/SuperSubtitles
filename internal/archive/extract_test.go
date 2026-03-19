@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -136,6 +137,35 @@ func TestDetectZipBomb_CompressionRatio(t *testing.T) {
 	}
 }
 
+func TestDetectZipBomb_InvalidZip(t *testing.T) {
+	t.Parallel()
+
+	err := DetectZipBomb([]byte("not a zip"))
+	if err == nil {
+		t.Fatal("expected error for invalid zip content")
+	}
+	if !strings.Contains(err.Error(), "failed to open ZIP") {
+		t.Errorf("expected invalid zip error, got: %v", err)
+	}
+}
+
+func TestDetectZipBomb_TotalUncompressedSize(t *testing.T) {
+	t.Parallel()
+
+	files := make(map[string]string)
+	for i := 0; i < 6; i++ {
+		files["show.s01e"+strconv.Itoa(i+1)+".ass"] = strings.Repeat("A", 18*1024*1024)
+	}
+
+	err := DetectZipBomb(createTestZip(t, files))
+	if err == nil {
+		t.Fatal("expected total uncompressed size error")
+	}
+	if !strings.Contains(err.Error(), "total uncompressed size exceeds limit") {
+		t.Errorf("expected total size error, got: %v", err)
+	}
+}
+
 func TestExtractEpisodeFromZip_Basic(t *testing.T) {
 	t.Parallel()
 	zipContent := createTestZip(t, map[string]string{
@@ -172,6 +202,12 @@ func TestExtractEpisodeFromZip_NotFound(t *testing.T) {
 	if !errors.As(err, &episodeErr) {
 		t.Errorf("Expected ErrEpisodeNotFound, got: %v", err)
 	}
+	if episodeErr.Error() == "" {
+		t.Error("expected ErrEpisodeNotFound error message to be populated")
+	}
+	if !errors.Is(err, &ErrEpisodeNotFound{}) {
+		t.Error("expected errors.Is to match ErrEpisodeNotFound")
+	}
 }
 
 func TestExtractEpisodeFromZip_PrefersSrt(t *testing.T) {
@@ -193,5 +229,38 @@ func TestExtractEpisodeFromZip_PrefersSrt(t *testing.T) {
 
 	if string(result.Content) != "SRT content" {
 		t.Errorf("Expected 'SRT content', got '%s'", string(result.Content))
+	}
+}
+
+func TestExtractEpisodeFromZip_MatchesPathAndPrefersSubtitleType(t *testing.T) {
+	t.Parallel()
+
+	zipContent := createTestZip(t, map[string]string{
+		"Show/1x07/subtitle.txt": "text content",
+		"Show/1x07/subtitle.ass": "ass content",
+	})
+
+	result, err := ExtractEpisodeFromZip(zipContent, 7, testLogger())
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if result.Filename != "subtitle.ass" {
+		t.Errorf("Expected subtitle.ass, got %q", result.Filename)
+	}
+	if string(result.Content) != "ass content" {
+		t.Errorf("Expected ASS content, got %q", result.Content)
+	}
+}
+
+func TestExtractEpisodeFromZip_InvalidZip(t *testing.T) {
+	t.Parallel()
+
+	_, err := ExtractEpisodeFromZip([]byte("not a zip"), 1, testLogger())
+	if err == nil {
+		t.Fatal("expected invalid zip error")
+	}
+	if !strings.Contains(err.Error(), "failed to open ZIP for bomb detection") {
+		t.Errorf("expected bomb detection open error, got: %v", err)
 	}
 }

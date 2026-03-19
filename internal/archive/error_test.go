@@ -12,6 +12,14 @@ import (
 func TestArchiveError_Error(t *testing.T) {
 	t.Parallel()
 
+	t.Run("nil archive error", func(t *testing.T) {
+		t.Parallel()
+		var err *ArchiveError
+		if got := err.Error(); got != "" {
+			t.Errorf("Error() = %q, want empty string", got)
+		}
+	})
+
 	t.Run("message and cause", func(t *testing.T) {
 		t.Parallel()
 		err := &ArchiveError{Message: "failed to extract archive", Err: errors.New("zip bomb detected")}
@@ -24,6 +32,14 @@ func TestArchiveError_Error(t *testing.T) {
 		t.Parallel()
 		err := &ArchiveError{Message: "unsupported archive format"}
 		if got, want := err.Error(), "unsupported archive format"; got != want {
+			t.Errorf("Error() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("url only", func(t *testing.T) {
+		t.Parallel()
+		err := &ArchiveError{URL: "https://example.com/sub.zip"}
+		if got, want := err.Error(), "url: https://example.com/sub.zip"; got != want {
 			t.Errorf("Error() = %q, want %q", got, want)
 		}
 	})
@@ -47,6 +63,14 @@ func TestArchiveError_Error(t *testing.T) {
 
 func TestArchiveError_IsAndUnwrap(t *testing.T) {
 	t.Parallel()
+
+	t.Run("nil unwrap", func(t *testing.T) {
+		t.Parallel()
+		var err *ArchiveError
+		if got := err.Unwrap(); got != nil {
+			t.Errorf("Unwrap() = %v, want nil", got)
+		}
+	})
 
 	cause := errors.New("corrupt entry")
 	err := NewError("failed archive operation", cause)
