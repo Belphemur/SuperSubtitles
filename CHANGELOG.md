@@ -1,3 +1,10 @@
+## [2.14.3](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.2...v2.14.3) (2026-03-19)
+
+
+### Bug Fixes
+
+* **archive:** raise per-file size limit for ASS subtitle files ([#128](https://github.com/Belphemur/SuperSubtitles/issues/128)) ([90b9f2e](https://github.com/Belphemur/SuperSubtitles/commit/90b9f2ee55c5387a814796d4d969a0eb517d947c))
+
 ## [2.14.2](https://github.com/Belphemur/SuperSubtitles/compare/v2.14.1...v2.14.2) (2026-03-19)
 
 
