@@ -1,3 +1,18 @@
+# [2.14.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.13.0...v2.14.0) (2026-03-19)
+
+
+### Bug Fixes
+
+* **archive:** address PR review feedback ([b151358](https://github.com/Belphemur/SuperSubtitles/commit/b1513580e7566262889c15208081c26dcc8f8b6e))
+* **archive:** check Write error in sanitize test to satisfy errcheck ([d94d672](https://github.com/Belphemur/SuperSubtitles/commit/d94d672d31dc5b23167dcec8eaa587ad894598a1))
+* **ci:** add checkout step to codecov report job ([925b698](https://github.com/Belphemur/SuperSubtitles/commit/925b69856fcdd3d27f3653ee06458414649faa33))
+
+
+### Features
+
+* **archive:** add SanitizeZip to strip non-subtitle files, flatten structure, and convert to UTF-8 ([6ba1035](https://github.com/Belphemur/SuperSubtitles/commit/6ba1035373cebeee1f06a746d598e5e2c2e7cf66))
+* **services:** sanitize archives before caching ([8402b81](https://github.com/Belphemur/SuperSubtitles/commit/8402b81f6c8dc865a93c3ed1a4ec239676e1fca2))
+
 # [2.13.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.12.6...v2.13.0) (2026-03-18)
 
 
