@@ -18,6 +18,7 @@ import (
 
 	pb "github.com/Belphemur/SuperSubtitles/v2/api/proto/v1"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
+	"github.com/Belphemur/SuperSubtitles/v2/internal/archive"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
 )
 
@@ -593,7 +594,7 @@ func TestDownloadSubtitle_ArchiveErrorReturnsUnprocessableEntity(t *testing.T) {
 
 	mock := &mockClient{
 		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
-			return nil, apperrors.NewArchiveError("failed to extract episode 5 from ZIP", errors.New("ZIP bomb detected: suspicious compression ratio"))
+			return nil, archive.NewError("failed to extract episode 5 from ZIP", errors.New("ZIP bomb detected: suspicious compression ratio"))
 		},
 	}
 
@@ -620,6 +621,51 @@ func TestDownloadSubtitle_ArchiveErrorReturnsUnprocessableEntity(t *testing.T) {
 
 	if !strings.Contains(st.Message(), "ZIP bomb detected") {
 		t.Errorf("Expected status message to include original archive error, got %q", st.Message())
+	}
+
+	details := st.Details()
+	if len(details) == 0 {
+		t.Fatal("Expected status details with HTTP mapping metadata, got none")
+	}
+
+	errorInfo, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("Expected first detail to be ErrorInfo, got %T", details[0])
+	}
+
+	if got, want := errorInfo.Metadata["http_status"], fmt.Sprintf("%d", http.StatusUnprocessableEntity); got != want {
+		t.Errorf("Expected http_status metadata %q, got %q", want, got)
+	}
+}
+
+func TestDownloadSubtitle_UnrecoverableArchiveErrorReturnsDataLoss(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, archive.NewUnrecoverableError("archive is unsafe and permanently unusable", errors.New("ZIP bomb detected: suspicious compression ratio"))
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{
+		SubtitleId: "101",
+		Episode:    proto.Int32(5),
+	}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.DataLoss {
+		t.Errorf("Expected codes.DataLoss, got %v", st.Code())
 	}
 
 	details := st.Details()

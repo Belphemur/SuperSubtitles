@@ -23,6 +23,7 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	"google.golang.org/grpc/codes"
 )
 
 // createTestZip creates a test ZIP file with season pack structure
@@ -977,8 +978,16 @@ func TestExtractEpisodeFromZip_ZipBombProtection(t *testing.T) {
 		t.Fatal("Expected error due to ZIP bomb detection, got nil")
 	}
 
-	if !errors.Is(err, &apperrors.ArchiveError{}) {
+	if !errors.Is(err, &archive.ArchiveError{}) {
 		t.Fatalf("Expected errors.Is to match ArchiveError, got: %v", err)
+	}
+
+	var archiveErr *archive.ArchiveError
+	if !errors.As(err, &archiveErr) {
+		t.Fatalf("Expected wrapped ArchiveError, got: %v", err)
+	}
+	if archiveErr.GRPCCode() != codes.DataLoss {
+		t.Fatalf("Expected ArchiveError to map to codes.DataLoss, got: %v", archiveErr.GRPCCode())
 	}
 
 	if !strings.Contains(err.Error(), "ZIP bomb detected") {
