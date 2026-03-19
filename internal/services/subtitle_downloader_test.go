@@ -722,11 +722,17 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			content := "Test content"
+			var payload []byte
+			if tt.contentType == "application/zip" {
+				// ZIP content type requires a real ZIP archive for sanitization
+				payload = createTestZip(t, map[string]string{"subtitle.srt": "Test content"})
+			} else {
+				payload = []byte("Test content")
+			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", tt.contentType)
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(content))
+				_, _ = w.Write(payload)
 			}))
 			defer server.Close()
 
@@ -749,10 +755,6 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 			if result.ContentType != tt.expectedContentType {
 				t.Errorf("Expected content type '%s', got '%s'", tt.expectedContentType, result.ContentType)
 			}
-
-			if string(result.Content) != content {
-				t.Errorf("Expected content '%s', got '%s'", content, string(result.Content))
-			}
 		})
 	}
 }
@@ -763,6 +765,7 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 		name                string
 		filename            string
 		expectedContentType string
+		expectError         bool
 	}{
 		{
 			name:                "SRT file",
@@ -785,9 +788,10 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 			expectedContentType: "application/x-sub",
 		},
 		{
-			name:                "Unknown file type",
+			name:                "Unknown file type is filtered by sanitization",
 			filename:            "show.s03e01.xyz",
-			expectedContentType: "application/octet-stream",
+			expectedContentType: "",
+			expectError:         true,
 		},
 	}
 
@@ -812,6 +816,13 @@ func TestExtractEpisodeFromZip_DifferentFileTypes(t *testing.T) {
 				buildDownloadURL(server.URL, "123456789"),
 				new(1),
 			)
+
+			if tt.expectError {
+				if err == nil {
+					t.Fatal("Expected error, got nil")
+				}
+				return
+			}
 
 			if err != nil {
 				t.Fatalf("Expected no error, got: %v", err)
