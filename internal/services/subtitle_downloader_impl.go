@@ -418,27 +418,34 @@ func (d *DefaultSubtitleDownloader) downloadSubtitleContent(ctx context.Context,
 	archiveFormat := archive.DetectFormat(content, contentType)
 	switch archiveFormat {
 	case archive.FormatZIP:
-		if archive.IsZipFile(content) {
-			d.archiveCache.Set(cacheKey, content)
-			logger.Debug().
-				Str("url", url).
-				Int("size", len(content)).
-				Msg("Cached ZIP download archive")
+		sanitized, err := archive.SanitizeZip(content)
+		if err != nil {
+			return nil, "", apperrors.NewArchiveError("failed to sanitize ZIP archive", err)
 		}
-		return content, "application/zip", nil
+		d.archiveCache.Set(cacheKey, sanitized)
+		logger.Debug().
+			Str("url", url).
+			Int("originalSize", len(content)).
+			Int("sanitizedSize", len(sanitized)).
+			Msg("Sanitized and cached ZIP download archive")
+		return sanitized, "application/zip", nil
 	case archive.FormatRAR:
 		normalized, err := archive.ConvertRarToZip(content)
 		if err != nil {
 			return nil, "", apperrors.NewArchiveError("failed to normalize RAR archive to ZIP", err)
 		}
+		sanitized, err := archive.SanitizeZip(normalized)
+		if err != nil {
+			return nil, "", apperrors.NewArchiveError("failed to sanitize converted RAR archive", err)
+		}
 
-		d.archiveCache.Set(cacheKey, normalized)
+		d.archiveCache.Set(cacheKey, sanitized)
 		logger.Info().
 			Str("url", url).
 			Int("rarSize", len(content)).
-			Int("zipSize", len(normalized)).
-			Msg("Normalized RAR archive to ZIP for download and cached it")
-		return normalized, "application/zip", nil
+			Int("zipSize", len(sanitized)).
+			Msg("Normalized RAR archive to ZIP, sanitized, and cached it")
+		return sanitized, "application/zip", nil
 	default:
 		return content, archive.NormalizeContentType(contentType, archiveFormat), nil
 	}
@@ -465,26 +472,33 @@ func (d *DefaultSubtitleDownloader) downloadArchiveForEpisode(ctx context.Contex
 	archiveFormat := archive.DetectFormat(content, contentType)
 	switch archiveFormat {
 	case archive.FormatZIP:
-		if archive.IsZipFile(content) {
-			d.archiveCache.Set(cacheKey, content)
-			logger.Debug().
-				Str("url", url).
-				Int("size", len(content)).
-				Msg("Cached ZIP episode archive")
+		sanitized, err := archive.SanitizeZip(content)
+		if err != nil {
+			return nil, "", apperrors.NewArchiveError("failed to sanitize ZIP archive for episode extraction", err)
 		}
-		return content, "application/zip", nil
+		d.archiveCache.Set(cacheKey, sanitized)
+		logger.Debug().
+			Str("url", url).
+			Int("originalSize", len(content)).
+			Int("sanitizedSize", len(sanitized)).
+			Msg("Sanitized and cached ZIP episode archive")
+		return sanitized, "application/zip", nil
 	case archive.FormatRAR:
 		normalized, err := archive.ConvertRarToZip(content)
 		if err != nil {
 			return nil, "", apperrors.NewArchiveError("failed to convert RAR archive to ZIP for episode extraction", err)
 		}
-		d.archiveCache.Set(cacheKey, normalized)
+		sanitized, err := archive.SanitizeZip(normalized)
+		if err != nil {
+			return nil, "", apperrors.NewArchiveError("failed to sanitize converted RAR archive for episode extraction", err)
+		}
+		d.archiveCache.Set(cacheKey, sanitized)
 		logger.Info().
 			Str("url", url).
 			Int("rarSize", len(content)).
-			Int("zipSize", len(normalized)).
-			Msg("Converted RAR to ZIP for episode extraction and cached it")
-		return normalized, "application/zip", nil
+			Int("zipSize", len(sanitized)).
+			Msg("Converted RAR to ZIP, sanitized, and cached for episode extraction")
+		return sanitized, "application/zip", nil
 	default:
 		return nil, "", &apperrors.ArchiveError{
 			Message: fmt.Sprintf("unsupported archive format for episode extraction (content-type: %s)", contentType),
@@ -502,14 +516,10 @@ func (d *DefaultSubtitleDownloader) extractEpisodeFromZip(zipContent []byte, epi
 	}
 
 	contentType := getContentTypeFromFilename(episodeFile.Filename)
-	content := episodeFile.Content
-	if isTextSubtitleContentType(contentType) {
-		content = convertToUTF8(content)
-	}
 
 	return &models.DownloadResult{
 		Filename:    episodeFile.Filename,
-		Content:     content,
+		Content:     episodeFile.Content,
 		ContentType: contentType,
 	}, nil
 }

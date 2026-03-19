@@ -123,6 +123,8 @@ jobs:
     needs: [test, test-cache]
     if: ${{ !cancelled() }}
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download all test artifacts
         uses: actions/download-artifact@v8
         with:

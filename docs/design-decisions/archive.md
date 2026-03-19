@@ -53,3 +53,17 @@
 - Generous limits (10 000:1 ratio, 20 MB per file, 100 MB total) avoid false positives on legitimate subtitle archives
 
 **Implementation**: `archiveLimitWriter` in `internal/archive/convert.go` enforces per-file and total limits during `ConvertRarToZip()`. `DetectZipBomb()` in `internal/archive/extract.go` scans all ZIP entries and compares the total uncompressed size against the compressed archive size using `MaxCompressionRatio`.
+
+## Archive Sanitization Before Caching
+
+**Decision**: ZIP and RAR archives are sanitized before being stored in the cache. Sanitization strips all non-subtitle files, flattens the directory structure, and converts subtitle content to UTF-8.
+
+**Rationale**:
+
+- Caching the raw upstream archive means every cache hit serves potentially unsafe non-subtitle files (executables, scripts, images) — sanitizing once at ingestion eliminates this class of risk
+- Flattening nested directories simplifies episode extraction since all entries become top-level filenames, removing path-based ambiguity
+- Converting subtitle content to UTF-8 during sanitization means downstream consumers never need to handle encoding detection — the cached archive is always ready to serve
+- ZIP bomb detection runs as a pre-scan on headers; the subtitle entries are then read in a second pass that also enforces per-file and total size limits during decompression to guard against spoofed headers
+- Deduplication of filenames after flattening (via numeric suffix) prevents silent overwrites when different subdirectories contain identically named files
+
+**Implementation**: `SanitizeZip()` in `internal/archive/sanitize.go` performs all three operations. It first runs `DetectZipBomb()`, then iterates entries keeping only files with subtitle extensions (`.srt`, `.ass`, `.vtt`, `.sub` — checked via `isSubtitleFile()`), flattens paths to `filepath.Base()`, deduplicates with `deduplicate()`, and converts each file's content with `convertToUTF8()`. Both `downloadSubtitleContent()` and `downloadArchiveForEpisode()` in `internal/services/subtitle_downloader_impl.go` call `SanitizeZip()` after format detection (and after `ConvertRarToZip()` for RAR) but before `archiveCache.Set()`.
