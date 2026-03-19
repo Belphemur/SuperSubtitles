@@ -228,7 +228,9 @@ func TestSanitizeZip_SkipsDirectoryEntries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Write([]byte("sub content"))
+	if _, err := f.Write([]byte("sub content")); err != nil {
+		t.Fatal(err)
+	}
 
 	w.Close()
 
