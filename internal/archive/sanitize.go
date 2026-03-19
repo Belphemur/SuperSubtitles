@@ -46,13 +46,17 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 	zipWriter := zip.NewWriter(outBuf)
 
 	usedNames := make(map[string]int)
+	var totalRead int64
 
 	for _, file := range zipReader.File {
 		if file.FileInfo().IsDir() {
 			continue
 		}
 
-		baseName := strings.ToValidUTF8(filepath.Base(file.Name), "�")
+		// Normalize backslashes before extracting base name — on non-Windows,
+		// filepath.Base does not split on '\', which could preserve path components.
+		normalized := strings.ReplaceAll(file.Name, "\\", "/")
+		baseName := strings.ToValidUTF8(filepath.Base(normalized), "�")
 		if !isSubtitleFile(baseName) {
 			continue
 		}
@@ -71,10 +75,22 @@ func SanitizeZip(zipContent []byte) ([]byte, error) {
 			return nil, fmt.Errorf("failed to create ZIP entry %s: %w", flatName, err)
 		}
 
-		content, err := io.ReadAll(rc)
+		// Enforce per-file size limit during decompression to guard against
+		// spoofed ZIP headers that pass DetectZipBomb but expand beyond limits.
+		limitedReader := io.LimitReader(rc, MaxUncompressedFileSize+1)
+		content, err := io.ReadAll(limitedReader)
 		rc.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read ZIP entry %s: %w", flatName, err)
+		}
+		if int64(len(content)) > MaxUncompressedFileSize {
+			return nil, fmt.Errorf("ZIP entry %s exceeds maximum uncompressed size (%d bytes > %d bytes limit)",
+				flatName, len(content), MaxUncompressedFileSize)
+		}
+		totalRead += int64(len(content))
+		if totalRead > MaxTotalUncompressedSize {
+			return nil, fmt.Errorf("ZIP archive total uncompressed size exceeds limit (%d bytes > %d bytes limit)",
+				totalRead, MaxTotalUncompressedSize)
 		}
 
 		content = convertToUTF8(content)

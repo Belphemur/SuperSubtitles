@@ -755,6 +755,27 @@ func TestDownloadSubtitle_DifferentFileTypes(t *testing.T) {
 			if result.ContentType != tt.expectedContentType {
 				t.Errorf("Expected content type '%s', got '%s'", tt.expectedContentType, result.ContentType)
 			}
+
+			if tt.contentType == "application/zip" {
+				// For ZIP, verify the result is a valid ZIP containing only subtitle entries
+				zr, zerr := zip.NewReader(bytes.NewReader(result.Content), int64(len(result.Content)))
+				if zerr != nil {
+					t.Fatalf("Result is not a valid ZIP: %v", zerr)
+				}
+				if len(zr.File) == 0 {
+					t.Error("Expected at least one file in sanitized ZIP")
+				}
+				for _, f := range zr.File {
+					ext := strings.ToLower(filepath.Ext(f.Name))
+					if ext != ".srt" && ext != ".ass" && ext != ".vtt" && ext != ".sub" {
+						t.Errorf("Non-subtitle file %q found in sanitized ZIP", f.Name)
+					}
+				}
+			} else {
+				if string(result.Content) != "Test content" {
+					t.Errorf("Expected content 'Test content', got '%s'", string(result.Content))
+				}
+			}
 		})
 	}
 }

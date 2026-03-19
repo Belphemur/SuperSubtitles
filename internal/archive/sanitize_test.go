@@ -273,8 +273,7 @@ func TestSanitizeZip_CaseInsensitiveExtensions(t *testing.T) {
 
 	// No non-subtitle files should survive
 	for _, name := range names {
-		ext := strings.ToLower(name[strings.LastIndex(name, "."):])
-		if !subtitleExtensions[ext] {
+		if !isSubtitleFile(name) {
 			t.Errorf("non-subtitle file %q should have been removed", name)
 		}
 	}
@@ -404,6 +403,34 @@ func TestSanitizeZip_RarConvertedThenSanitized(t *testing.T) {
 	}
 	if string(contents["Renegade.S01E02.srt"]) != "ep2" {
 		t.Errorf("unexpected content for Renegade.S01E02.srt")
+	}
+}
+
+func TestSanitizeZip_BackslashPaths(t *testing.T) {
+	t.Parallel()
+
+	// ZIP archives can contain backslashes in entry names (common from Windows tools).
+	// On non-Windows, filepath.Base won't split on '\', so we must normalize first.
+	input := createTestZip(t, map[string]string{
+		"Season 1\\show.s01e01.srt": "ep1",
+		"Season 2\\show.s01e02.srt": "ep2",
+	})
+
+	result, err := SanitizeZip(input)
+	if err != nil {
+		t.Fatalf("SanitizeZip returned unexpected error: %v", err)
+	}
+
+	names, _ := zipEntries(t, result)
+
+	if len(names) != 2 {
+		t.Fatalf("expected 2 entries, got %d: %v", len(names), names)
+	}
+
+	for _, name := range names {
+		if strings.Contains(name, "/") || strings.Contains(name, "\\") {
+			t.Errorf("entry %q still contains path separator", name)
+		}
 	}
 }
 
