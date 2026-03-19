@@ -577,6 +577,52 @@ func TestDownloadSubtitle_HTTPError(t *testing.T) {
 	}
 }
 
+func TestDownloadSubtitle_HTMLContentTypeReturnsUnrecoverableArchiveError(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("<html><body>blocked</body></html>"))
+	}))
+	defer server.Close()
+
+	downloader := NewSubtitleDownloader(server.Client())
+	downloadURL := buildDownloadURL(server.URL, "html-content")
+
+	_, err := downloader.DownloadSubtitle(context.Background(), downloadURL, nil)
+	if err == nil {
+		t.Fatal("Expected error for HTML content type, got nil")
+	}
+
+	if !errors.Is(err, &archive.ArchiveError{}) {
+		t.Fatalf("Expected errors.Is to match ArchiveError, got: %v", err)
+	}
+
+	var archiveErr *archive.ArchiveError
+	if !errors.As(err, &archiveErr) {
+		t.Fatalf("Expected wrapped ArchiveError, got: %v", err)
+	}
+
+	if !archiveErr.Unrecoverable {
+		t.Fatalf("Expected ArchiveError to be unrecoverable, got recoverable: %v", archiveErr)
+	}
+
+	if archiveErr.URL != downloadURL {
+		t.Fatalf("Expected ArchiveError URL %q, got %q", downloadURL, archiveErr.URL)
+	}
+
+	if archiveErr.GRPCCode() != codes.DataLoss {
+		t.Fatalf("Expected ArchiveError to map to codes.DataLoss, got: %v", archiveErr.GRPCCode())
+	}
+
+	if !strings.Contains(err.Error(), "received HTML content") {
+		t.Fatalf("Expected HTML content error message, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "text/html; charset=utf-8") {
+		t.Fatalf("Expected content type in error message, got: %v", err)
+	}
+}
+
 func TestDownloadSubtitle_InvalidZip(t *testing.T) {
 	t.Parallel()
 	// Create test HTTP server with invalid ZIP content

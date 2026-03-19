@@ -333,6 +333,20 @@ func isTextSubtitleContentType(contentType string) bool {
 	return false
 }
 
+func isHTMLContentType(contentType string) bool {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		mediaType = contentType
+	}
+
+	switch strings.ToLower(strings.TrimSpace(mediaType)) {
+	case "text/html", "application/xhtml+xml":
+		return true
+	default:
+		return false
+	}
+}
+
 // convertToUTF8 detects the character encoding of text content and converts it to UTF-8.
 // It handles BOM detection and uses heuristic charset detection.
 // If the content is already valid UTF-8, this is a no-op.
@@ -405,6 +419,13 @@ func (d *DefaultSubtitleDownloader) downloadFile(ctx context.Context, url string
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
+	}
+	if isHTMLContentType(contentType) {
+		return nil, "", archive.NewUnrecoverableErrorWithURL(
+			fmt.Sprintf("received HTML content instead of subtitle download (content-type: %s)", contentType),
+			url,
+			nil,
+		)
 	}
 
 	return content, contentType, nil
