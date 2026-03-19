@@ -18,7 +18,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	golang.org/x/net v0.52.0
 	golang.org/x/text v0.35.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319160320-33aa9e5aa6fe
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319171110-e3a33c96fb44
 	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 )
