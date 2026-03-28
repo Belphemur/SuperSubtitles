@@ -1,3 +1,10 @@
+## [2.15.4](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.3...v2.15.4) (2026-03-28)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/rs/zerolog to v1.35.0 ([#146](https://github.com/Belphemur/SuperSubtitles/issues/146)) ([5e0b9c6](https://github.com/Belphemur/SuperSubtitles/commit/5e0b9c6b4230a0c58a0aee24ad3facefb3699f4b))
+
 ## [2.15.3](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.2...v2.15.3) (2026-03-24)
 
 
