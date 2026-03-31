@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/PuerkitoBio/goquery v1.12.0
-	github.com/andybalholm/brotli v1.2.0
+	github.com/andybalholm/brotli v1.2.1
 	github.com/failsafe-go/failsafe-go v0.9.6
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
