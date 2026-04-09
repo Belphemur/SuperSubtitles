@@ -1,3 +1,10 @@
+## [2.15.12](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.11...v2.15.12) (2026-04-09)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/getsentry/sentry-go to v0.45.0 ([#164](https://github.com/Belphemur/SuperSubtitles/issues/164)) ([012bd32](https://github.com/Belphemur/SuperSubtitles/commit/012bd32abf7543186cda4ae2bb06d67b0cb100c2))
+
 ## [2.15.11](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.10...v2.15.11) (2026-04-06)
 
 
