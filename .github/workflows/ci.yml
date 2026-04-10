@@ -133,13 +133,13 @@ jobs:
           path: artifacts
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: artifacts/coverage-parser-models-errors.txt,artifacts/coverage-client.txt,artifacts/coverage-services-grpc-metrics.txt,artifacts/coverage-cache.txt
 
       - name: Upload test results to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: test_results
