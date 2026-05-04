@@ -1,3 +1,11 @@
+## [2.15.24](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.23...v2.15.24) (2026-05-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/getsentry/sentry-go to v0.46.2 ([#189](https://github.com/Belphemur/SuperSubtitles/issues/189)) ([af02e79](https://github.com/Belphemur/SuperSubtitles/commit/af02e79f9796a0fd449960625eef82c4958e98c0))
+* **deps:** update module google.golang.org/grpc to v1.81.0 ([#190](https://github.com/Belphemur/SuperSubtitles/issues/190)) ([220c4c3](https://github.com/Belphemur/SuperSubtitles/commit/220c4c3c642500b532bb20631128e81a366888a8))
+
 ## [2.15.23](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.22...v2.15.23) (2026-04-30)
 
 
