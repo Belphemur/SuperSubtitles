@@ -1,3 +1,10 @@
+## [2.15.33](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.32...v2.15.33) (2026-05-22)
+
+
+### Bug Fixes
+
+* **deps:** update google.golang.org/genproto/googleapis/rpc digest to 9641223 ([#208](https://github.com/Belphemur/SuperSubtitles/issues/208)) ([f0428a7](https://github.com/Belphemur/SuperSubtitles/commit/f0428a72de19b528d72134518097dc0b263b3b16))
+
 ## [2.15.32](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.31...v2.15.32) (2026-05-22)
 
 
