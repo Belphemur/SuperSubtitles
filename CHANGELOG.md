@@ -1,3 +1,10 @@
+## [2.15.36](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.35...v2.15.36) (2026-05-24)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/nwaples/rardecode/v2 to v2.2.3 ([#211](https://github.com/Belphemur/SuperSubtitles/issues/211)) ([4bf092c](https://github.com/Belphemur/SuperSubtitles/commit/4bf092c2e4dca20c45cb538520271a933fea26aa))
+
 ## [2.15.35](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.34...v2.15.35) (2026-05-23)
 
 
