@@ -1,3 +1,11 @@
+## [2.15.51](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.50...v2.15.51) (2026-06-30)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/klauspost/compress to v1.18.7 ([#250](https://github.com/Belphemur/SuperSubtitles/issues/250)) ([bb1372f](https://github.com/Belphemur/SuperSubtitles/commit/bb1372f120a0e8f87afbab2768a85270fc740b4b))
+* **deps:** update module google.golang.org/grpc to v1.82.0 ([#251](https://github.com/Belphemur/SuperSubtitles/issues/251)) ([3730343](https://github.com/Belphemur/SuperSubtitles/commit/373034342cf44a60c9cf9a15a3750f8903ee1c1d))
+
 ## [2.15.50](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.49...v2.15.50) (2026-06-29)
 
 
