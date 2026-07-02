@@ -45,6 +45,8 @@ github.com/getsentry/sentry-go v0.46.1 h1:mZyQFaQYkPxAdDG4HR8gDg6j4CnKYVWt4TF92N
 github.com/getsentry/sentry-go v0.46.1/go.mod h1:evVbw2qotNUdYG8KxXbAdjOQWWvWIwKxpjdZZIvcIPw=
 github.com/getsentry/sentry-go v0.46.2 h1:1jhYwrKGa3sIpo/y5iDNXS5wDoT7I1KNzMHrnK6ojns=
 github.com/getsentry/sentry-go v0.46.2/go.mod h1:evVbw2qotNUdYG8KxXbAdjOQWWvWIwKxpjdZZIvcIPw=
+github.com/getsentry/sentry-go v0.47.0 h1:AnSMSyrYA5qZCIN/2xpgAAwv63sVULV+vBq37ajouc8=
+github.com/getsentry/sentry-go v0.47.0/go.mod h1:h+b4VHpKnK7aUXB5wc+KDnPgp9ZtfliRD4eV85FbiSA=
 github.com/go-errors/errors v1.4.2 h1:J6MZopCL4uSllY1OfXM374weqZFFItUbrImctkmUxIA=
 github.com/go-errors/errors v1.4.2/go.mod h1:sIVyrIiJhuEF+Pj9Ebtd6P/rEYROXFi3BopGUQ5a5Og=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
