@@ -1,3 +1,10 @@
+## [2.15.54](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.53...v2.15.54) (2026-07-06)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/text to v0.39.0 ([#255](https://github.com/Belphemur/SuperSubtitles/issues/255)) ([f2c5153](https://github.com/Belphemur/SuperSubtitles/commit/f2c515328a6ab0905c21e568a1840d22a8304e1c))
+
 ## [2.15.53](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.52...v2.15.53) (2026-07-01)
 
 
