@@ -1,3 +1,10 @@
+## [2.15.65](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.64...v2.15.65) (2026-07-21)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/prometheus/client_golang to v1.24.0 ([#275](https://github.com/Belphemur/SuperSubtitles/issues/275)) ([7e98790](https://github.com/Belphemur/SuperSubtitles/commit/7e9879012eccb12ad3c31d6ee511ea60724345ee))
+
 ## [2.15.64](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.63...v2.15.64) (2026-07-21)
 
 
