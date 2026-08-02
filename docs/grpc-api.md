@@ -47,3 +47,14 @@ grpc_health_probe -addr=localhost:8080
 | FAILED_PRECONDITION | Archive validation/conversion/extraction failures; includes `ErrorInfo` metadata `http_status=422` (`UNPROCESSABLE_ENTITY`) |
 | UNAVAILABLE | The HTTP client's circuit breaker is open because calls to feliratok.eu have been failing repeatedly; includes `ErrorInfo` metadata `http_status=503` and a clear message explaining requests are being short-circuited to allow the upstream to recover. See [circuit breaker design decision](./design-decisions/http-client.md) |
 | INTERNAL | HTTP failures, parsing errors |
+
+### Per-RPC error codes
+
+| RPC | Possible codes |
+| --- | --- |
+| GetShowList | `NOT_FOUND` (show lookup), `UNAVAILABLE` (circuit open), `INTERNAL` |
+| GetShowSubtitles | `NOT_FOUND` (subtitles not found for a show), `FAILED_PRECONDITION` (archive error), `UNAVAILABLE` (circuit open), `INVALID_ARGUMENT` (no valid shows), `INTERNAL` |
+| CheckForUpdates | `NOT_FOUND` (content ID not found), `UNAVAILABLE` (circuit open), `INTERNAL` |
+| GetRecentSubtitles | `NOT_FOUND` (no recent subtitles), `UNAVAILABLE` (circuit open), `INTERNAL` |
+| GetSubtitles | `UNAVAILABLE` (circuit open), `INTERNAL` |
+| DownloadSubtitle | `NOT_FOUND` (episode/URL not found), `FAILED_PRECONDITION` (archive error), `UNAVAILABLE` (circuit open), `INTERNAL` |

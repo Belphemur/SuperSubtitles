@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -81,8 +83,15 @@ func newCircuitBreakerPolicy(cfg *config.Config, logger zerolog.Logger) failsafe
 // isTransientHTTPFailure classifies responses that should count as failures for
 // the circuit breaker: connection errors, 429 Too Many Requests, and any 5xx
 // server error (including non-standard codes such as 530 used by CDNs/proxies).
+// Caller-initiated cancellations (context.Canceled) are not upstream faults and
+// are excluded so client disconnects do not contribute to opening the breaker.
 func isTransientHTTPFailure(resp *http.Response, err error) bool {
 	if err != nil {
+		// A cancelled caller context is not an upstream fault. Do not let
+		// client-side cancellations open the circuit.
+		if errors.Is(err, context.Canceled) {
+			return false
+		}
 		return true
 	}
 
