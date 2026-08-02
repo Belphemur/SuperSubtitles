@@ -49,7 +49,7 @@ func New(cfg Config) (*Reporter, error) {
 		Release:          cfg.Release,
 		Debug:            cfg.Debug,
 		AttachStacktrace: true,
-		EnableLogs:       cfg.EnableLogs,
+		DisableLogs:      !cfg.EnableLogs,
 	}
 	if cfg.Transport != nil {
 		clientOptions.Transport = cfg.Transport
