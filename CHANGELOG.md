@@ -1,3 +1,15 @@
+# [2.16.0](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.73...v2.16.0) (2026-08-02)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/getsentry/sentry-go to v0.48.0 ([#254](https://github.com/Belphemur/SuperSubtitles/issues/254)) ([e7a16dc](https://github.com/Belphemur/SuperSubtitles/commit/e7a16dc37bc140927913fbd9ebff7a35f62b8246))
+
+
+### Features
+
+* **resilience:** Add circuit breaker for feliratok.eu HTTP calls, surfaced clearly through gRPC ([#289](https://github.com/Belphemur/SuperSubtitles/issues/289)) ([9a1bf20](https://github.com/Belphemur/SuperSubtitles/commit/9a1bf205ff8495218209f507513e057897e2bdd7))
+
 ## [2.15.73](https://github.com/Belphemur/SuperSubtitles/compare/v2.15.72...v2.15.73) (2026-07-30)
 
 
