@@ -43,7 +43,7 @@ func (s *server) GetShowList(req *pb.GetShowListRequest, stream grpc.ServerStrea
 				// No shows sent yet — return an error
 				reportGRPCError("GetShowList", result.Err, nil)
 				s.logger.Error().Err(result.Err).Msg("Failed to get show list")
-				return status.Errorf(codes.Internal, "failed to get show list: %v", result.Err)
+				return toStatusError("failed to get show list", result.Err)
 			}
 			// Some shows already sent — log and continue
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming shows")
@@ -104,7 +104,7 @@ func (s *server) GetShowSubtitles(req *pb.GetShowSubtitlesRequest, stream grpc.S
 			if count == 0 {
 				reportGRPCError("GetShowSubtitles", result.Err, map[string]any{"show_count": len(req.Shows)})
 				s.logger.Error().Err(result.Err).Int("show_count", len(req.Shows)).Msg("Failed to get show subtitles")
-				return status.Errorf(codes.Internal, "failed to get show subtitles: %v", result.Err)
+				return toStatusError("failed to get show subtitles", result.Err)
 			}
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming show subtitles")
 			continue
@@ -128,7 +128,7 @@ func (s *server) CheckForUpdates(ctx context.Context, req *pb.CheckForUpdatesReq
 	if err != nil {
 		reportGRPCError("CheckForUpdates", err, map[string]any{"content_id": req.ContentId})
 		s.logger.Error().Err(err).Int64("content_id", req.ContentId).Msg("Failed to check for updates")
-		return nil, status.Errorf(codes.Internal, "failed to check for updates: %v", err)
+		return nil, toStatusError("failed to check for updates", err)
 	}
 
 	s.logger.Debug().
@@ -203,7 +203,7 @@ func (s *server) GetRecentSubtitles(req *pb.GetRecentSubtitlesRequest, stream gr
 				// No items sent yet — return error to client
 				reportGRPCError("GetRecentSubtitles", result.Err, map[string]any{"since_id": req.SinceId})
 				s.logger.Error().Err(result.Err).Int64("since_id", req.SinceId).Msg("Failed to get recent subtitles")
-				return status.Errorf(codes.Internal, "failed to get recent subtitles: %v", result.Err)
+				return toStatusError("failed to get recent subtitles", result.Err)
 			}
 			// Items already sent — log and continue to deliver partial results
 			s.logger.Warn().Err(result.Err).Msg("Error while streaming recent subtitles")

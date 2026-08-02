@@ -29,6 +29,9 @@ Configuration is loaded from `config/config.yaml` using Viper. Environment varia
 | `retry.max_attempts`      | Total HTTP attempts per request (1 = no retry, 0 uses default 3) | `3`                                                                   | `APP_RETRY_MAX_ATTEMPTS`       |
 | `retry.initial_delay`     | Delay before the first retry (exponential back-off base, empty = no delay) | `1s`                                                           | `APP_RETRY_INITIAL_DELAY`      |
 | `retry.max_delay`         | Maximum back-off delay cap (empty = use initial_delay as cap) | `10s`                                                                 | `APP_RETRY_MAX_DELAY`          |
+| `circuit_breaker.failure_threshold` | Consecutive failures within closed state before opening the circuit (0 uses default 5) | `5` | `APP_CIRCUIT_BREAKER_FAILURE_THRESHOLD` |
+| `circuit_breaker.success_threshold` | Consecutive successes while half-open required to close the circuit (0 uses default 2) | `2` | `APP_CIRCUIT_BREAKER_SUCCESS_THRESHOLD` |
+| `circuit_breaker.open_duration`     | Delay before transitioning from open to half-open (empty uses default 30s) | `30s` | `APP_CIRCUIT_BREAKER_OPEN_DURATION` |
 
 ## Example Configuration
 
@@ -67,6 +70,11 @@ retry:
   max_attempts: 3      # Total attempts including the initial try (1 = no retry)
   initial_delay: "1s"  # Delay before the first retry (exponential back-off base)
   max_delay: "10s"     # Maximum back-off delay cap
+
+circuit_breaker:
+  failure_threshold: 5   # Consecutive failures within closed state before opening the circuit
+  success_threshold: 2   # Consecutive successes while half-open required to close the circuit
+  open_duration: "30s"   # Delay before transitioning from open to half-open
 ```
 
 All fields, defaults, and env var names are listed in the table above.

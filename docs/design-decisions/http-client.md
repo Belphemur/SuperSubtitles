@@ -23,6 +23,29 @@
 
 **Implementation**: `NewClient` in `internal/client/client.go` builds the retry policy via `failsafehttp.NewRetryPolicyBuilder()` and wraps the compression transport with `failsafehttp.NewRoundTripper`.
 
+## Circuit Breaker for HTTP Calls
+
+**Decision**: All HTTP requests to feliratok.eu are additionally protected by a [failsafe-go](https://failsafe-go.dev/) circuit breaker, composed around the retry policy at the transport level. The circuit breaker opens after a run of consecutive transient failures (5xx responses, 429, or connection errors — the same class of failures the retry policy handles), short-circuiting further requests for a configurable delay before allowing trial requests through again (half-open) and eventually closing once those trials succeed.
+
+**Rationale**:
+
+- Retries alone can amplify load on an already-struggling upstream (every caller keeps retrying, multiplying request volume during an outage)
+- A circuit breaker gives feliratok.eu a chance to recover by failing fast instead of continuing to hammer it once failures are persistent
+- Failing fast also improves latency for callers during an outage — they get an immediate, clear error instead of waiting through a full retry sequence on every call
+- Composing the circuit breaker *around* the retry policy (rather than *inside* it) means the breaker counts failures per logical request (after retries are exhausted), not per individual HTTP attempt — this avoids opening the circuit prematurely due to a single request's retries
+
+**Behaviour**:
+
+- Opens after `circuit_breaker.failure_threshold` consecutive failures (same failure classification as the retry policy: 5xx except 501, 429, connection errors)
+- Stays open for `circuit_breaker.open_duration`, rejecting all requests immediately with an error wrapping `circuitbreaker.ErrOpen`
+- Transitions to half-open afterward, allowing `circuit_breaker.success_threshold` consecutive trial requests through; success closes the circuit again, failure re-opens it
+- State transitions (open/half-open/closed) are logged and exposed via the `http_client_circuit_breaker_state` Prometheus gauge (`0`=closed, `1`=half-open, `2`=open)
+- The gRPC layer maps a circuit-breaker-open error to `codes.Unavailable` (HTTP 503 equivalent) with a clear, human-readable message via `apperrors.ErrCircuitOpen`, instead of a generic `Internal` error — see [gRPC error codes](../grpc-api.md#error-codes)
+
+**Configuration**: See `circuit_breaker.*` fields in [configuration](../configuration.md).
+
+**Implementation**: `newCircuitBreakerPolicy` in `internal/client/circuit_breaker.go` builds the breaker via `circuitbreaker.NewBuilder()`; `NewClient` composes it with the retry policy via `failsafehttp.NewRoundTripper(transport, circuitBreakerPolicy, retryPolicy)`. Error translation lives in `internal/grpc/error_mapping.go` (`toStatusError`) and `internal/apperrors/errors.go` (`ErrCircuitOpen`).
+
 ## Partial Failure Resilience
 
 **Decision**: The client returns whatever data it successfully fetched, logging warnings for failed endpoints rather than failing the entire operation.

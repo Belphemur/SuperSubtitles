@@ -113,3 +113,42 @@ func (e *ErrSubtitleResourceNotFound) GRPCCode() codes.Code {
 func (e *ErrSubtitleResourceNotFound) HTTPStatusCode() int {
 	return http.StatusNotFound
 }
+
+// ErrCircuitOpen is returned when an upstream request is rejected because the
+// circuit breaker protecting calls to feliratok.eu is open (or half-open and
+// out of trial permits), meaning recent requests have been failing repeatedly
+// and further calls are being short-circuited to let the upstream recover.
+type ErrCircuitOpen struct {
+	// Endpoint identifies the upstream URL that was being called when the
+	// circuit breaker rejected the request.
+	Endpoint string
+}
+
+// Error implements the error interface.
+func (e *ErrCircuitOpen) Error() string {
+	if e.Endpoint != "" {
+		return fmt.Sprintf("circuit breaker open: too many recent failures calling %s, request rejected to allow recovery", e.Endpoint)
+	}
+	return "circuit breaker open: too many recent failures calling the upstream service, request rejected to allow recovery"
+}
+
+// Is allows for error checking with errors.Is().
+func (e *ErrCircuitOpen) Is(target error) bool {
+	_, ok := target.(*ErrCircuitOpen)
+	return ok
+}
+
+// GRPCCode returns the gRPC status code for this error.
+func (e *ErrCircuitOpen) GRPCCode() codes.Code {
+	return codes.Unavailable
+}
+
+// HTTPStatusCode returns the HTTP status code equivalent for this error.
+func (e *ErrCircuitOpen) HTTPStatusCode() int {
+	return http.StatusServiceUnavailable
+}
+
+// NewCircuitOpenError creates a new ErrCircuitOpen for the given upstream endpoint.
+func NewCircuitOpenError(endpoint string) *ErrCircuitOpen {
+	return &ErrCircuitOpen{Endpoint: endpoint}
+}

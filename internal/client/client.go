@@ -72,13 +72,20 @@ func NewClient(cfg *config.Config) Client {
 	}
 
 	// Build the retry policy using failsafe-go's built-in HTTP retry policy builder.
-	// It retries on connection errors, 429 Too Many Requests, and 5xx server errors
-	// (except 501 Not Implemented). Context cancellation aborts retries immediately.
+	// It retries on connection errors, 429 Too Many Requests, and most 5xx server
+	// errors. We additionally handle 501 Not Implemented so that ALL 5xx codes
+	// (including non-standard codes like 530 returned by CDNs/proxies) trigger a
+	// retry. Context cancellation aborts retries immediately.
 	maxAttempts := cfg.Retry.MaxAttempts
 	if maxAttempts <= 0 {
 		maxAttempts = 3 // default: 3 total attempts (2 retries)
 	}
 	retryBuilder := failsafehttp.NewRetryPolicyBuilder().
+		HandleIf(func(resp *http.Response, err error) bool {
+			// failsafehttp's built-in policy excludes 501; include it so every
+			// 5xx is treated as a retryable server error.
+			return resp != nil && resp.StatusCode == http.StatusNotImplemented
+		}).
 		WithMaxAttempts(maxAttempts).
 		OnRetry(func(e failsafe.ExecutionEvent[*http.Response]) {
 			lastErr := e.LastError()
@@ -112,10 +119,17 @@ func NewClient(cfg *config.Config) Client {
 
 	retryPolicy := retryBuilder.Build()
 
+	circuitBreakerPolicy := newCircuitBreakerPolicy(cfg, logger)
+
 	// Wrap transport with compression support (gzip, brotli, zstd), then wrap the
-	// compression transport with the failsafe retry round-tripper so that every
-	// HTTP call made through httpClient is automatically retried on transient failures.
-	resilientTransport := failsafehttp.NewRoundTripper(newCompressionTransport(baseTransport), retryPolicy)
+	// compression transport with the failsafe round-tripper so that every HTTP
+	// call made through httpClient is automatically retried on transient failures
+	// and protected by a circuit breaker that short-circuits calls once failures
+	// pile up, giving the upstream service time to recover. Policies execute
+	// outer-to-inner, so the circuit breaker (outer) sees the fully-retried
+	// outcome of each call and opens based on retry-exhausted failures rather
+	// than individual attempts.
+	resilientTransport := failsafehttp.NewRoundTripper(newCompressionTransport(baseTransport), circuitBreakerPolicy, retryPolicy)
 
 	httpClient := &http.Client{
 		Timeout:   timeout,

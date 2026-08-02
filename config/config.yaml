@@ -28,3 +28,7 @@ retry:
   max_attempts: 3      # Total attempts including the initial try (1 = no retry)
   initial_delay: "1s"  # Delay before the first retry (exponential back-off base)
   max_delay: "10s"     # Maximum back-off delay cap
+circuit_breaker:
+  failure_threshold: 5   # Consecutive failures within closed state before opening the circuit
+  success_threshold: 2   # Consecutive successes while half-open required to close the circuit
+  open_duration: "30s"   # Delay before transitioning from open to half-open

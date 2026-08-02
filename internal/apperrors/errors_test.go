@@ -7,7 +7,10 @@ package apperrors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
+
+	"google.golang.org/grpc/codes"
 )
 
 // ---------------------------------------------------------------------------
@@ -388,7 +391,78 @@ func TestErrorTypes_ImplementErrorInterface(t *testing.T) {
 	var _ error = &ErrNotFound{}
 	var _ error = &ErrSubtitleNotFoundInArchive{}
 	var _ error = &ErrSubtitleResourceNotFound{}
+	var _ error = &ErrCircuitOpen{}
 	var _ GRPCBindableError = &ErrNotFound{}
 	var _ GRPCBindableError = &ErrSubtitleNotFoundInArchive{}
 	var _ GRPCBindableError = &ErrSubtitleResourceNotFound{}
+	var _ GRPCBindableError = &ErrCircuitOpen{}
+}
+
+// ---------------------------------------------------------------------------
+// ErrCircuitOpen
+// ---------------------------------------------------------------------------
+
+func TestErrCircuitOpen_Error(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		err      *ErrCircuitOpen
+		expected string
+	}{
+		{
+			name:     "with endpoint",
+			err:      &ErrCircuitOpen{Endpoint: "https://feliratok.eu/index.php"},
+			expected: "circuit breaker open: too many recent failures calling https://feliratok.eu/index.php, request rejected to allow recovery",
+		},
+		{
+			name:     "without endpoint",
+			err:      &ErrCircuitOpen{},
+			expected: "circuit breaker open: too many recent failures calling the upstream service, request rejected to allow recovery",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := tt.err.Error()
+			if got != tt.expected {
+				t.Errorf("Error() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestErrCircuitOpen_Is(t *testing.T) {
+	t.Parallel()
+	err := &ErrCircuitOpen{Endpoint: "https://feliratok.eu"}
+
+	t.Run("matches another ErrCircuitOpen", func(t *testing.T) {
+		if !errors.Is(err, &ErrCircuitOpen{}) {
+			t.Error("expected errors.Is to match *ErrCircuitOpen")
+		}
+	})
+
+	t.Run("does not match ErrNotFound", func(t *testing.T) {
+		if errors.Is(err, &ErrNotFound{}) {
+			t.Error("expected errors.Is not to match *ErrNotFound")
+		}
+	})
+
+	t.Run("matches through fmt.Errorf wrapping", func(t *testing.T) {
+		wrapped := fmt.Errorf("fetch failed: %w", err)
+		if !errors.Is(wrapped, &ErrCircuitOpen{}) {
+			t.Error("expected errors.Is to match *ErrCircuitOpen through wrapping")
+		}
+	})
+}
+
+func TestErrCircuitOpen_GRPCAndHTTPMapping(t *testing.T) {
+	t.Parallel()
+	err := NewCircuitOpenError("https://feliratok.eu")
+	if err.GRPCCode() != codes.Unavailable {
+		t.Errorf("Expected codes.Unavailable, got %v", err.GRPCCode())
+	}
+	if err.HTTPStatusCode() != http.StatusServiceUnavailable {
+		t.Errorf("Expected http.StatusServiceUnavailable, got %d", err.HTTPStatusCode())
+	}
 }

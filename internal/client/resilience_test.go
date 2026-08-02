@@ -7,14 +7,17 @@ package client
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/Belphemur/SuperSubtitles/v2/internal/config"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/testutil"
+	"github.com/failsafe-go/failsafe-go/circuitbreaker"
 )
 
 // newTestClientWithRetry creates a client configured with up to maxAttempts total
@@ -26,6 +29,21 @@ func newTestClientWithRetry(serverURL string, maxAttempts int) Client {
 	}
 	cfg.Retry.MaxAttempts = maxAttempts
 	// No InitialDelay → no backoff, retries fire immediately (fast tests)
+	return NewClient(&cfg)
+}
+
+// newTestClientWithCircuitBreaker creates a client with retries disabled (so
+// every failed call counts as exactly one circuit breaker failure) and a
+// circuit breaker configured with the given thresholds.
+func newTestClientWithCircuitBreaker(serverURL string, failureThreshold, successThreshold uint, openDuration string) Client {
+	cfg := config.Config{
+		SuperSubtitleDomain: serverURL,
+		ClientTimeout:       "10s",
+	}
+	cfg.Retry.MaxAttempts = 1 // disable retries so each call is a single execution
+	cfg.CircuitBreaker.FailureThreshold = failureThreshold
+	cfg.CircuitBreaker.SuccessThreshold = successThreshold
+	cfg.CircuitBreaker.OpenDuration = openDuration
 	return NewClient(&cfg)
 }
 
@@ -83,6 +101,68 @@ func TestClient_Retry_ExhaustsAttemptsAndFails(t *testing.T) {
 	}
 	if requestCount.Load() != maxAttempts {
 		t.Errorf("Expected %d total requests, got %d", maxAttempts, requestCount.Load())
+	}
+}
+
+// TestClient_Retry_530IsRetried verifies that non-standard 5xx responses such
+// as the 530 used by Cloudflare and some CDN/proxy layers are retried.
+func TestClient_Retry_530IsRetried(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestCount.Add(1) == 1 {
+			w.WriteHeader(530)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClientWithRetry(server.URL, 3)
+	result, err := c.CheckForUpdates(context.Background(), 42)
+
+	if err != nil {
+		t.Fatalf("Expected success after retry on 530, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests (1 × 530 + 1 × 200), got %d", requestCount.Load())
+	}
+}
+
+// TestClient_Retry_501IsRetried verifies that 501 Not Implemented is treated as
+// a retryable server error (any 5xx triggers a retry).
+func TestClient_Retry_501IsRetried(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestCount.Add(1) == 1 {
+			w.WriteHeader(http.StatusNotImplemented)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClientWithRetry(server.URL, 3)
+	result, err := c.CheckForUpdates(context.Background(), 42)
+
+	if err != nil {
+		t.Fatalf("Expected success after retry on 501, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests (1 × 501 + 1 × 200), got %d", requestCount.Load())
 	}
 }
 
@@ -186,5 +266,146 @@ func TestClient_Retry_ShowListSucceedsAfterTransientError(t *testing.T) {
 	}
 	if shows[0].ID != 101 {
 		t.Errorf("Expected show ID 101, got %d", shows[0].ID)
+	}
+}
+
+// TestClient_CircuitBreaker_OpensAfterConsecutiveFailures verifies that once
+// the configured number of consecutive failures occurs, the circuit breaker
+// opens and short-circuits further requests without hitting the server,
+// returning an error that wraps circuitbreaker.ErrOpen.
+func TestClient_CircuitBreaker_OpensAfterConsecutiveFailures(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	const failureThreshold = 2
+	c := newTestClientWithCircuitBreaker(server.URL, failureThreshold, 1, "1m")
+	ctx := context.Background()
+
+	// The first failureThreshold calls should reach the server and fail with a
+	// regular (non-circuit-breaker) error.
+	for i := 0; i < failureThreshold; i++ {
+		_, err := c.CheckForUpdates(ctx, 1)
+		if err == nil {
+			t.Fatalf("Expected error on attempt %d, got nil", i+1)
+		}
+		if errors.Is(err, circuitbreaker.ErrOpen) {
+			t.Fatalf("Did not expect circuit breaker to be open yet on attempt %d", i+1)
+		}
+	}
+	if requestCount.Load() != failureThreshold {
+		t.Fatalf("Expected %d requests before circuit opens, got %d", failureThreshold, requestCount.Load())
+	}
+
+	// The next call should be short-circuited: no additional request reaches
+	// the server, and the error wraps circuitbreaker.ErrOpen.
+	_, err := c.CheckForUpdates(ctx, 1)
+	if err == nil {
+		t.Fatal("Expected error once circuit breaker is open, got nil")
+	}
+	if !errors.Is(err, circuitbreaker.ErrOpen) {
+		t.Fatalf("Expected error to wrap circuitbreaker.ErrOpen, got: %v", err)
+	}
+	if requestCount.Load() != failureThreshold {
+		t.Errorf("Expected no additional request while circuit is open, got %d total requests", requestCount.Load())
+	}
+}
+
+// TestClient_CircuitBreaker_ClosesAfterSuccessInHalfOpen verifies that after
+// the open duration elapses, the circuit breaker transitions to half-open and
+// closes again once a trial request succeeds.
+func TestClient_CircuitBreaker_ClosesAfterSuccessInHalfOpen(t *testing.T) {
+	t.Parallel()
+
+	var failing atomic.Bool
+	failing.Store(true)
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		if failing.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
+	}))
+	defer server.Close()
+
+	// Open the circuit after a single failure, with a very short open duration
+	// so the test can quickly exercise the half-open → closed transition.
+	c := newTestClientWithCircuitBreaker(server.URL, 1, 1, "10ms")
+	ctx := context.Background()
+
+	// First call fails and opens the circuit.
+	if _, err := c.CheckForUpdates(ctx, 1); err == nil {
+		t.Fatal("Expected the first call to fail")
+	}
+
+	// Immediately retrying should be short-circuited.
+	if _, err := c.CheckForUpdates(ctx, 1); !errors.Is(err, circuitbreaker.ErrOpen) {
+		t.Fatalf("Expected circuit breaker open error immediately after opening, got: %v", err)
+	}
+
+	// Let the server start succeeding and wait for the open duration to elapse
+	// so the breaker transitions to half-open.
+	failing.Store(false)
+	time.Sleep(50 * time.Millisecond)
+
+	result, err := c.CheckForUpdates(ctx, 1)
+	if err != nil {
+		t.Fatalf("Expected the half-open trial request to succeed, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+
+	// The circuit should now be closed, allowing subsequent calls through.
+	if _, err := c.CheckForUpdates(ctx, 1); err != nil {
+		t.Fatalf("Expected circuit breaker to be closed after successful trial, got: %v", err)
+	}
+}
+
+// TestClient_CircuitBreaker_OpensOn530 verifies that non-standard 5xx responses
+// such as 530 (used by Cloudflare and other CDN/proxy layers) are counted as
+// failures and can open the circuit breaker.
+func TestClient_CircuitBreaker_OpensOn530(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(530)
+	}))
+	defer server.Close()
+
+	const failureThreshold = 2
+	c := newTestClientWithCircuitBreaker(server.URL, failureThreshold, 1, "1m")
+	ctx := context.Background()
+
+	for i := 0; i < failureThreshold; i++ {
+		_, err := c.CheckForUpdates(ctx, 1)
+		if err == nil {
+			t.Fatalf("Expected error on attempt %d, got nil", i+1)
+		}
+		if errors.Is(err, circuitbreaker.ErrOpen) {
+			t.Fatalf("Did not expect circuit breaker to be open yet on attempt %d", i+1)
+		}
+	}
+
+	_, err := c.CheckForUpdates(ctx, 1)
+	if err == nil {
+		t.Fatal("Expected error once circuit breaker is open, got nil")
+	}
+	if !errors.Is(err, circuitbreaker.ErrOpen) {
+		t.Fatalf("Expected circuitbreaker.ErrOpen after %d × 530 failures, got: %v", failureThreshold, err)
+	}
+	if requestCount.Load() != failureThreshold {
+		t.Errorf("Expected no additional request while circuit is open, got %d total", requestCount.Load())
 	}
 }
