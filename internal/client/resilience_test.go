@@ -104,6 +104,68 @@ func TestClient_Retry_ExhaustsAttemptsAndFails(t *testing.T) {
 	}
 }
 
+// TestClient_Retry_530IsRetried verifies that non-standard 5xx responses such
+// as the 530 used by Cloudflare and some CDN/proxy layers are retried.
+func TestClient_Retry_530IsRetried(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestCount.Add(1) == 1 {
+			w.WriteHeader(530)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClientWithRetry(server.URL, 3)
+	result, err := c.CheckForUpdates(context.Background(), 42)
+
+	if err != nil {
+		t.Fatalf("Expected success after retry on 530, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests (1 × 530 + 1 × 200), got %d", requestCount.Load())
+	}
+}
+
+// TestClient_Retry_501IsRetried verifies that 501 Not Implemented is treated as
+// a retryable server error (any 5xx triggers a retry).
+func TestClient_Retry_501IsRetried(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requestCount.Add(1) == 1 {
+			w.WriteHeader(http.StatusNotImplemented)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"film":"0","sorozat":"0"}`))
+	}))
+	defer server.Close()
+
+	c := newTestClientWithRetry(server.URL, 3)
+	result, err := c.CheckForUpdates(context.Background(), 42)
+
+	if err != nil {
+		t.Fatalf("Expected success after retry on 501, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests (1 × 501 + 1 × 200), got %d", requestCount.Load())
+	}
+}
+
 // TestClient_Retry_429TooManyRequestsIsRetried verifies that 429 responses
 // trigger a retry.
 func TestClient_Retry_429TooManyRequestsIsRetried(t *testing.T) {
@@ -306,5 +368,44 @@ func TestClient_CircuitBreaker_ClosesAfterSuccessInHalfOpen(t *testing.T) {
 	// The circuit should now be closed, allowing subsequent calls through.
 	if _, err := c.CheckForUpdates(ctx, 1); err != nil {
 		t.Fatalf("Expected circuit breaker to be closed after successful trial, got: %v", err)
+	}
+}
+
+// TestClient_CircuitBreaker_OpensOn530 verifies that non-standard 5xx responses
+// such as 530 (used by Cloudflare and other CDN/proxy layers) are counted as
+// failures and can open the circuit breaker.
+func TestClient_CircuitBreaker_OpensOn530(t *testing.T) {
+	t.Parallel()
+
+	var requestCount atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(530)
+	}))
+	defer server.Close()
+
+	const failureThreshold = 2
+	c := newTestClientWithCircuitBreaker(server.URL, failureThreshold, 1, "1m")
+	ctx := context.Background()
+
+	for i := 0; i < failureThreshold; i++ {
+		_, err := c.CheckForUpdates(ctx, 1)
+		if err == nil {
+			t.Fatalf("Expected error on attempt %d, got nil", i+1)
+		}
+		if errors.Is(err, circuitbreaker.ErrOpen) {
+			t.Fatalf("Did not expect circuit breaker to be open yet on attempt %d", i+1)
+		}
+	}
+
+	_, err := c.CheckForUpdates(ctx, 1)
+	if err == nil {
+		t.Fatal("Expected error once circuit breaker is open, got nil")
+	}
+	if !errors.Is(err, circuitbreaker.ErrOpen) {
+		t.Fatalf("Expected circuitbreaker.ErrOpen after %d × 530 failures, got: %v", failureThreshold, err)
+	}
+	if requestCount.Load() != failureThreshold {
+		t.Errorf("Expected no additional request while circuit is open, got %d total", requestCount.Load())
 	}
 }

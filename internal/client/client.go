@@ -72,13 +72,20 @@ func NewClient(cfg *config.Config) Client {
 	}
 
 	// Build the retry policy using failsafe-go's built-in HTTP retry policy builder.
-	// It retries on connection errors, 429 Too Many Requests, and 5xx server errors
-	// (except 501 Not Implemented). Context cancellation aborts retries immediately.
+	// It retries on connection errors, 429 Too Many Requests, and most 5xx server
+	// errors. We additionally handle 501 Not Implemented so that ALL 5xx codes
+	// (including non-standard codes like 530 returned by CDNs/proxies) trigger a
+	// retry. Context cancellation aborts retries immediately.
 	maxAttempts := cfg.Retry.MaxAttempts
 	if maxAttempts <= 0 {
 		maxAttempts = 3 // default: 3 total attempts (2 retries)
 	}
 	retryBuilder := failsafehttp.NewRetryPolicyBuilder().
+		HandleIf(func(resp *http.Response, err error) bool {
+			// failsafehttp's built-in policy excludes 501; include it so every
+			// 5xx is treated as a retryable server error.
+			return resp != nil && resp.StatusCode == http.StatusNotImplemented
+		}).
 		WithMaxAttempts(maxAttempts).
 		OnRetry(func(e failsafe.ExecutionEvent[*http.Response]) {
 			lastErr := e.LastError()

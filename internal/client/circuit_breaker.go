@@ -21,12 +21,12 @@ const (
 
 // newCircuitBreakerPolicy builds a failsafe-go circuit breaker that protects
 // every HTTP call made to feliratok.eu. It opens after a run of consecutive
-// failures (5xx responses, 429 Too Many Requests, or connection errors),
-// short-circuiting further requests with circuitbreaker.ErrOpen so the
-// upstream site gets a chance to recover instead of being hammered with
-// requests that are very likely to fail. After the configured open duration
-// it transitions to half-open and allows a small number of trial requests
-// through before fully closing again.
+// failures (any 5xx response including non-standard codes such as 530, 429 Too
+// Many Requests, or connection errors), short-circuiting further requests with
+// circuitbreaker.ErrOpen so the upstream site gets a chance to recover instead
+// of being hammered with requests that are very likely to fail. After the
+// configured open duration it transitions to half-open and allows a small
+// number of trial requests through before fully closing again.
 func newCircuitBreakerPolicy(cfg *config.Config, logger zerolog.Logger) failsafe.Policy[*http.Response] {
 	failureThreshold := cfg.CircuitBreaker.FailureThreshold
 	if failureThreshold == 0 {
@@ -78,10 +78,9 @@ func newCircuitBreakerPolicy(cfg *config.Config, logger zerolog.Logger) failsafe
 	return builder.Build()
 }
 
-// isTransientHTTPFailure mirrors the transient-failure classification used by
-// failsafehttp's default retry policy (connection errors, 429, and most 5xx
-// responses) so the circuit breaker opens for the same class of failures that
-// are retried, rather than for permanent client errors like 404.
+// isTransientHTTPFailure classifies responses that should count as failures for
+// the circuit breaker: connection errors, 429 Too Many Requests, and any 5xx
+// server error (including non-standard codes such as 530 used by CDNs/proxies).
 func isTransientHTTPFailure(resp *http.Response, err error) bool {
 	if err != nil {
 		return true
@@ -91,7 +90,7 @@ func isTransientHTTPFailure(resp *http.Response, err error) bool {
 		if resp.StatusCode == http.StatusTooManyRequests {
 			return true
 		}
-		if resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented {
+		if resp.StatusCode >= 500 {
 			return true
 		}
 	}
