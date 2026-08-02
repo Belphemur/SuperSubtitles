@@ -112,10 +112,17 @@ func NewClient(cfg *config.Config) Client {
 
 	retryPolicy := retryBuilder.Build()
 
+	circuitBreakerPolicy := newCircuitBreakerPolicy(cfg, logger)
+
 	// Wrap transport with compression support (gzip, brotli, zstd), then wrap the
-	// compression transport with the failsafe retry round-tripper so that every
-	// HTTP call made through httpClient is automatically retried on transient failures.
-	resilientTransport := failsafehttp.NewRoundTripper(newCompressionTransport(baseTransport), retryPolicy)
+	// compression transport with the failsafe round-tripper so that every HTTP
+	// call made through httpClient is automatically retried on transient failures
+	// and protected by a circuit breaker that short-circuits calls once failures
+	// pile up, giving the upstream service time to recover. Policies execute
+	// outer-to-inner, so the circuit breaker (outer) sees the fully-retried
+	// outcome of each call and opens based on retry-exhausted failures rather
+	// than individual attempts.
+	resilientTransport := failsafehttp.NewRoundTripper(newCompressionTransport(baseTransport), circuitBreakerPolicy, retryPolicy)
 
 	httpClient := &http.Client{
 		Timeout:   timeout,

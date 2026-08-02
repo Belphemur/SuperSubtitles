@@ -47,7 +47,7 @@ grpc/            ← API layer: streams results to clients
 | Domain | Decision | Why | Details |
 | --- | --- | --- | --- |
 | Streaming | Server-side streaming for list RPCs; channel-based client | Faster time-to-first-result, lower memory | [streaming](./design-decisions/streaming.md) |
-| HTTP | Retry at transport layer; partial failure resilience | Transparent retries, graceful degradation | [http-client](./design-decisions/http-client.md) |
+| HTTP | Retry and circuit breaker at transport layer; partial failure resilience | Transparent retries, fail-fast on repeated failures, graceful degradation | [http-client](./design-decisions/http-client.md) |
 | Parsing | Generic parser interfaces; normalization in parser; UTF-8 safety | Type safety, single-pass transform, encoding resilience | [parsing](./design-decisions/parsing.md) |
 | Cache | Pluggable factory (memory/Redis); metrics with group label | Backend flexibility, transparent instrumentation | [cache](./design-decisions/cache.md) |
 | Infrastructure | Standard gRPC health protocol; custom error types | Industry-standard tooling, proper error propagation | [infrastructure](./design-decisions/infrastructure.md) |

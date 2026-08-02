@@ -52,6 +52,11 @@ type Config struct {
 		InitialDelay string `mapstructure:"initial_delay"` // Delay before the first retry, e.g. "500ms", "1s" (empty = no delay)
 		MaxDelay     string `mapstructure:"max_delay"`     // Maximum retry delay with exponential back-off, e.g. "10s" (empty = use initial_delay as cap)
 	} `mapstructure:"retry"`
+	CircuitBreaker struct {
+		FailureThreshold uint   `mapstructure:"failure_threshold"` // Consecutive failures within closed state before opening the circuit (0 uses default of 5)
+		SuccessThreshold uint   `mapstructure:"success_threshold"` // Consecutive successes while half-open required to close the circuit (0 uses default of 2)
+		OpenDuration     string `mapstructure:"open_duration"`     // Delay before transitioning from open to half-open, e.g. "30s" (empty uses default of 30s)
+	} `mapstructure:"circuit_breaker"`
 }
 
 var (

@@ -45,4 +45,5 @@ grpc_health_probe -addr=localhost:8080
 | NOT_FOUND | Episode missing from ZIP, subtitle URL 404, show ID not found |
 | INVALID_ARGUMENT | No valid shows provided |
 | FAILED_PRECONDITION | Archive validation/conversion/extraction failures; includes `ErrorInfo` metadata `http_status=422` (`UNPROCESSABLE_ENTITY`) |
+| UNAVAILABLE | The HTTP client's circuit breaker is open because calls to feliratok.eu have been failing repeatedly; includes `ErrorInfo` metadata `http_status=503` and a clear message explaining requests are being short-circuited to allow the upstream to recover. See [circuit breaker design decision](./design-decisions/http-client.md) |
 | INTERNAL | HTTP failures, parsing errors |

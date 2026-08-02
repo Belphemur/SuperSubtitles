@@ -20,6 +20,7 @@ import (
 	"github.com/Belphemur/SuperSubtitles/v2/internal/apperrors"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/archive"
 	"github.com/Belphemur/SuperSubtitles/v2/internal/models"
+	"github.com/failsafe-go/failsafe-go/circuitbreaker"
 )
 
 // mockClient implements client.Client for testing
@@ -586,6 +587,51 @@ func TestDownloadSubtitle_ResourceNotFound(t *testing.T) {
 	}
 	if st.Code() != codes.NotFound {
 		t.Errorf("Expected codes.NotFound, got %v", st.Code())
+	}
+}
+
+// TestDownloadSubtitle_CircuitBreakerOpenReturnsUnavailable verifies that a
+// circuit-breaker-open error from the client is mapped to codes.Unavailable
+// with a clear, human-readable message, rather than a generic Internal error.
+func TestDownloadSubtitle_CircuitBreakerOpenReturnsUnavailable(t *testing.T) {
+	t.Parallel()
+	mock := &mockClient{
+		downloadSubtitleFunc: func(ctx context.Context, subtitleID string, episode *int) (*models.DownloadResult, error) {
+			return nil, fmt.Errorf("failed to execute request: %w", circuitbreaker.ErrOpen)
+		},
+	}
+
+	srv := NewServer(mock)
+	ctx := context.Background()
+
+	req := &pb.DownloadSubtitleRequest{SubtitleId: "101"}
+
+	_, err := srv.DownloadSubtitle(ctx, req)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("Expected gRPC status error, got: %v", err)
+	}
+	if st.Code() != codes.Unavailable {
+		t.Errorf("Expected codes.Unavailable, got %v", st.Code())
+	}
+	if !strings.Contains(st.Message(), "circuit breaker") {
+		t.Errorf("Expected status message to clearly mention the circuit breaker, got %q", st.Message())
+	}
+
+	details := st.Details()
+	if len(details) == 0 {
+		t.Fatal("Expected status details with HTTP mapping metadata, got none")
+	}
+	errorInfo, ok := details[0].(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("Expected first detail to be ErrorInfo, got %T", details[0])
+	}
+	if got, want := errorInfo.Metadata["http_status"], fmt.Sprintf("%d", http.StatusServiceUnavailable); got != want {
+		t.Errorf("Expected http_status metadata %q, got %q", want, got)
 	}
 }
 
