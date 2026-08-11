@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 	golang.org/x/net v0.57.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260810153831-ec0a7760b754
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
