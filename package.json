@@ -22,5 +22,5 @@
     "@semantic-release/release-notes-generator": "^14.0.3",
     "semantic-release": "^25.0.0"
   },
-  "packageManager": "pnpm@11.21.0"
+  "packageManager": "pnpm@11.22.0"
 }
