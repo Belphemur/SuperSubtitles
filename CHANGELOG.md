@@ -1,3 +1,10 @@
+## [2.16.16](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.15...v2.16.16) (2026-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/puerkitobio/goquery to v1.13.0 ([#319](https://github.com/Belphemur/SuperSubtitles/issues/319)) ([5fd221d](https://github.com/Belphemur/SuperSubtitles/commit/5fd221d647bca0402581ebcd32b60791283fabcb))
+
 ## [2.16.15](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.14...v2.16.15) (2026-08-26)
 
 
