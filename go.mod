@@ -3,7 +3,7 @@ module github.com/Belphemur/SuperSubtitles/v2
 go 1.26
 
 require (
-	github.com/PuerkitoBio/goquery v1.12.0
+	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/andybalholm/brotli v1.2.2
 	github.com/failsafe-go/failsafe-go v0.9.7
 	github.com/getsentry/sentry-go v0.48.0
@@ -24,7 +24,7 @@ require (
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.3 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
