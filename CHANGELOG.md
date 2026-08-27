@@ -1,3 +1,10 @@
+## [2.16.17](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.16...v2.16.17) (2026-08-27)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/andybalholm/brotli to v1.2.3 ([#321](https://github.com/Belphemur/SuperSubtitles/issues/321)) ([cae7960](https://github.com/Belphemur/SuperSubtitles/commit/cae7960ef41f24788bad8700af7e3b77638cc379))
+
 ## [2.16.16](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.15...v2.16.16) (2026-08-27)
 
 
