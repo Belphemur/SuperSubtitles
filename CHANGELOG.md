@@ -1,3 +1,10 @@
+## [2.16.18](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.17...v2.16.18) (2026-08-31)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/prometheus/client_model to v0.6.3 ([#325](https://github.com/Belphemur/SuperSubtitles/issues/325)) ([19d8d02](https://github.com/Belphemur/SuperSubtitles/commit/19d8d026bea1e99ef8a7e7ef2bf535de38dc3edb))
+
 ## [2.16.17](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.16...v2.16.17) (2026-08-27)
 
 
