@@ -1,6 +1,6 @@
 module github.com/Belphemur/SuperSubtitles/v2
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.13.0
@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 	golang.org/x/net v0.58.0
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.42.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260908043556-f8649ddbbfe6
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
