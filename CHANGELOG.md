@@ -1,3 +1,11 @@
+## [2.16.32](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.31...v2.16.32) (2026-09-25)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/andybalholm/brotli to v1.2.5 ([#356](https://github.com/Belphemur/SuperSubtitles/issues/356)) ([1b1e4b8](https://github.com/Belphemur/SuperSubtitles/commit/1b1e4b89736f4dce46444b824bc66ee30929b866))
+* **deps:** update module github.com/klauspost/compress to v1.20.1 ([#357](https://github.com/Belphemur/SuperSubtitles/issues/357)) ([a3ce65c](https://github.com/Belphemur/SuperSubtitles/commit/a3ce65cb6b0a614f894b14c14570838e288bfb5d))
+
 ## [2.16.31](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.30...v2.16.31) (2026-09-21)
 
 
