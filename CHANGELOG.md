@@ -1,3 +1,10 @@
+## [2.16.35](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.34...v2.16.35) (2026-09-30)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/failsafe-go/failsafe-go to v0.9.8 ([#361](https://github.com/Belphemur/SuperSubtitles/issues/361)) ([14c3d63](https://github.com/Belphemur/SuperSubtitles/commit/14c3d63718e904653c2c2f01bb94cabe5a6ea5e4))
+
 ## [2.16.34](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.33...v2.16.34) (2026-09-30)
 
 
