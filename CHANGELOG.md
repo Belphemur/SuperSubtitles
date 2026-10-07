@@ -1,3 +1,10 @@
+## [2.16.38](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.37...v2.16.38) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus to v1.1.1 ([#372](https://github.com/Belphemur/SuperSubtitles/issues/372)) ([577e1be](https://github.com/Belphemur/SuperSubtitles/commit/577e1bef1b624cf49901c6d9b9eb243535ea325c))
+
 ## [2.16.37](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.36...v2.16.37) (2026-10-06)
 
 
