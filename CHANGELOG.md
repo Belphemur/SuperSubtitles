@@ -1,3 +1,10 @@
+## [2.16.51](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.50...v2.16.51) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/grpc to v1.85.0 ([#403](https://github.com/Belphemur/SuperSubtitles/issues/403)) ([748da0c](https://github.com/Belphemur/SuperSubtitles/commit/748da0cf00fabca0fb488c44c745e93534bdb746))
+
 ## [2.16.50](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.49...v2.16.50) (2026-10-27)
 
 
