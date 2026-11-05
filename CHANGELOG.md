@@ -1,3 +1,11 @@
+## [2.16.54](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.53...v2.16.54) (2026-11-05)
+
+
+### Bug Fixes
+
+* **deps:** update google.golang.org/genproto/googleapis/rpc digest to d1e00e9 ([#408](https://github.com/Belphemur/SuperSubtitles/issues/408)) ([bba8e11](https://github.com/Belphemur/SuperSubtitles/commit/bba8e116ee2264887a2e5ef6b8029ee3da029cc8))
+* **deps:** update module github.com/nwaples/rardecode/v2 to v2.4.6 ([#410](https://github.com/Belphemur/SuperSubtitles/issues/410)) ([64bce44](https://github.com/Belphemur/SuperSubtitles/commit/64bce44919d0779a0c40ee1f644c7fc750418f72))
+
 ## [2.16.53](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.52...v2.16.53) (2026-11-04)
 
 
