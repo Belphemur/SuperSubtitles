@@ -1,3 +1,11 @@
+## [2.16.55](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.54...v2.16.55) (2026-11-09)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/klauspost/compress to v1.20.4 ([#411](https://github.com/Belphemur/SuperSubtitles/issues/411)) ([7ea744c](https://github.com/Belphemur/SuperSubtitles/commit/7ea744cf6eabe91e91073d9c4a0e514cf416bb36))
+* **deps:** update module golang.org/x/text to v0.44.0 ([#412](https://github.com/Belphemur/SuperSubtitles/issues/412)) ([3e1c1be](https://github.com/Belphemur/SuperSubtitles/commit/3e1c1be19b3959d9fb5b586ba19df7181d8c2a27))
+
 ## [2.16.54](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.53...v2.16.54) (2026-11-05)
 
 
