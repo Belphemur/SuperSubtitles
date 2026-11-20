@@ -1,3 +1,9 @@
+## [2.16.62](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.61...v2.16.62) (2026-11-20)
+
+### Bug Fixes
+
+* **deps:** update module github.com/klauspost/compress to v1.20.5 ([#422](https://github.com/Belphemur/SuperSubtitles/issues/422)) ([6cdcc22](https://github.com/Belphemur/SuperSubtitles/commit/6cdcc22d0b46c31c8442dffff1f3629cde8b96a6))
+
 ## [2.16.61](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.60...v2.16.61) (2026-11-19)
 
 ### Bug Fixes
