@@ -1,3 +1,9 @@
+## [2.16.65](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.64...v2.16.65) (2026-11-27)
+
+### Bug Fixes
+
+* **deps:** update module github.com/redis/go-redis/v9 to v9.24.1 ([#427](https://github.com/Belphemur/SuperSubtitles/issues/427)) ([ec81fee](https://github.com/Belphemur/SuperSubtitles/commit/ec81feeed087d9d57bf212c5cdfe23fbffc4076b))
+
 ## [2.16.64](https://github.com/Belphemur/SuperSubtitles/compare/v2.16.63...v2.16.64) (2026-11-24)
 
 ### Bug Fixes
